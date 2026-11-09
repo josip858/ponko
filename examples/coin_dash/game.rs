@@ -1,13 +1,15 @@
 //! The game: rules, input mapping and drawing. Shared with `tests/coin_dash.rs`.
 //!
-//! Three layers, each testable on its own:
+//! Three layers, each a [`Plugin`] and each testable on its own; [`CoinDash`]
+//! is the three together:
 //!
-//! 1. `read_input` (frame system) turns keys and gamepad into an [`Intent`].
-//! 2. `rules` (sim system) is the whole game: it reads only the `Intent` and
-//!    the world, so a test can replace step 1 with a script and get the same
-//!    result on every run.
-//! 3. Drawing: entities with a `Sprite` are drawn by the engine's built-in
-//!    `draw_sprites`; `hud` adds the text. Neither changes the game.
+//! 1. [`Controls`]: `read_input` (frame system) turns keys and gamepad into
+//!    an [`Intent`].
+//! 2. [`Rules`]: `rules` (sim system) is the whole game. It reads only the
+//!    `Intent` and the world, so a test can replace step 1 with a script and
+//!    get the same result on every run.
+//! 3. [`Drawing`]: entities with a `Sprite` are drawn by the engine's
+//!    built-in sprite system; `hud` adds the text. Neither changes the game.
 //!
 //! The game moves through four [`Screen`]s: `Title` → `Playing` ⇄ `Paused`,
 //! `Playing` → `Result` → `Playing` again (or back to `Title`). Only `rules`
@@ -111,49 +113,89 @@ actions! {
 /// the same game.
 pub const SEED: u64 = 2024;
 
-/// The game without a window, ready for `run` or `run_headless`.
+/// The game without a window, ready for `run` or `run_headless`. Progress is
+/// kept in the default place, see [`save_path`].
 pub fn build() -> Game {
-    install(Game::new("Coin Dash", ARENA.x as u32, ARENA.y as u32).seed(SEED))
+    Game::new("Coin Dash", ARENA.x as u32, ARENA.y as u32)
+        .seed(SEED)
+        .plugin(CoinDash { save: save_path() })
 }
 
-/// Adds the game's systems to `game`. A test passes a game that already has a
-/// scripted sim system, which then runs before `rules` on every tick.
-pub fn install(game: Game) -> Game {
-    game.sim_system(rules).system(read_input).system(hud)
+// ANCHOR: plugins
+/// The whole game: its three layers, each a plugin of its own.
+pub struct CoinDash {
+    /// Where progress is kept (`None`: don't keep it).
+    pub save: Option<PathBuf>,
 }
 
-/// Startup: the bindings, the pictures, the saved progress (from the default
-/// place, see [`save_path`]) and the title screen.
-pub fn setup(ctx: &mut Ctx) {
-    setup_with(ctx, save_path());
+impl Plugin for CoinDash {
+    fn build(&self, game: Game) -> Game {
+        let save = self.save.clone();
+        game.plugin(Controls).plugin(Rules { save }).plugin(Drawing)
+    }
 }
 
-/// [`setup`] with an explicit save file (`None`: don't keep progress).
-pub fn setup_with(ctx: &mut Ctx, save: Option<PathBuf>) {
-    ctx.clear(Color::hex(0x14181f));
-    ctx.set_actions(bindings());
-    let disc = disc(ctx);
-    ctx.world.insert_resource(Art { disc });
-    ctx.world.insert_resource(Act::resolve(ctx));
-    ctx.world.insert_resource(Intent::default());
-    ctx.world.insert_resource(Round {
-        collected: 0,
-        time_left: ROUND_SECONDS,
-        number: 0,
-        new_best: false,
-    });
-    let (progress, load) = match &save {
-        Some(path) => Progress::load(path),
-        None => (Progress::default(), LoadStatus::Fresh),
-    };
-    ctx.world.insert_resource(progress);
-    ctx.world.insert_resource(SaveFile {
-        path: save,
-        load,
-        save_failed: false,
-    });
-    ctx.world.insert_resource(Screen::Title);
+/// Layer 1: keys and gamepad to an [`Intent`], once per rendered frame.
+pub struct Controls;
+
+impl Plugin for Controls {
+    fn build(&self, game: Game) -> Game {
+        game.add(Phase::Frame, read_input)
+    }
+    fn setup(&self, ctx: &mut Ctx) {
+        ctx.set_actions(bindings());
+        ctx.world.insert_resource(Act::resolve(ctx));
+    }
 }
+
+/// Layer 2: the rules, on the fixed tick, and the resources they own. The
+/// game starts on the title screen with the progress loaded from `save`.
+pub struct Rules {
+    /// Where progress is kept (`None`: don't keep it).
+    pub save: Option<PathBuf>,
+}
+
+impl Plugin for Rules {
+    fn build(&self, game: Game) -> Game {
+        game.add(Phase::AfterPhysics, rules)
+    }
+    fn setup(&self, ctx: &mut Ctx) {
+        ctx.world.insert_resource(Intent::default());
+        ctx.world.insert_resource(Round {
+            collected: 0,
+            time_left: ROUND_SECONDS,
+            number: 0,
+            new_best: false,
+        });
+        let (progress, load) = match &self.save {
+            Some(path) => Progress::load(path),
+            None => (Progress::default(), LoadStatus::Fresh),
+        };
+        ctx.world.insert_resource(progress);
+        ctx.world.insert_resource(SaveFile {
+            path: self.save.clone(),
+            load,
+            save_failed: false,
+        });
+        ctx.world.insert_resource(Screen::Title);
+    }
+}
+
+/// Layer 3: the pictures and the text. The sprites themselves are drawn by
+/// the engine's built-in sprite system.
+pub struct Drawing;
+
+impl Plugin for Drawing {
+    fn build(&self, game: Game) -> Game {
+        game.add(Phase::Frame, hud)
+    }
+    fn setup(&self, ctx: &mut Ctx) {
+        ctx.clear(Color::hex(0x14181f));
+        let disc = disc(ctx);
+        ctx.world.insert_resource(Art { disc });
+    }
+}
+// ANCHOR_END: plugins
 
 /// A white 32x32 disc, generated here so the game needs no image files. Sprites
 /// tint and scale it into the player and the coins.

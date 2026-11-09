@@ -281,6 +281,41 @@ static void phases(void) {
     CHECK(fabsf(k.seen_after - 5.0f / 50.0f) < 1e-3f);
     CHECK(ponko_world_free(w) == PONKO_OK);
 }
+/* System ids, setup callbacks and plugins: each callback logs a letter. */
+typedef struct { char text[32]; int n; } Order;
+static void put(Order* o, char c) { if (o->n < 31) o->text[o->n++] = c; }
+static void mark_a(PonkoCtx* ctx, void* user) { (void)ctx; put(user, 'a'); }
+static void mark_b(PonkoCtx* ctx, void* user) { (void)ctx; put(user, 'b'); }
+static void mark_s(PonkoCtx* ctx, void* user) { (void)ctx; put(user, 's'); }
+static void mark_t(PonkoCtx* ctx, void* user) { (void)ctx; put(user, 't'); }
+static void mark_r(PonkoCtx* ctx, void* user) { (void)ctx; put(user, 'r'); }
+static void build_area(PonkoGame* game, void* user) {
+    CHECK(ponko_game_add_system(game, PONKO_PHASE_BEFORE_PHYSICS, "area", 1, mark_b, user) == PONKO_OK);
+}
+static void plugins_setups_and_system_ids(void) {
+    Order o = {0};
+    PonkoGame* game = ponko_game_new("c plugins", 1, 1); CHECK(game);
+    uint32_t first = 0, second = 0;
+    CHECK(ponko_game_add_system_id(game, PONKO_PHASE_AFTER_PHYSICS, "same", 1, mark_a, &o, &first) == PONKO_OK);
+    CHECK(ponko_game_add_system_id(game, PONKO_PHASE_AFTER_PHYSICS, "same", 1, mark_a, &o, &second) == PONKO_OK);
+    CHECK(first != 0 && second != 0 && first != second);
+    CHECK(ponko_game_remove(game, first) == PONKO_OK);
+    CHECK(ponko_game_remove(game, first) == PONKO_OK);   /* twice is fine */
+    CHECK(ponko_game_remove(game, PONKO_SYSTEM_DRAW_SPRITES) == PONKO_OK);
+    CHECK(ponko_game_remove(game, PONKO_SYSTEM_UPDATE_AUDIO3D) == PONKO_OK);
+    CHECK(ponko_game_remove_system(game, "ponko::ecs::draw_sprites") == PONKO_NOT_FOUND);
+    CHECK(ponko_game_add_system_id(game, PONKO_PHASE_FRAME, "bad", 2, mark_a, &o, &first) == PONKO_INVALID_ARGUMENT);
+    CHECK(first == 0);
+    /* Setups and plugins start in the order they were added, before the run setup. */
+    CHECK(ponko_game_setup(game, mark_s, &o) == PONKO_OK);
+    CHECK(ponko_game_plugin(game, build_area, mark_t, &o) == PONKO_OK);
+    CHECK(ponko_game_setup(game, NULL, &o) == PONKO_INVALID_ARGUMENT);
+    CHECK(ponko_game_plugin(game, NULL, NULL, &o) == PONKO_INVALID_ARGUMENT);
+    PonkoWorld* w = NULL;
+    CHECK(ponko_game_run_headless(game, 2, mark_r, &o, &w) == PONKO_OK);
+    CHECK(strcmp(o.text, "strbaba") == 0);
+    CHECK(ponko_world_free(w) == PONKO_OK);
+}
 /* The retained UI: a column with a button, laid out and clicked from C. */
 static void ui_setup(PonkoCtx* ctx, void* user) {
     (void)user;
@@ -707,6 +742,7 @@ int main(void) {
     CHECK(params.scale.x == 1 && params.pivot.x == .5f && !params.screen);
     vehicles();
     phases();
+    plugins_setups_and_system_ids();
     retained_ui();
     ui_panels();
     ribbons_and_decals();

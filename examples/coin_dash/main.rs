@@ -14,10 +14,12 @@
 //!
 //! The rules live in `game.rs`, which `tests/coin_dash.rs` also drives without
 //! a window (`cargo test --test coin_dash`), so the whole loop (title, play,
-//! pause, result, saving) is checked in CI. This file only opens the window.
+//! pause, result, saving) is checked in CI. The game is three plugins (`Controls`,
+//! `Rules`, `Drawing`); this file only opens the window.
 
 mod game;
 
 fn main() {
-    game::build().run(game::setup);
+    // Everything, startup included, is in the game's plugins.
+    game::build().run(|_| {});
 }

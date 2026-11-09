@@ -1066,7 +1066,8 @@ fn flow_benches(b: &mut Bench) {
             20,
             || (),
             |_| {
-                use ponko::{Attached, Game, Transform2D, follow_attachments, vec2};
+                use ponko::systems::follow_attachments;
+                use ponko::{Attached, Game, Transform2D, vec2};
                 let world = Game::new("bench", 1, 1)
                     .sim_system(|ctx| {
                         ctx.world

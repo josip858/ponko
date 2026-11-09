@@ -194,5 +194,18 @@ Rust today; the chapters say so where they use them, and
 | `Query::with_lookup`, `World::get_many_mut` | [Entities, components, queries](ecs.md#borrowing-several-things-at-once) | Component pointers from `get`, which don't borrow |
 | `ponko::Error` and the `try_` loaders | [Getting started](getting-started.md) | `ponko_last_error()` |
 
-System phases (`Phase`, `Game::add`) are not on this list: see
-[Systems and the frame](systems.md#phases) for the C and C++ calls.
+System phases, system ids, setup callbacks and plugins are not on this
+list. They have C and C++ calls, described in
+[Systems and the frame](systems.md):
+
+| Rust | C++ | C |
+|---|---|---|
+| `Game::add(phase, f)` | `game::add(ponko::phase::..., f)` | `ponko_game_add_system` |
+| `Game::add_system(phase, f)` → `SystemId` | `game::add_system` → `ponko::system_id` | `ponko_game_add_system_id` |
+| `Game::remove(id)`, `Systems::DRAW_SPRITES` | `game::remove(id)`, `ponko::systems::draw_sprites` | `ponko_game_remove`, `PONKO_SYSTEM_DRAW_SPRITES` |
+| `Game::setup(f)` | `game::setup(f)` | `ponko_game_setup` |
+| `Plugin`, `Game::plugin` | an object with `build` (and `setup`), `game::plugin` | `ponko_game_plugin` |
+
+The functions in `ponko::systems` themselves (`systems::draw_tilemaps`, to
+add a built-in back in another place) are Rust-only: from C and C++ a
+built-in can be removed by its id, not added again.

@@ -62,13 +62,18 @@ simulates a million agents this way.
 
 [`examples/coin_dash`](https://github.com/ponkoengine/ponko/tree/main/examples/coin_dash)
 is a small complete game (title, pause and result screens, win, lose,
-restart, saved progress, keyboard and gamepad, no asset files) built so that a test can play it. It has three layers:
+restart, saved progress, keyboard and gamepad, no asset files) built so that a test can play it. It has three layers,
+each a [plugin](systems.md#plugins):
 
-1. `read_input`, a frame system, turns the named [actions](actions.md) into
-   an `Intent` resource (below).
-2. `rules`, a sim system, is the whole game. It reads only the `Intent` and the
-   world, never the keyboard.
-3. Drawing is the built-in sprite drawing plus a `hud` frame system.
+1. `Controls`: `read_input`, a frame system, turns the named
+   [actions](actions.md) into an `Intent` resource (below).
+2. `Rules`: `rules`, a sim system, is the whole game. It reads only the
+   `Intent` and the world, never the keyboard.
+3. `Drawing`: the built-in sprite drawing plus a `hud` frame system.
+
+```rust
+{{#include ../../examples/coin_dash/game.rs:plugins}}
+```
 
 `read_input` resolves the action names once, at startup, into `ActionId`s, so
 a name that `bindings` doesn't define is logged once instead of reading false on
@@ -84,7 +89,7 @@ every frame:
 
 Because `rules` reads only the `Intent`, [`tests/coin_dash.rs`](https://github.com/ponkoengine/ponko/blob/main/tests/coin_dash.rs)
 replaces step 1 with a scripted player: a sim system added before the game's
-own, which writes the `Intent` each tick. The game's systems are installed
+own, which writes the `Intent` each tick. The game's plugin is added
 unchanged:
 
 ```rust

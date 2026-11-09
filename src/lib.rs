@@ -88,7 +88,7 @@ mod logs;
 mod nav3d;
 mod net;
 #[cfg(feature = "navmesh")]
-pub use nav3d::{NavAgent3D, NavBakeError, NavBakeSettings, NavMesh3D, NavObstacle3D, NavSource, step_navmesh3d};
+pub use nav3d::{NavAgent3D, NavBakeError, NavBakeSettings, NavMesh3D, NavObstacle3D, NavSource};
 mod perf_report;
 #[cfg(feature = "physics")]
 mod physics;
@@ -107,6 +107,7 @@ mod scope;
 mod sheet;
 mod spatial;
 mod stream;
+pub mod systems;
 mod text;
 mod texture;
 #[cfg(feature = "3d")]
@@ -119,7 +120,7 @@ mod web;
 
 pub use alloc_count::{AllocCounts, CountingAllocator, alloc_counts, note_allocation};
 pub use assets::{AssetSource, MemorySource};
-pub use attach::{Attached, follow_attachments};
+pub use attach::Attached;
 pub use audio::{AudioBus, AudioEffects, Playing, Sound, SoundParams};
 #[cfg(feature = "3d")]
 pub use audio::{AudioListener3D, AudioRolloff, AudioSettings3D, AudioSource3D};
@@ -131,7 +132,7 @@ pub use ctx::{Ctx, SystemTiming, Turns};
 pub use diagnostics::{
     ArchetypeDiagnostics, ComponentDiagnostics, ECS_DIAGNOSTICS_VERSION, EcsDiagnostics, MatchCount, SystemDiagnostics,
 };
-pub use ecs::{Sprite, Transform2D, draw_sprites};
+pub use ecs::{Sprite, Transform2D};
 pub use error::{Error, ErrorKind};
 pub use events::Events;
 #[doc(hidden)]
@@ -141,6 +142,8 @@ pub use game::{ConfiguredGame, Game, Phase, Plugin, SetupResult, SystemId, Syste
 pub use handle::{Handle, LiveCounts};
 pub use input::{Gamepad, GamepadAxis, GamepadButton, GamepadStick, Key, MAX_GAMEPADS, MouseButton};
 pub use inventory::{AssetClass, AssetCount, AssetGrowth, AssetInventory, GpuResidency};
+#[cfg(feature = "3d")]
+pub use net::NetPose;
 pub use net::{
     Authority, AuthorityCheck, ClockSync, Interest, InterestChange, InterestChangeKind, InterestConfig, InterestEntity,
     InterestEntry, InterestTier, InterestViewer, Interpolate, LatestWins, MAX_INTEREST_TIERS, Pose, SnapshotBuffer,
@@ -150,8 +153,6 @@ pub use net::{
     Desync, Lane, MAX_INPUT_BYTES, MAX_MESSAGE_BYTES, MAX_PLAYERS, MessageEvent, MessageStats, Net, NetMessages,
     NetState, NetStats, PeerId,
 };
-#[cfg(feature = "3d")]
-pub use net::{NetPose, apply_net_poses};
 #[cfg(feature = "steam")]
 pub use net::{SteamLobby, SteamLobbyVisibility, steam_lobby_from_args, steam_wait_for_invite};
 pub use perf_report::{
@@ -159,13 +160,12 @@ pub use perf_report::{
     RenderReport, ScopeReport, SystemReport, WarningKind, WorstFrame,
 };
 #[cfg(feature = "physics")]
-pub use physics::{Collider, MAX_POLYGON_POINTS, Physics, RayHit, RigidBody, Shape, Velocity, step_physics};
+pub use physics::{Collider, MAX_POLYGON_POINTS, Physics, RayHit, RigidBody, Shape, Velocity};
 #[cfg(feature = "physics3d")]
 pub use physics3d::{
     Character3D, Collider3D, ColliderFocus, CollisionGroups, CollisionMesh, CollisionMeshData, ContactModifier3D,
     ContactPair3D, FrictionCurve, Hit3D, Joint3D, JointAxis3D, JointDrive3D, JointMotion3D, PHYSICS3D_HZ, Physics3D,
     QueryFilter3D, Ragdoll3D, RagdollBone, RigidBody3D, Shape3D, TerrainCollider, Vehicle3D, Velocity3D, Wheel3D,
-    interpolate_physics3d, step_physics3d,
 };
 pub use profiler::{FrameStats, GpuPass};
 pub use random::{DEFAULT_SEED, Random, Rng};
@@ -174,10 +174,10 @@ pub use render::{GpuAdapter, GpuCapabilities, GpuFeature, GpuFeatureStatus, GpuL
 pub use residency::{ResidencyKind, ResidencyStats};
 pub use schema::ValueSchema;
 pub use scope::{ProfileScope, ScopeGuard, ScopeTiming, scope_named};
-pub use sheet::{Animation, SpriteSheet, animate_sprites};
+pub use sheet::{Animation, SpriteSheet};
 #[doc(hidden)]
 pub use spatial::RawGridView;
-pub use spatial::{GridEntry, SPATIAL_SORT_EVERY, SpatialGrid, rebuild_spatial_grid, spatial_key};
+pub use spatial::{GridEntry, SPATIAL_SORT_EVERY, SpatialGrid, spatial_key};
 /// The Steamworks SDK (re-exported `steamworks` crate, feature `steam`):
 /// create the [`steamworks::Client`] for [`Net::steam_host`] here, and use
 /// it for achievements, friends and the rest of Steam.
@@ -186,6 +186,8 @@ pub use steamworks;
 #[cfg(feature = "3d")]
 pub use stream::CellStreamer;
 pub use stream::Job;
+#[allow(deprecated)]
+pub use systems::at_root::*;
 /// Flex/grid/absolute layout types used by retained UI.
 /// ```
 /// use ponko::ui_layout::Style;
@@ -211,7 +213,7 @@ pub use three::{
     TerrainTileData, Text3D, TextAlign3D, TextureArray, TextureKind, Tonemap, Trail3D, Transform3D, look_at_joint,
     two_bone_ik,
 };
-pub use tilemap::{TileMap, draw_tilemaps};
+pub use tilemap::TileMap;
 #[cfg(feature = "3d")]
 pub use ui::UiPanel3D;
 pub use ui::{

@@ -21,7 +21,7 @@ fn main() {
     // ANCHOR: agents
     let mut world = Game::new("Navigation server", 1, 1)
         .fixed_hz(60)
-        .sim_system(step_navmesh3d)
+        .sim_system(systems::step_navmesh3d)
         .run_headless(600, |ctx| {
             ctx.world.insert_resource(nav);
             let mut agent = NavAgent3D::default();

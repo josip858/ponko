@@ -154,10 +154,46 @@ struct Spawner {
 [[maybe_unused]] static void replace_builtins() {
     auto my_draw = [](ponko::ctx&) {};
 // ANCHOR: remove_system
-ponko::game("t", 800, 600)
-    .remove_system("ponko::ecs::draw_sprites")   // draw your own way
+ponko::game game("t", 800, 600);
+game.remove(ponko::systems::draw_sprites)     // draw your own way
     .system(my_draw, "my_draw");
+// add_system returns an id for a system of your own.
+ponko::system_id hud = game.add_system(ponko::phase::frame, my_draw, "hud");
+game.remove(hud);
 // ANCHOR_END: remove_system
+}
+
+// ANCHOR: plugin
+// One area of the game: its systems and its startup work.
+struct PlayerArea {
+    float speed = 4;
+    void build(ponko::game& game) const {
+        game.add(ponko::phase::before_physics, [speed = speed](ponko::ctx& ctx) {
+            ctx.world().each([&](ponko::transform2d& t) { t.position.x += speed * ctx.dt(); });
+        }, "player/walk");
+    }
+    void setup(ponko::ctx& ctx) const { ctx.world().spawn(ponko::transform_at({0, 0})); }
+};
+// ANCHOR_END: plugin
+
+[[maybe_unused]] static void plugin_snippets() {
+// ANCHOR: plugin_use
+ponko::game("Modules", 1280, 720)
+    .plugin(PlayerArea{6})
+    .setup([](ponko::ctx& ctx) { ctx.world().spawn(ponko::transform_at({10, 0})); })
+    .run();
+// ANCHOR_END: plugin_use
+}
+
+// The plugin above, run without a window: both entities walk.
+static void plugins_run_headless() {
+    auto world = ponko::game("Modules", 1, 1).fixed_hz(60)
+        .plugin(PlayerArea{6})
+        .setup([](ponko::ctx& ctx) { ctx.world().spawn(ponko::transform_at({10, 0})); })
+        .run_headless(60);
+    float sum = 0;
+    world.each([&](const ponko::transform2d& t) { sum += t.position.x; });
+    if (world.size() != 2 || std::fabs(sum - 22.0f) > 1e-3f) { std::fprintf(stderr, "plugin guide\n"); std::abort(); }
 }
 
 // ---- The simulation clock ---------------------------------------------------
@@ -2322,6 +2358,7 @@ void stream_out(ponko::ctx& ctx) {
 // ANCHOR_END: handles
 
 int main() {
+    plugins_run_headless();
     steering_stays_within_budget();
     navigation_guide();
     ponko::game("shop guide", 900, 700).run_headless(0, shop_guide);

@@ -247,6 +247,7 @@ impl<Q: QueryData, L: QueryData> QueryLookup<'_, Q, L> {
             archetypes: &raw const world.archetypes[..],
             ids: self.ids,
             _world: PhantomData,
+            _data: PhantomData,
         };
         self.query.for_each(|item| f(item, &mut lookup));
     }
@@ -264,7 +265,8 @@ pub struct Lookup<'a, L: QueryData> {
     entities: *const Entities,
     archetypes: *const [Archetype],
     ids: L::Ids,
-    _world: PhantomData<(&'a World, fn() -> L)>,
+    _world: PhantomData<&'a World>,
+    _data: PhantomData<fn() -> L>,
 }
 
 impl<L: QueryData> Lookup<'_, L> {

@@ -239,6 +239,32 @@ enum class phase : uint32_t {
     late = CRABBY_PHASE_LATE,
     draw = CRABBY_PHASE_DRAW,
 };
+/// A system's removal handle (Rust `SystemId`): from game::add_system, or a
+/// constant in `systems` for a built-in. Ids are never reused.
+struct system_id {
+    std::uint32_t bits = 0;
+    friend bool operator==(system_id a, system_id b) { return a.bits == b.bits; }
+    friend bool operator!=(system_id a, system_id b) { return a.bits != b.bits; }
+};
+/// The built-in systems' ids (Rust `Systems`), for game::remove. Removing
+/// one that isn't installed does nothing.
+namespace systems {
+inline constexpr system_id physics{CRABBY_SYSTEM_PHYSICS};
+inline constexpr system_id physics3d{CRABBY_SYSTEM_PHYSICS3D};
+inline constexpr system_id interpolate_physics3d{CRABBY_SYSTEM_INTERPOLATE_PHYSICS3D};
+inline constexpr system_id rebuild_spatial_grid{CRABBY_SYSTEM_REBUILD_SPATIAL_GRID};
+inline constexpr system_id animate_sprites{CRABBY_SYSTEM_ANIMATE_SPRITES};
+inline constexpr system_id draw_tilemaps{CRABBY_SYSTEM_DRAW_TILEMAPS};
+inline constexpr system_id draw_sprites{CRABBY_SYSTEM_DRAW_SPRITES};
+inline constexpr system_id follow_attachments{CRABBY_SYSTEM_FOLLOW_ATTACHMENTS};
+inline constexpr system_id step_navmesh3d{CRABBY_SYSTEM_STEP_NAVMESH3D};
+/// Animators posing skeletons; stays at the end of phase::animate.
+inline constexpr system_id update_animators{CRABBY_SYSTEM_UPDATE_ANIMATORS};
+/// Particle emitters and trails; stays at the end of phase::animate.
+inline constexpr system_id update_particles{CRABBY_SYSTEM_UPDATE_PARTICLES};
+/// Positional audio; stays at the end of phase::late.
+inline constexpr system_id update_audio3d{CRABBY_SYSTEM_UPDATE_AUDIO3D};
+} // namespace systems
 /// Owned world text, in meters. Settings follow Rust Text3D defaults.
 struct text3d {
     std::string text;
@@ -3740,6 +3766,13 @@ public:
     void clear(ctx& c) { detail::check(crabby_far_terrain_clear(raw_.get(), c.raw())); }
 };
 
+namespace detail {
+/// Whether plugin type `P` has a `setup(ctx&)` member.
+template<class P, class = void> struct has_setup : std::false_type {};
+template<class P>
+struct has_setup<P, std::void_t<decltype(std::declval<P&>().setup(std::declval<ctx&>()))>> : std::true_type {};
+} // namespace detail
+
 /// The game builder (Rust `Game`). Add systems, then run() or run_headless().
 class game {
     struct state {
@@ -3853,8 +3886,38 @@ public:
     template<class F> game& late_system(F fn, const char* name = nullptr) {
         return check(crabby_game_late_system(raw_, name, trampoline, keep(std::move(fn))));
     }
-    /// Removes systems by name, e.g. "ponko::ecs::draw_sprites".
+    /// Like add(), and returns the system's id for remove(). Two systems
+    /// made from the same function get different ids.
+    template<class F> system_id add_system(phase p, F fn, const char* name = nullptr, std::uint32_t every = 1) {
+        system_id id;
+        check(crabby_game_add_system_id(raw_, static_cast<std::uint32_t>(p), name, every, trampoline,
+                                        keep(std::move(fn)), &id.bits));
+        return id;
+    }
+    /// Removes systems by id: one from add_system, or a built-in such as
+    /// systems::draw_sprites (every instance of it). An id that names
+    /// nothing is not an error.
+    game& remove(system_id id) { return check(crabby_game_remove(raw_, id.bits)); }
+    /// Removes systems by name, e.g. "ponko::ecs::draw_sprites". Kept for
+    /// existing code: prefer remove(systems::draw_sprites).
     game& remove_system(const char* name) { return check(crabby_game_remove_system(raw_, name)); }
+    /// A startup callback, `setup(ctx&)`: runs once after the engine started
+    /// and before any system (also with zero ticks). Callbacks and plugin
+    /// setups run in the order they were added, before the one passed to
+    /// run(); commands are applied after each.
+    template<class S> game& setup(S fn) { return check(crabby_game_setup(raw_, trampoline, keep(std::move(fn)))); }
+    /// Adds a module of the game (Rust `Plugin`): any object with
+    /// `void build(ponko::game&)`, which adds its systems and settings now,
+    /// and optionally `void setup(ponko::ctx&)`, queued like setup(). Each
+    /// system names its phase, so the order plugins are added in only
+    /// matters between systems of the same phase.
+    template<class P> game& plugin(P p) {
+        if (!raw_) throw std::logic_error("game was already run");
+        auto shared = std::make_shared<P>(std::move(p));
+        shared->build(*this);
+        if constexpr (detail::has_setup<P>::value) setup([shared](ctx& c) { shared->setup(c); });
+        return *this;
+    }
 
     /// Opens the window and runs until quit. `setup(ctx&)` runs once first.
     template<class S> void run(S setup) {

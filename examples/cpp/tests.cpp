@@ -695,6 +695,56 @@ static void phases() {
     throws([] { ponko::game("t", 1, 1).add(ponko::phase::frame, [](ponko::ctx&) {}, "bad", 2); });
 }
 
+// A plugin with startup work, and one that only adds systems.
+struct ScoreArea {
+    std::string* log;
+    void build(ponko::game& game) const {
+        game.sim_system([log = log](ponko::ctx&) { *log += 'a'; }, "score");
+    }
+    void setup(ponko::ctx&) const { *log += 's'; }
+};
+struct KickArea {
+    std::string* log;
+    void build(ponko::game& game) const {
+        game.add(ponko::phase::before_physics, [log = log](ponko::ctx&) { *log += 'b'; }, "kick");
+    }
+};
+
+static void plugins_setups_and_system_ids() {
+    // Plugins build at once and set up in the order they were added, with
+    // setup() callbacks in between and the run setup last. The phase, not
+    // the plugin order, decides when their systems run.
+    std::string log;
+    ponko::game("t", 1, 1)
+        .plugin(ScoreArea{&log})
+        .setup([&](ponko::ctx&) { log += 'c'; })
+        .plugin(KickArea{&log})
+        .run_headless(2, [&](ponko::ctx&) { log += 'r'; });
+    CHECK(log == "scrbaba");
+    // setup() alone runs with zero ticks, and applies its commands.
+    auto w = ponko::game("t", 1, 1).setup([](ponko::ctx& ctx) { ctx.spawn_later(Pos{1, 2}); }).run_headless(0);
+    CHECK(w.size() == 1);
+
+    // Ids: two systems from the same function are told apart.
+    log.clear();
+    ponko::game g("t", 1, 1);
+    auto mark = [&](char c) { return [&log, c](ponko::ctx&) { log += c; }; };
+    ponko::system_id first = g.add_system(ponko::phase::after_physics, mark('1'), "same");
+    ponko::system_id second = g.add_system(ponko::phase::after_physics, mark('2'), "same");
+    CHECK(first != second && first.bits != 0);
+    g.remove(first).remove(first);                  // twice is fine
+    g.remove(ponko::systems::draw_sprites)
+        .remove(ponko::systems::update_animators)
+        .remove(ponko::systems::step_navmesh3d);    // not installed: nothing happens
+    throws([&] { g.remove_system("ponko::ecs::draw_sprites"); });   // already gone
+    g.run_headless(2);
+    CHECK(log == "22");
+    throws([&] { g.setup([](ponko::ctx&) {}); });   // already run
+    throws([&] { g.plugin(KickArea{&log}); });
+    throws([] { ponko::game("t", 1, 1).add_system(ponko::phase::frame, [](ponko::ctx&) {}, "bad", 2); });
+    CHECK(ponko::systems::draw_sprites.bits == PONKO_SYSTEM_DRAW_SPRITES);
+}
+
 static void vehicles() {
     // A box car on raycast wheels settles on its suspension, then drives
     // off; the vehicle is a query column (as tests/vehicle3d.rs).
@@ -1822,6 +1872,7 @@ int main() {
     joints3d();
     vehicles();
     phases();
+    plugins_setups_and_system_ids();
     lockstep();
     messages();
     replication();

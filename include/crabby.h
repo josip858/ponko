@@ -54,6 +54,30 @@
 
 #define CRABBY_NAV_WALL 0
 
+#define CRABBY_SYSTEM_PHYSICS 1
+
+#define CRABBY_SYSTEM_PHYSICS3D 2
+
+#define CRABBY_SYSTEM_INTERPOLATE_PHYSICS3D 3
+
+#define CRABBY_SYSTEM_REBUILD_SPATIAL_GRID 4
+
+#define CRABBY_SYSTEM_ANIMATE_SPRITES 5
+
+#define CRABBY_SYSTEM_DRAW_TILEMAPS 6
+
+#define CRABBY_SYSTEM_DRAW_SPRITES 7
+
+#define CRABBY_SYSTEM_FOLLOW_ATTACHMENTS 8
+
+#define CRABBY_SYSTEM_STEP_NAVMESH3D 9
+
+#define CRABBY_SYSTEM_UPDATE_ANIMATORS 10
+
+#define CRABBY_SYSTEM_UPDATE_PARTICLES 11
+
+#define CRABBY_SYSTEM_UPDATE_AUDIO3D 12
+
 #define CRABBY_HANDLE_NONE UINT32_MAX
 
 #define CRABBY_MAX_GAMEPADS 8
@@ -707,6 +731,8 @@ typedef struct CrabbyFlowView {
 } CrabbyFlowView;
 
 typedef void (*CrabbySystemFn)(struct CrabbyCtx *ctx, void *user);
+
+typedef void (*CrabbyPluginBuildFn)(struct CrabbyGame *game, void *user);
 
 typedef struct CrabbyGridItem {
   struct CrabbyEntity entity;
@@ -2238,6 +2264,23 @@ enum CrabbyStatus crabby_game_add_system(struct CrabbyGame *game,
                                          uint32_t every,
                                          CrabbySystemFn system_fn,
                                          void *user);
+
+enum CrabbyStatus crabby_game_add_system_id(struct CrabbyGame *game,
+                                            uint32_t phase,
+                                            const char *name,
+                                            uint32_t every,
+                                            CrabbySystemFn system_fn,
+                                            void *user,
+                                            uint32_t *out_id);
+
+enum CrabbyStatus crabby_game_remove(struct CrabbyGame *game, uint32_t system_id);
+
+enum CrabbyStatus crabby_game_setup(struct CrabbyGame *game, CrabbySystemFn setup, void *user);
+
+enum CrabbyStatus crabby_game_plugin(struct CrabbyGame *game,
+                                     CrabbyPluginBuildFn build_fn,
+                                     CrabbySystemFn setup,
+                                     void *user);
 
 enum CrabbyStatus crabby_game_late_system(struct CrabbyGame *game,
                                           const char *name,

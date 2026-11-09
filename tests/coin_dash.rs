@@ -19,16 +19,28 @@ const HZ: u64 = 60;
 // ANCHOR: script
 /// A system that runs before the game's rules and decides what the player
 /// does this tick (in place of `read_input`, which needs a window's frames).
+/// The game itself is its own plugin, unchanged; nothing is saved.
 fn script(f: impl FnMut(&mut Ctx) + 'static) -> Game {
-    install(Game::new("coin dash test", 800, 600).seed(SEED).sim_system(f))
+    script_saving(None, f)
+}
+
+/// [`script`] with progress kept in `save`.
+fn script_saving(save: Option<PathBuf>, f: impl FnMut(&mut Ctx) + 'static) -> Game {
+    Game::new("coin dash test", 800, 600)
+        .seed(SEED)
+        .sim_system(f)
+        .plugin(CoinDash { save })
 }
 // ANCHOR_END: script
 
-/// Startup that skips the title screen: round 1 is already running, nothing is saved.
+/// Run setup that skips the title screen: round 1 is already running. It
+/// runs after the plugins' own setup, so the game's resources are there.
 fn setup_playing(ctx: &mut Ctx) {
-    setup_with(ctx, None);
     new_round(ctx, 1);
 }
+
+/// Run setup that leaves the game on its title screen.
+fn on_title(_: &mut Ctx) {}
 
 fn intent(ctx: &mut Ctx) -> &mut Intent {
     ctx.world.resource_mut::<Intent>()
@@ -84,16 +96,12 @@ fn temp_dir(name: &str) -> PathBuf {
 
 /// Plays round 1 to a win (chasing coins) with progress kept in `save`.
 fn win_a_round(save: &std::path::Path) -> World {
-    let save = save.to_path_buf();
-    script(chase_nearest_coin).run_headless(ROUND_SECONDS as u64 * HZ, move |ctx| {
-        setup_with(ctx, Some(save));
-        new_round(ctx, 1);
-    })
+    script_saving(Some(save.to_path_buf()), chase_nearest_coin).run_headless(ROUND_SECONDS as u64 * HZ, setup_playing)
 }
 
 /// Starts on the title screen with progress in `save`, runs `ticks`, returns the world.
 fn open_game(save: Option<PathBuf>, ticks: u64) -> World {
-    script(|_| {}).run_headless(ticks, move |ctx| setup_with(ctx, save))
+    script_saving(save, |_| {}).run_headless(ticks, on_title)
 }
 
 // ---- Rounds -----------------------------------------------------------------
@@ -261,7 +269,7 @@ fn the_player_stays_in_the_arena_and_diagonals_are_not_faster() {
 
 #[test]
 fn the_game_starts_on_an_empty_title_screen_that_ignores_movement() {
-    let world = script(|ctx| intent(ctx).direction = vec2(1.0, 0.0)).run_headless(2 * HZ, |ctx| setup_with(ctx, None));
+    let world = script(|ctx| intent(ctx).direction = vec2(1.0, 0.0)).run_headless(2 * HZ, on_title);
     assert_eq!(screen(&world), Screen::Title);
     assert_eq!(world.resource::<Round>().number, 0);
     assert!(world.is_empty(), "no player and no coins before the first round");
@@ -275,7 +283,7 @@ fn confirm_on_the_title_screen_starts_round_one() {
             ctx.quit();
         }
     })
-    .run_headless(10, |ctx| setup_with(ctx, None));
+    .run_headless(10, on_title);
     assert_fresh_round(&mut world, 1);
 }
 
@@ -286,7 +294,7 @@ fn restart_and_pause_do_not_start_a_round_from_the_title_screen() {
         i.restart = true;
         i.direction = vec2(1.0, 1.0);
     })
-    .run_headless(5, |ctx| setup_with(ctx, None));
+    .run_headless(5, on_title);
     assert_eq!(screen(&world), Screen::Title);
 }
 
@@ -301,7 +309,7 @@ fn pause_or_back_on_the_title_screen_quits_the_game() {
                 press(intent(ctx));
             }
         })
-        .run_headless(100, |ctx| setup_with(ctx, None));
+        .run_headless(100, on_title);
         assert_eq!(ticks.get(), 3, "the game stops on the tick after the request");
     }
 }
@@ -426,7 +434,7 @@ fn result_screen_offers_play_again_and_back_to_the_title() {
             intent(ctx).confirm = true;
         }
     })
-    .run_headless(5 * ROUND_SECONDS as u64 * HZ, |ctx| setup_with(ctx, None));
+    .run_headless(5 * ROUND_SECONDS as u64 * HZ, on_title);
     assert_eq!(screen(&world), Screen::Title);
     let round = world.resource::<Round>();
     assert_eq!(round.number, 2, "title, round 1, round 2");
@@ -598,16 +606,13 @@ fn a_missing_save_file_is_a_first_run_and_is_only_written_when_a_round_ends() {
     );
 
     // Quitting a round halfway (back to the title) doesn't count either.
-    let quit_midway = script(|ctx| match ctx.sim_tick() {
+    let quit_midway = script_saving(Some(path.clone()), |ctx| match ctx.sim_tick() {
         0 => intent(ctx).confirm = true,
         30 => intent(ctx).pause = true,
         32 => intent(ctx).back = true,
         _ => {}
     })
-    .run_headless(40, {
-        let path = path.clone();
-        move |ctx| setup_with(ctx, Some(path))
-    });
+    .run_headless(40, on_title);
     assert_eq!(screen(&quit_midway), Screen::Title);
     assert_eq!(quit_midway.resource::<Progress>().rounds_played, 0);
     assert!(!path.exists());
@@ -680,13 +685,7 @@ fn an_unreadable_save_location_does_not_stop_the_game() {
     assert_eq!(*world.resource::<Progress>(), Progress::default());
 
     // Losing a round tries to save, fails, says so, and the game carries on.
-    let lost = script(|_| {}).run_headless(ROUND_SECONDS as u64 * HZ + 10, {
-        let dir = dir.clone();
-        move |ctx| {
-            setup_with(ctx, Some(dir));
-            new_round(ctx, 1);
-        }
-    });
+    let lost = script_saving(Some(dir.clone()), |_| {}).run_headless(ROUND_SECONDS as u64 * HZ + 10, setup_playing);
     assert_eq!(screen(&lost), Screen::Result(Outcome::Lost));
     assert!(lost.resource::<SaveFile>().save_failed);
     let lines: Vec<String> = screen_lines(&lost).into_iter().map(|l| l.text).collect();
@@ -715,14 +714,15 @@ fn a_game_without_a_save_path_just_does_not_keep_progress() {
 // ---- Input ------------------------------------------------------------------
 
 /// A scripted full session from raw key presses only: the real `read_input`
-/// runs on every tick (as a sim system, since headless runs have no frames).
-fn keyed(scenario: InputScenario, extra: impl FnMut(&mut Ctx) + 'static) -> Game {
+/// runs on every tick (as a sim system, since headless runs have no frames),
+/// then `extra`, then the game's own plugins with their rules.
+fn keyed(scenario: InputScenario, save: Option<PathBuf>, extra: impl FnMut(&mut Ctx) + 'static) -> Game {
     Game::new("coin dash keys", 800, 600)
         .seed(SEED)
         .input_scenario(scenario)
         .sim_system(read_input)
         .sim_system(extra)
-        .sim_system(rules)
+        .plugin(CoinDash { save })
 }
 
 fn tap(scenario: InputScenario, tick: u64, key: Key) -> InputScenario {
@@ -752,7 +752,7 @@ fn a_whole_session_can_be_played_from_key_presses() {
     ] {
         scenario = tap(scenario, tick, key);
     }
-    let world = keyed(scenario, move |ctx| {
+    let world = keyed(scenario, Some(path.clone()), move |ctx| {
         // The "player's hands" for the chase: movement only while a round runs.
         if screen(&ctx.world) == Screen::Playing {
             let (player, coins) = player_and_coins(ctx);
@@ -764,10 +764,7 @@ fn a_whole_session_can_be_played_from_key_presses() {
         }
         log.borrow_mut().push((ctx.sim_tick(), screen(&ctx.world)));
     })
-    .run_headless(1800, {
-        let path = path.clone();
-        move |ctx| setup_with(ctx, Some(path))
-    });
+    .run_headless(1800, on_title);
 
     let at = |tick: u64| seen.borrow().iter().find(|(t, _)| *t == tick).unwrap().1;
     assert_eq!(at(4), Screen::Title);
@@ -791,34 +788,36 @@ fn a_whole_session_can_be_played_from_key_presses() {
 
 #[test]
 fn keys_and_gamepad_map_to_the_same_intent() {
-    Game::new("t", 800, 600).run_headless(0, |ctx| {
-        setup_playing(ctx);
-        // Keyboard: A is left, S is down.
-        ctx.feed_input(InputEvent::Key(Key::A, true));
-        ctx.feed_input(InputEvent::Key(Key::S, true));
-        read_input(ctx);
-        let d = ctx.world.resource::<Intent>().direction;
-        assert!(d.x < 0.0 && d.y > 0.0, "left and down, got {d}");
-        ctx.feed_input(InputEvent::Key(Key::A, false));
-        ctx.feed_input(InputEvent::Key(Key::S, false));
+    Game::new("t", 800, 600)
+        .plugin(CoinDash { save: None })
+        .run_headless(0, |ctx| {
+            setup_playing(ctx);
+            // Keyboard: A is left, S is down.
+            ctx.feed_input(InputEvent::Key(Key::A, true));
+            ctx.feed_input(InputEvent::Key(Key::S, true));
+            read_input(ctx);
+            let d = ctx.world.resource::<Intent>().direction;
+            assert!(d.x < 0.0 && d.y > 0.0, "left and down, got {d}");
+            ctx.feed_input(InputEvent::Key(Key::A, false));
+            ctx.feed_input(InputEvent::Key(Key::S, false));
 
-        // Arrow keys do the same as WASD.
-        ctx.feed_input(InputEvent::Key(Key::Right, true));
-        read_input(ctx);
-        assert!(ctx.world.resource::<Intent>().direction.x > 0.0);
-        ctx.feed_input(InputEvent::Key(Key::Right, false));
+            // Arrow keys do the same as WASD.
+            ctx.feed_input(InputEvent::Key(Key::Right, true));
+            read_input(ctx);
+            assert!(ctx.world.resource::<Intent>().direction.x > 0.0);
+            ctx.feed_input(InputEvent::Key(Key::Right, false));
 
-        // The left stick, past its dead zone, pushes up.
-        let pad = Gamepad::from_slot(0).unwrap();
-        ctx.feed_input(InputEvent::GamepadAxis(pad, GamepadAxis::LeftStickY, -1.0));
-        read_input(ctx);
-        assert!(ctx.world.resource::<Intent>().direction.y < 0.0, "stick up");
-        ctx.feed_input(InputEvent::GamepadAxis(pad, GamepadAxis::LeftStickY, 0.0));
+            // The left stick, past its dead zone, pushes up.
+            let pad = Gamepad::from_slot(0).unwrap();
+            ctx.feed_input(InputEvent::GamepadAxis(pad, GamepadAxis::LeftStickY, -1.0));
+            read_input(ctx);
+            assert!(ctx.world.resource::<Intent>().direction.y < 0.0, "stick up");
+            ctx.feed_input(InputEvent::GamepadAxis(pad, GamepadAxis::LeftStickY, 0.0));
 
-        // Nothing held: standing still.
-        read_input(ctx);
-        assert_eq!(ctx.world.resource::<Intent>().direction, Vec2::ZERO);
-    });
+            // Nothing held: standing still.
+            read_input(ctx);
+            assert_eq!(ctx.world.resource::<Intent>().direction, Vec2::ZERO);
+        });
 }
 
 #[test]
@@ -850,21 +849,22 @@ fn every_button_binding_sets_its_own_request_which_the_sim_takes_once() {
     for (name, flag, presses) in table {
         for (press, release) in presses {
             // A fresh game per press: the engine keeps "pressed" until the frame ends.
-            Game::new("t", 800, 600).run_headless(0, |ctx| {
-                setup_with(ctx, None);
-                assert!(!flag(ctx.world.resource::<Intent>()), "{name}: not pressed yet");
-                ctx.feed_input(press);
-                read_input(ctx);
-                ctx.feed_input(release);
-                // A frame without a sim tick must not lose it.
-                assert!(flag(ctx.world.resource::<Intent>()), "{press:?} sets {name}");
-                // Only that one button: the others are untouched.
-                let i = *ctx.world.resource::<Intent>();
-                let set = [i.confirm, i.restart, i.pause, i.back];
-                assert_eq!(set.iter().filter(|s| **s).count(), 1, "{press:?}: {set:?}");
-                rules(ctx);
-                assert!(!flag(ctx.world.resource::<Intent>()), "{name}: taken exactly once");
-            });
+            Game::new("t", 800, 600)
+                .plugin(CoinDash { save: None })
+                .run_headless(0, |ctx| {
+                    assert!(!flag(ctx.world.resource::<Intent>()), "{name}: not pressed yet");
+                    ctx.feed_input(press);
+                    read_input(ctx);
+                    ctx.feed_input(release);
+                    // A frame without a sim tick must not lose it.
+                    assert!(flag(ctx.world.resource::<Intent>()), "{press:?} sets {name}");
+                    // Only that one button: the others are untouched.
+                    let i = *ctx.world.resource::<Intent>();
+                    let set = [i.confirm, i.restart, i.pause, i.back];
+                    assert_eq!(set.iter().filter(|s| **s).count(), 1, "{press:?}: {set:?}");
+                    rules(ctx);
+                    assert!(!flag(ctx.world.resource::<Intent>()), "{name}: taken exactly once");
+                });
         }
     }
 }
