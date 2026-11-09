@@ -1110,6 +1110,15 @@ public:
         return n;
     }
 
+    /// Opt-in discovery metadata, encoded as Rust ValueSchema JSON.
+    void describe_component(const char* name, const char* schema) {
+        valid();
+        detail::check(crabby_world_describe_component(raw_, name, schema));
+    }
+    void describe_resource(const char* name, const char* schema) {
+        valid();
+        detail::check(crabby_world_describe_resource(raw_, name, schema));
+    }
     // ---- reflection and saves ----
     /// Describes `T`'s fields, so tools and agents can read and write it as
     /// JSON (`ponko-mcp`) and `save()` includes it. It's saved under its

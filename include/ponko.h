@@ -1107,6 +1107,8 @@
 #define ponko_velocity_component crabby_velocity_component
 #define ponko_wheel3d crabby_wheel3d
 #define ponko_wheel3d_pose crabby_wheel3d_pose
+#define ponko_world_describe_component crabby_world_describe_component
+#define ponko_world_describe_resource crabby_world_describe_resource
 #define ponko_world_free crabby_world_free
 #define ponko_world_len crabby_world_len
 #define ponko_world_load crabby_world_load
