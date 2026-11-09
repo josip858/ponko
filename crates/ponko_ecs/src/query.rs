@@ -478,8 +478,8 @@ filter_tuple!(A, B, C, D, E, F, G, H);
 /// ```
 #[must_use = "a query does nothing until iterated"]
 pub struct Query<'w, Q: QueryData> {
-    world: &'w mut World,
-    ids: Q::Ids,
+    pub(crate) world: &'w mut World,
+    pub(crate) ids: Q::Ids,
     filters: Filters,
     cached: bool,
 }

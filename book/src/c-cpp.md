@@ -190,7 +190,8 @@ Rust today; the chapters say so where they use them, and
 | `AssetSource`, `MemorySource`, `Ctx::add_asset_source` | [Asset sources](asset-sources.md) | Files in `assets/` only |
 | `UiTheme`, `ui.set_theme` | [Retained game UI](ui.md) | Set each node's paint |
 | Named grid spans in UI layouts | [Retained game UI](ui.md) | Named lines and areas, no named spans |
-| `World::resource_scope` | [Entities, components, queries](ecs.md) | The existing resource calls |
+| `World::resource_scope`, `resources_mut`, `Query::with_resources` | [Entities, components, queries](ecs.md#borrowing-several-things-at-once) | The existing resource calls, copied in and out |
+| `Query::with_lookup`, `World::get_many_mut` | [Entities, components, queries](ecs.md#borrowing-several-things-at-once) | Component pointers from `get`, which don't borrow |
 | `ponko::Error` and the `try_` loaders | [Getting started](getting-started.md) | `ponko_last_error()` |
 
 System phases (`Phase`, `Game::add`) are not on this list: see

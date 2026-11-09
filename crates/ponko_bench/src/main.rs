@@ -205,6 +205,142 @@ fn main() {
         );
     }
 
+    // ---- borrowing several things at once ------------------------------------
+    // Each pair is the workaround and its one-statement replacement.
+    struct Speed(f32);
+    struct Hits(u64);
+    struct Sum(u64);
+    for combined in [false, true] {
+        b.steady(
+            if combined {
+                "borrow/resources-mut-100k"
+            } else {
+                "borrow/resources-take-put-100k"
+            },
+            200,
+            || {
+                let mut w = ponko_ecs::World::new();
+                w.insert_resource(Speed(1.0));
+                w.insert_resource(Hits(0));
+                w.insert_resource(Sum(0));
+                w
+            },
+            |w| {
+                for _ in 0..100_000 {
+                    if combined {
+                        let (speed, hits, sum) = w.resources_mut::<(Speed, Hits, Sum)>();
+                        hits.0 += black_box(speed.0) as u64;
+                        sum.0 += hits.0;
+                    } else {
+                        let mut hits = w.remove_resource::<Hits>().unwrap();
+                        let mut sum = w.remove_resource::<Sum>().unwrap();
+                        hits.0 += black_box(w.resource::<Speed>().0) as u64;
+                        sum.0 += hits.0;
+                        w.insert_resource(hits);
+                        w.insert_resource(sum);
+                    }
+                }
+            },
+        );
+    }
+    // A query that also needs resources: copied out before and written back
+    // after, or carried into the loop.
+    for carried in [false, true] {
+        b.steady(
+            if carried {
+                "iter/ponko-with-resources"
+            } else {
+                "iter/ponko-copy-out"
+            },
+            200,
+            || {
+                let mut w = ponko_ecs::World::new();
+                w.spawn_batch((0..N).map(ent));
+                w.insert_resource(Speed(DT));
+                w.insert_resource(Hits(0));
+                w
+            },
+            |w| {
+                if carried {
+                    w.query::<(&mut Pos, &Vel)>()
+                        .with_resources::<(&Speed, &mut Hits)>()
+                        .for_each(|(p, v), (speed, hits)| {
+                            p.x += v.x * speed.0;
+                            p.y += v.y * speed.0;
+                            hits.0 += 1;
+                        });
+                } else {
+                    let dt = black_box(w.resource::<Speed>().0);
+                    let mut hits = w.resource::<Hits>().0;
+                    w.query::<(&mut Pos, &Vel)>().for_each(|(p, v)| {
+                        p.x += v.x * dt;
+                        p.y += v.y * dt;
+                        hits += 1;
+                    });
+                    w.resource_mut::<Hits>().0 = hits;
+                }
+            },
+        );
+    }
+    // 100k entities each change another one: collected and applied after the
+    // loop, or reached through a lookup inside it.
+    struct Aim(ponko_ecs::Entity);
+    struct Hp(i64);
+    for lookup in [false, true] {
+        b.steady(
+            if lookup {
+                "borrow/lookup-100k"
+            } else {
+                "borrow/collect-then-mutate-100k"
+            },
+            200,
+            || {
+                let mut w = ponko_ecs::World::new();
+                let targets: Vec<_> = (0..1000).map(|_| w.spawn((Hp(0),))).collect();
+                let order = shuffled(ADD_REMOVE_N);
+                w.spawn_batch(order.iter().map(|&i| (Aim(targets[i % targets.len()]), 1i64)));
+                w
+            },
+            |w| {
+                if lookup {
+                    w.query::<(&Aim, &i64)>()
+                        .with_lookup::<&mut Hp>()
+                        .for_each(|(aim, damage), others| {
+                            if let Some(hp) = others.get_mut(aim.0) {
+                                hp.0 -= *damage;
+                            }
+                        });
+                } else {
+                    let mut hits = Vec::new();
+                    w.query::<(&Aim, &i64)>()
+                        .for_each(|(aim, damage)| hits.push((aim.0, *damage)));
+                    for (target, damage) in hits {
+                        if let Some(hp) = w.get_mut::<Hp>(target) {
+                            hp.0 -= damage;
+                        }
+                    }
+                }
+            },
+        );
+    }
+    b.steady(
+        "borrow/get-many-mut-pairs-100k",
+        200,
+        || {
+            let mut w = ponko_ecs::World::new();
+            let es: Vec<_> = (0..1000).map(|i| w.spawn((Hp(i),))).collect();
+            (w, es)
+        },
+        |(w, es)| {
+            for i in 0..100_000 {
+                let pair = [es[i % 1000], es[(i + 1) % 1000]];
+                if let Some([a, b]) = w.get_many_mut::<Hp, 2>(pair) {
+                    std::mem::swap(&mut a.0, &mut b.0);
+                }
+            }
+        },
+    );
+
     // ---- baseline: plain Vecs (upper bound for iteration) -------------------
     b.steady(
         "iter/raw-vec",
