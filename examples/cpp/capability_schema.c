@@ -6,22 +6,22 @@
 int main(void) {
     PonkoWorld *w = ponko_world_new();
     uint32_t id = 0;
-    REQUIRE(ponko_component_register(w, "Health", sizeof(float), _Alignof(float), &id) == CRABBY_OK);
-    PonkoField f = {"hp", CRABBY_FIELD_F32, 0};
-    REQUIRE(ponko_component_reflect(w, id, &f, 1) == CRABBY_OK);
-    REQUIRE(ponko_resource_reflect(w, "Score", sizeof(float), _Alignof(float), &f, 1) == CRABBY_OK);
+    REQUIRE(ponko_component_register(w, "Health", sizeof(float), _Alignof(float), &id) == PONKO_OK);
+    PonkoField f = {"hp", PONKO_FIELD_F32, 0};
+    REQUIRE(ponko_component_reflect(w, id, &f, 1) == PONKO_OK);
+    REQUIRE(ponko_resource_reflect(w, "Score", sizeof(float), _Alignof(float), &f, 1) == PONKO_OK);
     const char *schema = "{\"Object\":[[\"hp\",\"Number\"]]}";
-    REQUIRE(ponko_world_describe_component(w, "Health", schema) == CRABBY_OK);
-    REQUIRE(ponko_world_describe_resource(w, "Score", schema) == CRABBY_OK);
-    REQUIRE(ponko_world_describe_component(w, "Missing", schema) != CRABBY_OK);
-    REQUIRE(ponko_world_describe_resource(w, "Missing", schema) != CRABBY_OK);
-    REQUIRE(ponko_world_describe_component(w, "Health", "{") != CRABBY_OK);
-    REQUIRE(ponko_world_describe_resource(w, "Score", "\"Unknown\"") != CRABBY_OK);
-    REQUIRE(ponko_world_describe_component(NULL, "Health", schema) != CRABBY_OK);
-    REQUIRE(ponko_world_describe_resource(NULL, "Score", schema) != CRABBY_OK);
-    REQUIRE(ponko_world_describe_component(w, NULL, schema) != CRABBY_OK);
-    REQUIRE(ponko_world_describe_resource(w, "Score", NULL) != CRABBY_OK);
-    REQUIRE(ponko_world_describe_component(w, "Health", "\xff") != CRABBY_OK);
-    REQUIRE(ponko_world_describe_resource(w, "\xff", schema) != CRABBY_OK);
+    REQUIRE(ponko_world_describe_component(w, "Health", schema) == PONKO_OK);
+    REQUIRE(ponko_world_describe_resource(w, "Score", schema) == PONKO_OK);
+    REQUIRE(ponko_world_describe_component(w, "Missing", schema) != PONKO_OK);
+    REQUIRE(ponko_world_describe_resource(w, "Missing", schema) != PONKO_OK);
+    REQUIRE(ponko_world_describe_component(w, "Health", "{") != PONKO_OK);
+    REQUIRE(ponko_world_describe_resource(w, "Score", "\"Unknown\"") != PONKO_OK);
+    REQUIRE(ponko_world_describe_component(NULL, "Health", schema) != PONKO_OK);
+    REQUIRE(ponko_world_describe_resource(NULL, "Score", schema) != PONKO_OK);
+    REQUIRE(ponko_world_describe_component(w, NULL, schema) != PONKO_OK);
+    REQUIRE(ponko_world_describe_resource(w, "Score", NULL) != PONKO_OK);
+    REQUIRE(ponko_world_describe_component(w, "Health", "\xff") != PONKO_OK);
+    REQUIRE(ponko_world_describe_resource(w, "\xff", schema) != PONKO_OK);
     ponko_world_free(w);
 }
