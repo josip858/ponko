@@ -184,3 +184,18 @@ fn a_frame_runs_ticks_then_frame_then_late_then_draw_and_applies_commands_betwee
     frame(&mut game, &mut ctx, 2);
     assert_eq!(take(&mut ctx), ["sim", "sim", "frame", "animate", "late", "draw"]);
 }
+
+#[test]
+fn both_loops_build_their_context_from_the_same_configuration() {
+    let configured = || Game::new("t", 64, 48).seed(7).fixed_hz(50).spatial_grid(32.0);
+    let windowed = configured().build_ctx(false);
+    let headless = configured().build_ctx(true);
+    assert!(!windowed.headless && headless.headless, "the one difference");
+    assert_eq!(windowed.seed, 7);
+    assert_eq!(headless.seed, windowed.seed);
+    assert_eq!(headless.spatial.cell_size(), 32.0);
+    assert_eq!(headless.spatial.cell_size(), windowed.spatial.cell_size());
+    assert_eq!(headless.time.fixed_dt(), windowed.time.fixed_dt());
+    assert_eq!(headless.window_size(), windowed.window_size());
+    assert_eq!(headless.time.sim_tick(), 0, "nothing has run before setup");
+}

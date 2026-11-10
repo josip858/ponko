@@ -533,6 +533,52 @@ impl Ctx {
         status
     }
 
+    // ------------------------------------------------- engine steps of a frame
+    //
+    // The windowed loop (`Game::run_systems` and `window.rs`) runs these
+    // between the game's systems, in this order; the headless loop runs only
+    // `frame_prepare_services`, because a headless run has ticks and no frames
+    // to draw or hear. ARCHITECTURE.md lists who owns each service.
+
+    /// Engine side, start of a frame, after `begin_frame` and the input
+    /// poll and before any system: reloads changed asset files and runs the
+    /// streaming and residency step. Windowed and headless loops both run it.
+    pub(crate) fn frame_prepare_services(&mut self) {
+        self.reload_changed_assets();
+        self.pump_streaming();
+    }
+
+    /// Engine side, before the frame's first simulation tick or frame
+    /// system: the retained UI processes this frame's input, so systems see
+    /// its focus, events and screen changes. Frames only: headless runs
+    /// never update the UI.
+    #[inline]
+    pub(crate) fn frame_begin_services(&mut self) {
+        self.update_retained_ui();
+    }
+
+    /// Engine side, after the frame systems (and any explicitly registered
+    /// `Animate` systems) and before the late systems: built-in skeletal
+    /// animation, then particles (feature `3d`), so late systems read the
+    /// final pose.
+    #[inline]
+    pub(crate) fn frame_builtin_services(&mut self) {
+        #[cfg(feature = "3d")]
+        {
+            self.update_animators();
+            self.update_particles();
+        }
+    }
+
+    /// Engine side, after the late and drawing systems: positional audio
+    /// follows where everything ended up this frame (feature `3d`). Without
+    /// the `audio` feature, or headless, voices are silent stand-ins.
+    #[inline]
+    pub(crate) fn frame_end_services(&mut self) {
+        #[cfg(feature = "3d")]
+        crate::audio::update_audio3d(self);
+    }
+
     /// Engine side: start a new frame with fresh timing.
     pub(crate) fn begin_frame(&mut self, timing: FrameTiming) {
         self.time.begin_frame(timing);

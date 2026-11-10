@@ -1224,6 +1224,40 @@ impl Game {
         self
     }
 
+    /// Constructs the context both loops run: the services from the game's
+    /// configuration (seed, hot reload, spatial grid, physics worlds, the
+    /// lockstep session), before setup and before the control endpoint
+    /// starts. `headless` is a run without a window or GPU.
+    ///
+    /// Window and headless runs differ only in what `ctx.gfx` and
+    /// `ctx.audio` do with a missing device; every other service is built
+    /// the same way in both.
+    fn build_ctx(&mut self, headless: bool) -> Ctx {
+        let fixed_dt = Clock::new(self.fixed_hz).fixed_dt();
+        let mut ctx = Ctx::new(fixed_dt, Vec2::new(self.width as f32, self.height as f32));
+        ctx.seed = self.seed;
+        if headless {
+            ctx.set_headless(true);
+        }
+        ctx.assets.watcher.set_on(crate::hot_reload::enabled(self.hot_reload));
+        if let Some(cell) = self.spatial_cell {
+            ctx.spatial = crate::SpatialGrid::new(cell);
+        }
+        #[cfg(feature = "physics")]
+        if let Some(gravity) = self.gravity {
+            crate::physics::start(&mut ctx, gravity);
+        }
+        #[cfg(feature = "physics3d")]
+        if let Some(gravity) = self.gravity3d {
+            crate::physics3d::start(&mut ctx, gravity);
+        }
+        if let Some(net) = self.net.take() {
+            ctx.net = net;
+        }
+        ctx.net.begin(ctx.seed);
+        ctx
+    }
+
     /// Starts the control endpoint if it's enabled, and applies `PONKO_START_PAUSED`.
     fn start_control(&self, ctx: &mut Ctx, headless: bool) -> Option<Control> {
         if control::env_flag(control::ENV_START_PAUSED) {
@@ -1332,7 +1366,7 @@ impl Game {
     /// One frame of game logic: simulation systems `fixed_steps` times, then
     /// frame systems, then built-in drawing. Commands are applied after every system.
     fn run_systems(&mut self, ctx: &mut Ctx, fixed_steps: u32) {
-        ctx.update_retained_ui();
+        ctx.frame_begin_services();
         self.begin_timings(ctx);
         ctx.set_in_sim(true);
         for _ in 0..fixed_steps {
@@ -1348,19 +1382,14 @@ impl Game {
         for (i, s) in self.systems.iter_mut().enumerate() {
             run_one(s, ctx, n_sim + i);
         }
-        #[cfg(feature = "3d")]
-        ctx.update_animators();
-        #[cfg(feature = "3d")]
-        ctx.update_particles();
+        ctx.frame_builtin_services();
         for (i, s) in self.late_systems.iter_mut().enumerate() {
             run_one(s, ctx, n_sim + n_frame + i);
         }
         for (i, s) in self.draw_systems.iter_mut().enumerate() {
             run_one(s, ctx, n_sim + n_frame + self.late_systems.len() + i);
         }
-        // Positional sound follows where everything ended up this frame.
-        #[cfg(feature = "3d")]
-        crate::audio::update_audio3d(ctx);
+        ctx.frame_end_services();
         end_timings(ctx);
         let frame = self.systems.iter().chain(&self.late_systems).chain(&self.draw_systems);
         forget_seen_removals(ctx, self.sim_systems.iter().chain(frame));
@@ -1531,26 +1560,8 @@ impl Game {
     {
         connect_hotpatch();
         let fixed_dt = Clock::new(self.fixed_hz).fixed_dt();
-        let mut ctx = Ctx::new(fixed_dt, Vec2::new(self.width as f32, self.height as f32));
-        ctx.seed = self.seed;
-        ctx.set_headless(true);
-        ctx.assets.watcher.set_on(crate::hot_reload::enabled(self.hot_reload));
-        if let Some(cell) = self.spatial_cell {
-            ctx.spatial = crate::SpatialGrid::new(cell);
-        }
-        #[cfg(feature = "physics")]
-        if let Some(gravity) = self.gravity {
-            crate::physics::start(&mut ctx, gravity);
-        }
-        #[cfg(feature = "physics3d")]
-        if let Some(gravity) = self.gravity3d {
-            crate::physics3d::start(&mut ctx, gravity);
-        }
+        let mut ctx = self.build_ctx(true);
         let control = self.start_control(&mut ctx, true);
-        if let Some(net) = self.net.take() {
-            ctx.net = net;
-        }
-        ctx.net.begin(ctx.seed);
         ctx.set_in_setup(true);
         run_setups(std::mem::take(&mut self.setups), &mut ctx);
         drop(setup(&mut ctx).into_frame_fn()); // no frames, so no frame closure
@@ -1592,8 +1603,7 @@ impl Game {
             ran += 1;
             let tick_start = Instant::now();
             ctx.begin_frame(timing);
-            ctx.reload_changed_assets();
-            ctx.pump_streaming();
+            ctx.frame_prepare_services();
             self.begin_timings(&mut ctx);
             ctx.set_in_sim(true);
             self.run_sim_tick(&mut ctx);
