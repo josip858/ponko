@@ -10,14 +10,10 @@
 
 #[allow(unused_imports)]
 #[cfg(feature = "3d")]
-use ponko::anim::Blend;
+use ponko::d3::*;
 #[allow(unused_imports)]
 #[cfg(feature = "3d")]
-use ponko::d3::Transform;
 use ponko::prelude::*;
-#[allow(unused_imports)]
-#[cfg(feature = "3d")]
-use ponko::render::{MaterialDesc, MeshData, Model, Sky};
 
 /// One blade of grass: a thin quad, texture v from 0 at the root to 1 at the tip.
 fn blade() -> MeshData {

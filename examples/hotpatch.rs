@@ -10,7 +10,7 @@
 //! within a second, mid-spin, where they were.
 
 #[allow(unused_imports)]
-use ponko::d2::{Sprite, Transform as Transform2D};
+use ponko::d2::*;
 use ponko::prelude::*;
 
 /// Every crab turns. Try a different speed, or `-=` to turn the other way.

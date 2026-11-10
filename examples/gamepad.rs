@@ -6,7 +6,7 @@
 //!   `cargo run --example gamepad`
 
 #[allow(unused_imports)]
-use ponko::d2::{Sprite, Transform as Transform2D};
+use ponko::d2::*;
 #[allow(unused_imports)]
 use ponko::input::{GamepadAxis, GamepadButton, GamepadStick};
 use ponko::prelude::*;

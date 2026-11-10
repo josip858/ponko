@@ -154,7 +154,9 @@ impl ScenarioCheck {
 ///
 /// Building a scenario allocates; applying input steps does not.
 /// ```
-/// use ponko::{Key};use ponko::actions::InputEvent; use ponko::scenario::InputScenario;
+/// use ponko::prelude::*;
+/// use ponko::actions::InputEvent;
+/// use ponko::scenario::InputScenario;
 /// // Hold Space on ticks 2, 3 and 4; it is released on tick 5.
 /// let jump = ponko::scenario::InputScenario::new()
 ///     .at(2, ponko::actions::InputEvent::Key(Key::Space, true))
@@ -184,7 +186,9 @@ impl InputScenario {
 
     /// Adds `event` at simulation tick `tick`. Steps may be added in any order.
     /// ```
-    /// use ponko::{Key};use ponko::actions::InputEvent; use ponko::scenario::InputScenario;
+    /// use ponko::prelude::*;
+    /// use ponko::actions::InputEvent;
+    /// use ponko::scenario::InputScenario;
     /// let scenario = ponko::scenario::InputScenario::new().at(10, ponko::actions::InputEvent::Key(Key::Enter, true));
     /// ```
     pub fn at(mut self, tick: u64, event: InputEvent) -> Self {
@@ -198,7 +202,10 @@ impl InputScenario {
     /// simulation systems ran. A failure is reported with its step number
     /// (the order steps were added in, from 0) and tick.
     /// ```
-    /// use ponko::{Key};use ponko::actions::InputEvent; use ponko::scenario::InputScenario; use ponko::scenario::ScenarioCheck;
+    /// use ponko::prelude::*;
+    /// use ponko::actions::InputEvent;
+    /// use ponko::scenario::InputScenario;
+    /// use ponko::scenario::ScenarioCheck;
     /// let scenario = ponko::scenario::InputScenario::new()
     ///     .at(2, ponko::actions::InputEvent::Key(Key::Space, true))
     ///     .expect(2, ponko::scenario::ScenarioCheck::action("jump").pressed(true));
@@ -256,7 +263,9 @@ impl InputScenario {
     /// past the last step's tick (0 for an empty scenario). Use it as the
     /// tick count of a headless run.
     /// ```
-    /// use ponko::{Key};use ponko::actions::InputEvent; use ponko::scenario::InputScenario;
+    /// use ponko::prelude::*;
+    /// use ponko::actions::InputEvent;
+    /// use ponko::scenario::InputScenario;
     /// let s = ponko::scenario::InputScenario::new().at(5, ponko::actions::InputEvent::Key(Key::A, true));
     /// assert_eq!(s.ticks(), 6);
     /// assert_eq!(s.duration(10).ticks(), 10);
@@ -371,7 +380,9 @@ impl InputScenario {
     /// The scenario in its JSON format, steps in step-number order, so
     /// `from_value(&s.to_json())` gives the same scenario back.
     /// ```
-    /// use ponko::{Key};use ponko::actions::InputEvent; use ponko::scenario::InputScenario;
+    /// use ponko::prelude::*;
+    /// use ponko::actions::InputEvent;
+    /// use ponko::scenario::InputScenario;
     /// let s = ponko::scenario::InputScenario::new().at(2, ponko::actions::InputEvent::Key(Key::Space, true)).named("tap");
     /// let again = ponko::scenario::InputScenario::from_value(&s.to_json()).unwrap();
     /// assert_eq!(again.to_json(), s.to_json());

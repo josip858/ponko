@@ -20,10 +20,9 @@
 //! `ponko-mcp`.
 
 #[allow(unused_imports)]
-use ponko::d2::{Sprite, Transform as Transform2D};
+use ponko::d2::*;
 use ponko::prelude::*;
 #[allow(unused_imports)]
-use ponko::spatial::SpatialGrid;
 use serde::{Deserialize, Serialize};
 
 /// Ants per colony at the start; the world has one nest per this many ants.

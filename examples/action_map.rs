@@ -1,7 +1,5 @@
 //! Named actions, shared by keyboard and gamepad. Runs without a window.
 #[allow(unused_imports)]
-use ponko::actions::InputEvent;
-#[allow(unused_imports)]
 use ponko::input::{Gamepad, GamepadAxis, GamepadButton, GamepadStick};
 use ponko::prelude::*;
 
@@ -57,12 +55,12 @@ fn main() {
             // error here instead of reading false every frame). Ids stay valid
             // when the bindings are replaced below.
             let act = Act::resolve(ctx);
-            ctx.input.feed(InputEvent::Key(Key::Space, true));
+            ctx.input.feed(actions::InputEvent::Key(Key::Space, true));
             assert!(ctx.input.action_pressed(act.jump) && ctx.input.action_down(act.jump));
             let movement = ctx.input.action_axis2(act.movement);
             let throttle = ctx.input.action_axis(act.throttle);
             assert_eq!((movement, throttle), (Vec2::ZERO, 0.0));
-            ctx.input.feed(InputEvent::Key(Key::Space, false));
+            ctx.input.feed(actions::InputEvent::Key(Key::Space, false));
             assert!(ctx.input.action_released(act.jump));
             let mut changed = ctx.input.actions().clone();
             changed.set("jump", Action::Button(vec![ButtonBinding::Key(Key::Enter)]));

@@ -14,7 +14,7 @@
 //!   loads it instead of the default crabs.
 
 #[allow(unused_imports)]
-use ponko::d2::{Sprite, Transform as Transform2D};
+use ponko::d2::*;
 use ponko::prelude::*;
 use serde::{Deserialize, Serialize};
 

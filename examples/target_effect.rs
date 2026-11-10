@@ -9,11 +9,8 @@
 
 #[allow(unused_imports)]
 #[cfg(feature = "3d")]
-use ponko::d3::Transform;
+use ponko::d3::*;
 use ponko::prelude::*;
-#[allow(unused_imports)]
-#[cfg(feature = "3d")]
-use ponko::render::{MaterialDesc, MeshData, Model, ScreenEffect, Sky, TargetEffect};
 
 /// Writes the frame's light into its render target; a smaller target than
 /// the frame is a coarse copy, which the screen effect samples smoothly.

@@ -49,6 +49,8 @@ mod game {
 fn a_game_glob_of_common_names_does_not_collide_with_the_prelude() {
     use game::*;
     let _ = (Pose, Material, Job, Motion, Blend, Effect, Shader, Joint, Post, Sky);
-    let _ = (Interest, Authority, Lane, Value, Field, Instant, Transform, Camera, Physics);
+    let _ = (
+        Interest, Authority, Lane, Value, Field, Instant, Transform, Camera, Physics,
+    );
     let _: Vec2 = vec2(0.0, 0.0);
 }

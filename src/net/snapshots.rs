@@ -10,7 +10,7 @@ use glam::{Quat, Vec2, Vec3};
 /// implement it for your own state to use [`SnapshotBuffer`] with it.
 ///
 /// ```
-/// use ponko::{Interpolate};use ponko::net::SnapshotBuffer;
+/// use ponko::net::{Interpolate, SnapshotBuffer};
 ///
 /// #[derive(Clone, Copy, Debug, PartialEq)]
 /// struct Health(f32);
@@ -90,7 +90,8 @@ impl Interpolate for Quat {
 /// snapshots when there is none; rotation is held.
 ///
 /// ```
-/// use ponko::{Interpolate, vec3};use ponko::net::Pose;
+/// use ponko::net::{Interpolate, Pose};
+/// use ponko::prelude::*;
 /// let a = ponko::net::Pose::at(vec3(0.0, 0.0, 0.0));
 /// let b = ponko::net::Pose::at(vec3(10.0, 0.0, 0.0));
 /// let mid = ponko::net::Pose::interpolate(&a, &b, 1.0, 0.5);

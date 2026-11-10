@@ -8,10 +8,8 @@
 //! Keys: Space pause, Period single step, 1-4 speed (1x/4x/16x/64x), Escape quit.
 
 #[allow(unused_imports)]
-use ponko::d2::{Sprite, Transform as Transform2D};
+use ponko::d2::*;
 use ponko::prelude::*;
-#[allow(unused_imports)]
-use ponko::spatial::SpatialGrid;
 
 /// Reflected, so tools and agents (ponko-mcp) can read and change velocities.
 #[derive(serde::Serialize, serde::Deserialize)]

@@ -2,17 +2,11 @@
 //! Escape quits. All visible geometry is built in code.
 #[allow(unused_imports)]
 #[cfg(feature = "3d")]
-use ponko::anim::{
-    AnimationCondition, AnimationGraph, AnimationLayer, AnimationParameter, AnimationState, AnimationTrack,
-    AnimationTransition, Animator, AttachToJoint, Interpolation, Joint, JointAnimation, Motion, Skeleton, SkinOf,
-};
+use ponko::anim::Joint;
 #[allow(unused_imports)]
 #[cfg(feature = "3d")]
-use ponko::d3::Transform;
+use ponko::d3::*;
 use ponko::prelude::*;
-#[allow(unused_imports)]
-#[cfg(feature = "3d")]
-use ponko::render::{MaterialDesc, MeshData, Model};
 
 const JOINTS: usize = 8;
 const STEP: f32 = 0.5;

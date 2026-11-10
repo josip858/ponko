@@ -5,7 +5,7 @@
 //!   `AGENTS=10000000 TICKS=300 cargo run --release --example headless`
 
 #[allow(unused_imports)]
-use ponko::d2::{Sprite, Transform as Transform2D};
+use ponko::d2::*;
 use ponko::prelude::*;
 
 struct Agent {

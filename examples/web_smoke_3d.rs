@@ -15,11 +15,10 @@
 
 #[allow(unused_imports)]
 #[cfg(feature = "3d")]
-use ponko::d3::Transform;
+use ponko::d3::*;
 use ponko::prelude::*;
 #[allow(unused_imports)]
 #[cfg(feature = "3d")]
-use ponko::render::{MaterialDesc, MeshData, Model, ModelMaterial};
 use serde_json::json;
 use std::cell::Cell;
 use std::rc::Rc;

@@ -8,7 +8,7 @@
 //! - Buttons: follow the orbiting crab, reset the camera.
 
 #[allow(unused_imports)]
-use ponko::d2::{Sprite, Transform as Transform2D};
+use ponko::d2::*;
 use ponko::prelude::*;
 
 struct Scene {

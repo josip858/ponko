@@ -19,12 +19,10 @@
 //! running battle (the `Score` resource says who's winning) or change any unit.
 
 #[allow(unused_imports)]
-use ponko::d2::{Sprite, Transform as Transform2D};
+use ponko::d2::*;
 #[allow(unused_imports)]
-use ponko::flow::{FlowField, NavGrid};
 use ponko::prelude::*;
 #[allow(unused_imports)]
-use ponko::spatial::SpatialGrid;
 use serde::{Deserialize, Serialize};
 
 /// World units per nav cell.

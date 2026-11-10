@@ -81,7 +81,8 @@ impl UpdateStamp {
 /// after a timeout.
 ///
 /// ```
-/// use ponko::net::LatestWins; use ponko::net::UpdateStamp;
+/// use ponko::net::LatestWins;
+/// use ponko::net::UpdateStamp;
 /// let mut filter = ponko::net::LatestWins::new();
 /// assert!(filter.accept(7u64, ponko::net::UpdateStamp { epoch: 0, seq: 1 }));
 /// assert!(filter.accept(7, ponko::net::UpdateStamp { epoch: 0, seq: 3 }));
@@ -112,7 +113,8 @@ impl<K: Hash + Eq> LatestWins<K> {
     /// last accepted one (or the first for this key); false if the update
     /// should be dropped.
     /// ```
-    /// use ponko::net::LatestWins; use ponko::net::UpdateStamp;
+    /// use ponko::net::LatestWins;
+    /// use ponko::net::UpdateStamp;
     /// let mut f = ponko::net::LatestWins::new();
     /// assert!(f.accept("crate", ponko::net::UpdateStamp::default()));
     /// assert!(!f.accept("crate", ponko::net::UpdateStamp::default()));
@@ -237,7 +239,9 @@ pub enum AuthorityCheck {
 /// every peer converges on the same owner.
 ///
 /// ```
-/// use ponko::net::Authority; use ponko::net::AuthorityCheck; use ponko::net::PeerId;
+/// use ponko::net::Authority;
+/// use ponko::net::AuthorityCheck;
+/// use ponko::net::PeerId;
 /// let host = ponko::net::PeerId::HOST;
 /// let guest = ponko::net::PeerId::from_bits(1);
 /// let mut car = ponko::net::Authority::new(host);
@@ -292,7 +296,8 @@ impl Authority {
     /// Gives the entity to `owner` and returns the new epoch to announce.
     /// Handing it to the current owner still bumps the epoch.
     /// ```
-    /// use ponko::net::Authority; use ponko::net::PeerId;
+    /// use ponko::net::Authority;
+    /// use ponko::net::PeerId;
     /// let mut a = ponko::net::Authority::new(ponko::net::PeerId::HOST);
     /// assert_eq!(a.handoff(ponko::net::PeerId::from_bits(2)), 1);
     /// assert_eq!(a.owner(), ponko::net::PeerId::from_bits(2));
@@ -307,7 +312,8 @@ impl Authority {
     /// changed the record. Older epochs are ignored (a late announcement); the
     /// same epoch with a different owner is a race, won by the lower owner id.
     /// ```
-    /// use ponko::net::Authority; use ponko::net::PeerId;
+    /// use ponko::net::Authority;
+    /// use ponko::net::PeerId;
     /// let (a, b) = (ponko::net::PeerId::from_bits(1), ponko::net::PeerId::from_bits(2));
     /// let mut x = ponko::net::Authority::new(ponko::net::PeerId::HOST);
     /// assert!(x.adopt(b, 1));
@@ -331,7 +337,9 @@ impl Authority {
 
     /// Judges an update from `from` stamped with `epoch`.
     /// ```
-    /// use ponko::net::Authority; use ponko::net::AuthorityCheck; use ponko::net::PeerId;
+    /// use ponko::net::Authority;
+    /// use ponko::net::AuthorityCheck;
+    /// use ponko::net::PeerId;
     /// let a = ponko::net::Authority::new(ponko::net::PeerId::HOST);
     /// assert_eq!(a.check(ponko::net::PeerId::from_bits(3), 0), ponko::net::AuthorityCheck::WrongOwner);
     /// assert_eq!(a.check(ponko::net::PeerId::HOST, 1), ponko::net::AuthorityCheck::Ahead);

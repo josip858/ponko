@@ -9,11 +9,8 @@
 
 #[allow(unused_imports)]
 #[cfg(feature = "3d")]
-use ponko::d3::Transform;
+use ponko::d3::*;
 use ponko::prelude::*;
-#[allow(unused_imports)]
-#[cfg(feature = "3d")]
-use ponko::render::{ComputePass, MaterialDesc, MeshData, Model, Sky};
 
 /// The wave equation on a grid: each texel moves toward the average of
 /// its neighbours, overshooting like water does, and calms slowly.

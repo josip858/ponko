@@ -1,14 +1,10 @@
 //! Ribbon trails, lines and decals: `cargo run --features 3d --example ribbons`.
 #[allow(unused_imports)]
 #[cfg(feature = "3d")]
-use ponko::anim::Blend;
+use ponko::d3::*;
 #[allow(unused_imports)]
 #[cfg(feature = "3d")]
-use ponko::d3::{Line, ParticleBlend, Trail, Transform};
 use ponko::prelude::*;
-#[allow(unused_imports)]
-#[cfg(feature = "3d")]
-use ponko::render::{MaterialDesc, MeshData, Model};
 
 /// Flies in a circle.
 struct Orbiting;

@@ -13,7 +13,7 @@
 //!   `cargo run --example lockstep --features steam -- steam-join`  then accept the invite
 
 #[allow(unused_imports)]
-use ponko::d2::Transform as Transform2D;
+use ponko::d2::*;
 #[allow(unused_imports)]
 use ponko::net::{Net, NetState};
 use ponko::prelude::*;

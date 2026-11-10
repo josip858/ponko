@@ -13,9 +13,8 @@
 //! looked up from `par_for_each`, recomputed when the goal moves.
 
 #[allow(unused_imports)]
-use ponko::d2::{Sprite, Transform as Transform2D};
+use ponko::d2::*;
 #[allow(unused_imports)]
-use ponko::flow::{FlowField, NavGrid};
 use ponko::prelude::*;
 use serde::{Deserialize, Serialize};
 

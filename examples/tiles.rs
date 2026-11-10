@@ -11,7 +11,7 @@
 //! drawn, so the map size barely affects the frame time.
 
 #[allow(unused_imports)]
-use ponko::d2::Transform as Transform2D;
+use ponko::d2::*;
 use ponko::prelude::*;
 
 const TILE: u32 = 16;

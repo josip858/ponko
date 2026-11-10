@@ -101,7 +101,8 @@ impl PeerId {
 
 /// Connection changes and owned application payloads. Drain events every poll.
 /// ```
-/// use ponko::net::MessageEvent; use ponko::net::PeerId;
+/// use ponko::net::MessageEvent;
+/// use ponko::net::PeerId;
 /// assert!(matches!(ponko::net::MessageEvent::Connected(ponko::net::PeerId::HOST), ponko::net::MessageEvent::Connected(_)));
 /// ```
 #[derive(Debug, PartialEq, Eq)]

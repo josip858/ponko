@@ -9,9 +9,8 @@
 
 #[allow(unused_imports)]
 #[cfg(feature = "physics")]
-use ponko::d2::Velocity;
+use ponko::d2::*;
 #[allow(unused_imports)]
-use ponko::d2::{Sprite, Transform as Transform2D};
 use ponko::prelude::*;
 
 /// Velocity in pixels per second.

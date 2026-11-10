@@ -455,7 +455,8 @@ fn deadzone_value(value: f32, deadzone: f32) -> f32 {
 
 /// Raw input for headless tests and replay. Feed before querying actions.
 /// ```
-/// use ponko::{Key};use ponko::actions::InputEvent;
+/// use ponko::prelude::*;
+/// use ponko::actions::InputEvent;
 /// let event = ponko::actions::InputEvent::Key(Key::Space, true);
 /// ```
 #[derive(Debug, Clone, Copy)]

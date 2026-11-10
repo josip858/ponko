@@ -1,7 +1,7 @@
 //! CPU billboards: `cargo run --features 3d --example particles`.
 #[allow(unused_imports)]
 #[cfg(feature = "3d")]
-use ponko::d3::{ParticleBlend, ParticleEmitter, ParticleSettings, ParticleShape, Transform};
+use ponko::d3::*;
 use ponko::prelude::*;
 
 // ANCHOR: particles
