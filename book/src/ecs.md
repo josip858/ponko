@@ -140,7 +140,14 @@ Ways to run a query:
 
 - `for_each(f)`: the fastest loop; use this by default.
 - `par_for_each(f)`: same, split over all CPU cores. Use it for per-entity
-  work on many entities.
+  work on many entities. Many small archetypes share the cores too; a query
+  over small archetypes only times its first rows and stays on the calling
+  thread when the whole loop would be quick (under about 50 µs). Because
+  that choice depends on measured time, which threads run which entities,
+  and in what order, can change from run to run even on small worlds: side
+  effects that depend on order (pushing into a shared `Vec`, summing floats
+  into shared state) aren't reproducible. Per-entity results, the positions
+  of `par_for_each_indexed` and the order of `par_collect_into` are.
 - `par_collect_into(&mut vec, f)`: fills `vec` with `f` of every match, on
   all cores, in `for_each` order. The vector keeps its memory, so doing it
   every tick allocates nothing.

@@ -1049,10 +1049,20 @@ impl<'w, Q: QueryData> Query<'w, Q> {
     /// archetypes use every core too. Use it for heavy per-entity work over
     /// many entities; for a few thousand cheap updates, `for_each` is just as
     /// fast. A query whose archetypes are all small times its first rows and
-    /// stays on the calling thread if the whole loop would be quick.
+    /// stays on the calling thread if the whole loop would take under about
+    /// 50 µs.
     ///
     /// `f` can't capture `&mut` state (it runs on many threads at once). To
     /// spawn or despawn, collect what you need and use commands afterwards.
+    ///
+    /// Which entities run together, on which thread and in what order is not
+    /// fixed. For small-archetype queries even the choice between one thread
+    /// and many depends on measured time, so it can change from run to run on
+    /// small worlds too. Side effects that depend on order (pushing into a
+    /// shared `Vec`, summing floats into shared state) are not reproducible;
+    /// per-entity results, the positions of
+    /// [`par_for_each_indexed`](Self::par_for_each_indexed) and the order of
+    /// [`par_collect_into`](Self::par_collect_into) are.
     ///
     /// ```
     /// # use ponko_ecs::*;
@@ -1073,7 +1083,8 @@ impl<'w, Q: QueryData> Query<'w, Q> {
     /// [`for_each`](Self::for_each) and [`iter`](Self::iter).
     ///
     /// Use it to fill a buffer from all cores: every entity writes its own
-    /// slot, so the result comes out in a stable order.
+    /// slot, so the result comes out in a stable order, whichever threads
+    /// ran it (see [`par_for_each`](Self::par_for_each) for what isn't fixed).
     ///
     /// ```
     /// # use ponko_ecs::*;
@@ -1196,6 +1207,9 @@ impl<'w, Q: QueryData> Query<'w, Q> {
     /// `out` keeps its memory between calls, so collecting every tick
     /// allocates nothing once it's big enough. If `f` panics, completed results
     /// are dropped and `out` is left empty with its allocation available for reuse.
+    ///
+    /// The order of `out` is fixed; the threads that call `f`, and the order
+    /// of those calls, are not (see [`par_for_each`](Self::par_for_each)).
     ///
     /// ```
     /// # use ponko_ecs::*;
@@ -1547,7 +1561,7 @@ mod par_plan_tests {
     #[test]
     fn plan_storage_of_a_steady_size_is_kept() {
         let (mut w, seen) = many_runs(2 * 4 * PAR_PLAN_RETAIN as u32);
-        let mut q = |w: &mut World| {
+        let q = |w: &mut World| {
             w.query::<&Value>()
                 .filter::<Changed<Value>>()
                 .since(seen)

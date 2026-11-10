@@ -22,9 +22,12 @@ Now the calling thread lines up the matching rows of all archetypes as
 and applying `Added`/`Changed` row filters as before, and one parallel pass
 runs fixed-size chunks of the positions: a chunk can hold many small
 archetypes or part of a big one. Positions, and the output order of
-`par_collect_into`, are exactly as before. The plan's storage is owned by the
-world and reused, so warm parallel queries allocate nothing
-(`tests/parallel_alloc.rs`).
+`par_collect_into`, are exactly as before. The plan's storage (32 bytes per
+entry) is owned by the world and reused, so warm parallel queries allocate
+nothing (`tests/parallel_alloc.rs`). After a burst (a `Changed` query with
+many short runs over a big world), it shrinks: every 64 plans, storage over
+4096 entries that is more than four times the largest plan of those 64 is
+cut to twice that plan. Plans of a steady size never reallocate.
 
 Thresholds:
 
@@ -130,10 +133,21 @@ timed first chunk compares against.
 - **Timing makes the choice of thread, not the result:** positions, output
   order and change stamps are the same either way. A query slowed down by
   load during its timed first chunk may run the rest in parallel.
-- **Single archetypes:** unchanged. As before, `par_for_each` over one archetype
+- **Single archetypes:** same chunks and same threading decision as before,
+  but the query now goes through the plan: a fixed cost per call (one plan
+  entry, the storage handed back) and per chunk (a binary search for its
+  first entry and one column lookup). That cost is within run-to-run noise
+  in the measurements above. As before, `par_for_each` over one archetype
   goes parallel from 513 rows, which costs a few microseconds for very cheap
   work (1x4096 light: 0.003 ms serial vs 0.006 ms parallel); `for_each`
   stays the right choice there.
+- **Reproducibility:** for queries over small archetypes only, the choice
+  between the calling thread and the pool depends on measured time, so the
+  threads and order that run `f` can differ run to run even on small
+  worlds. Order-dependent side effects in `f` (pushing into a shared `Vec`,
+  summing floats into shared state) are not reproducible; per-entity
+  results, `par_for_each_indexed` positions and `par_collect_into` order
+  are.
 - **The web:** `std::time::Instant` isn't available on `wasm32-unknown-unknown`,
   so queries over small archetypes keep running on the calling thread there.
 
@@ -145,7 +159,12 @@ visits and `par_collect_into` output (plain and owning results) against
 few huge, mixed and empty archetypes, `with`/`without`/`Or` filters,
 required and optional components, the cached query path, `Changed` runs
 across many archetypes, mutable loops, and mapper panics in the timed first
-chunk and in the parallel part. `tests/parallel_alloc.rs` checks that warm
-parallel queries don't allocate on the querying thread. The unsafe code
+chunk and in the parallel part. Each query meant to reach the workers asserts
+more than four chunks of rows and uses slow per-entity work, and
+`a_slow_query_over_tiny_archetypes_runs_on_more_than_one_thread` checks that
+more than one thread really ran. `tests/parallel_alloc.rs` checks that warm
+parallel queries don't allocate on the querying thread; unit tests in
+`query.rs` check that the plan storage shrinks after a burst and keeps a
+steady size. The unsafe code
 passes under Miri (`parallel` and `changes` with tree borrows, and every
 test without the `parallel` feature).

@@ -8,5 +8,9 @@
   Positions and output order are unchanged, and the work plan's storage is
   reused, so warm parallel queries don't allocate. A query whose archetypes
   are all small times its first 512 rows and stays on the calling thread
-  when the whole loop would take under 50 µs, as such queries did before.
-  Measurements: `crates/ponko_bench/PAR_ARCHETYPES.md`.
+  when the whole loop would take under 50 µs, as such queries did before;
+  such cheap queries cost 4–8% (about 0.3–0.9 µs) more than before. Since
+  that choice depends on measured time, side effects that depend on the order
+  entities run in are no longer reproducible run to run on small worlds
+  either; per-entity results, indexed positions and `par_collect_into` order
+  are. Measurements: `crates/ponko_bench/PAR_ARCHETYPES.md`.
