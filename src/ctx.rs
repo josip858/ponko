@@ -540,9 +540,10 @@ impl Ctx {
     // `frame_prepare_services`, because a headless run has ticks and no frames
     // to draw or hear. ARCHITECTURE.md lists who owns each service.
 
-    /// Engine side, start of a frame, after `begin_frame` and the input
-    /// poll and before any system: reloads changed asset files and runs the
-    /// streaming and residency step. Windowed and headless loops both run it.
+    /// Engine side, start of a frame, after `begin_frame` (and, windowed, the
+    /// gamepad poll; headless runs have none) and before any system:
+    /// reloads changed asset files and runs the streaming and residency
+    /// step. Windowed and headless loops both run it.
     pub(crate) fn frame_prepare_services(&mut self) {
         self.reload_changed_assets();
         self.pump_streaming();

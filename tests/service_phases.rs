@@ -85,29 +85,6 @@ fn headless_runs_neither_update_the_retained_ui_nor_run_frame_late_or_draw_steps
     );
 }
 
-#[cfg(feature = "3d")]
-#[test]
-fn headless_runs_do_not_start_positional_audio() {
-    let started = Rc::new(RefCell::new(Vec::new()));
-    let s = started.clone();
-    let mut world = Game::new("t", 1, 1)
-        .sim_system(move |ctx: &mut Ctx| {
-            let moved = ctx.world.query::<(&AudioSource3D, &Transform3D)>().count();
-            s.borrow_mut().push(moved);
-        })
-        .run_headless(2, |ctx| {
-            let sound = ctx.audio.create(100, &[0.0; 100]);
-            ctx.world.spawn((
-                Transform3D::default(),
-                AudioSource3D::new(sound, AudioSettings3D::default()),
-            ));
-        });
-    // The emitter exists but nothing moved it to a voice: the positional
-    // update is the end of a frame, and headless runs have ticks only.
-    assert_eq!(*started.borrow(), [1, 1]);
-    assert_eq!(world.query::<&AudioSource3D>().count(), 1);
-}
-
 #[test]
 fn audio_stays_silent_and_usable_in_headless_runs() {
     Game::new("t", 1, 1).run_headless(1, |ctx| {

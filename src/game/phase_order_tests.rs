@@ -146,6 +146,29 @@ mod positional_audio {
         );
     }
 
+    /// Positional audio is the end of a frame; a headless run has ticks and
+    /// no frames, so its emitters never start, however many ticks run.
+    #[test]
+    fn headless_runs_do_not_start_positional_audio() {
+        let seen = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+        let s = seen.clone();
+        let mut world = Game::new("t", 1, 1)
+            .sim_system(move |ctx: &mut Ctx| {
+                let started = ctx.world.query::<&AudioSource3D>().iter().any(AudioSource3D::started);
+                let voices = ctx.audio.backend.spatial.voice_positions().len();
+                s.borrow_mut().push((started, voices));
+            })
+            .run_headless(3, |ctx| {
+                let sound = ctx.audio.create(100, &[0.0; 100]);
+                ctx.world.spawn((
+                    Transform3D::default(),
+                    AudioSource3D::new(sound, AudioSettings3D::default()),
+                ));
+            });
+        assert_eq!(*seen.borrow(), [(false, 0); 3]);
+        assert!(world.query::<&AudioSource3D>().iter().all(|s| !s.started()));
+    }
+
     #[test]
     fn emitters_spawned_by_late_systems_start_in_the_same_frame() {
         let mut ctx = ctx();
@@ -174,15 +197,96 @@ mod positional_audio {
 
 #[test]
 fn a_frame_runs_ticks_then_frame_then_late_then_draw_and_applies_commands_between() {
+    struct Spawned;
     let mut ctx = ctx();
     let mut game = bare(Game::new("t", 1, 1))
         .sim_system(|ctx: &mut Ctx| note(ctx, "sim"))
-        .add(Phase::Frame, |ctx| note(ctx, "frame"))
-        .add(Phase::Animate, |ctx| note(ctx, "animate"))
-        .late_system(|ctx: &mut Ctx| note(ctx, "late"));
-    game.draw_systems.push(System::new(|ctx: &mut Ctx| note(ctx, "draw")));
+        .add(Phase::Frame, |ctx| {
+            note(ctx, "frame");
+            ctx.commands.spawn((Spawned,));
+            // The recording system never sees its own commands.
+            let n = ctx.world.query::<&Spawned>().count();
+            note(ctx, format!("frame sees {n}"));
+        })
+        .add(Phase::Animate, |ctx| {
+            let n = ctx.world.query::<&Spawned>().count();
+            note(ctx, format!("animate sees {n}"));
+        })
+        .late_system(|ctx: &mut Ctx| {
+            let n = ctx.world.query::<&Spawned>().count();
+            note(ctx, format!("late sees {n}"));
+        });
+    game.draw_systems.push(System::new(|ctx: &mut Ctx| {
+        let n = ctx.world.query::<&Spawned>().count();
+        note(ctx, format!("draw sees {n}"));
+    }));
     frame(&mut game, &mut ctx, 2);
-    assert_eq!(take(&mut ctx), ["sim", "sim", "frame", "animate", "late", "draw"]);
+    assert_eq!(
+        take(&mut ctx),
+        [
+            "sim",
+            "sim",
+            "frame",
+            "frame sees 0",
+            "animate sees 1",
+            "late sees 1",
+            "draw sees 1"
+        ],
+        "commands apply right after the recording system, before the next one"
+    );
+}
+
+/// The built-in animation and particle step sits between the frame systems
+/// and the late systems, so late systems read the final pose and the
+/// particles of this frame.
+#[cfg(feature = "3d")]
+#[test]
+fn builtin_animation_and_particles_run_between_frame_and_late_systems() {
+    use crate::{
+        AnimationClip, AnimationGraph, AnimationState, Animator, Joint, Motion, ParticleEmitter3D, ParticleSettings3D,
+        Skeleton, Transform3D, Vec3,
+    };
+    let skeleton = Skeleton::new(vec![Joint {
+        name: "root".into(),
+        parent: None,
+        rest: Transform3D::default(),
+    }]);
+    let clip = AnimationClip::new("rest", &skeleton, vec![]);
+    let animator = Animator::new(AnimationGraph::new(
+        vec![],
+        vec![AnimationState::new(Motion::Clip(clip))],
+        vec![],
+        0,
+    ));
+    let mut ctx = ctx();
+    let rig = ctx.world.spawn((skeleton, animator));
+    let emitter = ctx.world.spawn((
+        Transform3D::default(),
+        ParticleEmitter3D::new(ParticleSettings3D {
+            rate: 0.0,
+            gravity: Vec3::ZERO,
+            ..Default::default()
+        }),
+    ));
+    let mut game = bare(Game::new("t", 1, 1))
+        .system(move |ctx: &mut Ctx| {
+            // A pose the frame system forces and a burst it asks for.
+            ctx.world.get_mut::<Skeleton>(rig).unwrap().pose[0].position.x = 7.0;
+            ctx.world.get_mut::<ParticleEmitter3D>(emitter).unwrap().burst(3);
+            let live = ctx.world.get::<ParticleEmitter3D>(emitter).unwrap().live_count();
+            note(ctx, format!("frame live={live}"));
+        })
+        .late_system(move |ctx: &mut Ctx| {
+            let x = ctx.world.get::<Skeleton>(rig).unwrap().pose[0].position.x;
+            let live = ctx.world.get::<ParticleEmitter3D>(emitter).unwrap().live_count();
+            note(ctx, format!("late pose={x} live={live}"));
+        });
+    frame(&mut game, &mut ctx, 0);
+    assert_eq!(
+        take(&mut ctx),
+        ["frame live=0", "late pose=0 live=3"],
+        "animation posed the rig and the particles spawned before the late systems"
+    );
 }
 
 #[test]

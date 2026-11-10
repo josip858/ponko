@@ -68,6 +68,8 @@ Fixed steps and seeded random streams support repeatability, but deterministic g
 
 ### Lifecycle, in order
 
+Rows follow `window.rs`'s frame (`run_frame`) and `run_headless_inner`'s tick.
+
 | Stage | Windowed run (`Game::run`) | Headless run (`Game::run_headless`) |
 |---|---|---|
 | Construct | `Game::build_ctx(false)`: `Ctx::new`, then seed, hot reload, spatial grid, physics worlds, lockstep session (`Net::begin`) | `Game::build_ctx(true)`: the same, with the headless flag set (size-only textures, silent audio, dropped draws) |
@@ -75,10 +77,10 @@ Fixed steps and seeded random streams support repeatability, but deterministic g
 | Renderer | `App::start` attaches `ctx.gfx.renderer` once the window and GPU exist; setup waits for it | None: `ctx.gfx.renderer` stays `None` |
 | Setup | `run_setups` (plugins and builder setups in order), then the `run` closure; `Ctx::set_in_setup`; commands applied when setup returns | The same; the closure's returned frame function is dropped (there are no frames) |
 | Fixed tick | `Game::run_sim_tick`, which ends with `Ctx::advance_tick` | The same, exactly one per loop iteration; sim speed ignored |
-| Frame start | `Ctx::begin_frame`, gamepad poll, `Ctx::frame_prepare_services` (asset reload, streaming) | `Ctx::begin_frame` and `frame_prepare_services` each tick |
+| Frame start | `Ctx::begin_frame`, gamepad poll, `Ctx::frame_prepare_services` (asset reload, streaming), then `Graphics::apply_shader_checks` (3D) | `Ctx::begin_frame` and `frame_prepare_services` each tick; no gamepad poll, no shader checks |
 | Frame | `Game::run_systems`: UI, ticks, frame systems, animation and particles, late, draw, positional audio | Not run: no UI update, no frame, late or draw systems, no positional audio |
-| Render | `Ctx::draw_perf_hud`, `Ctx::render_frame`, `Ctx::record_frame` | None; `Graphics::discard_draws` each tick |
-| End of frame | `Input::end_frame`, then the inspector overlay | `Input::end_frame` |
+| End of systems | `Input::end_frame`, then the inspector overlay; a quit request or cursor-lock change is handled here | `end_timings`, `Graphics::discard_draws`, `Input::end_frame` |
+| Render | `Ctx::draw_perf_hud`, `Ctx::render_frame`, `Ctx::record_frame` | None: no renderer, nothing to draw or time |
 | Teardown | The event loop returns; `App` and its `Ctx` drop | `run_headless` returns the world (`std::mem::take(&mut ctx.world)`); the rest of the `Ctx` drops |
 
 ### Who owns each service
