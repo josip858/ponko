@@ -718,7 +718,7 @@ fn components_label(world: &World, e: Entity) -> String {
 fn list_rows(world: &World, filter: Option<ComponentId>, rows: &mut Vec<(usize, usize)>) -> usize {
     rows.clear();
     let mut total = 0;
-    for (i, arch) in world.archetypes().iter().enumerate() {
+    for (i, arch) in world.raw_ref().archetypes().iter().enumerate() {
         if arch.is_empty() || filter.is_some_and(|id| !arch.has(id)) {
             continue;
         }
@@ -732,7 +732,7 @@ fn list_rows(world: &World, filter: Option<ComponentId>, rows: &mut Vec<(usize, 
 fn entity_at(world: &World, rows: &[(usize, usize)], row: usize) -> Option<Entity> {
     let k = rows.partition_point(|&(_, start)| start <= row).checked_sub(1)?;
     let (arch, start) = rows[k];
-    world.archetypes()[arch].entities().get(row - start).copied()
+    world.raw_ref().archetypes()[arch].entities().get(row - start).copied()
 }
 
 /// The entity under window point `at`: the top sprite there (by `z`), else
@@ -1208,7 +1208,11 @@ mod tests {
         assert!(listed.contains(&e));
         assert_eq!(entity_at(&ctx.world, &rows, total), None);
 
-        let health = ctx.world.component_by_name(std::any::type_name::<Health>()).unwrap();
+        let health = ctx
+            .world
+            .raw_ref()
+            .component_by_name(std::any::type_name::<Health>())
+            .unwrap();
         assert_eq!(list_rows(&ctx.world, Some(health), &mut rows), 1);
         assert_eq!(entity_at(&ctx.world, &rows, 0), Some(e));
     }

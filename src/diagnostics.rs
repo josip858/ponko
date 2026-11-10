@@ -196,6 +196,7 @@ pub(crate) fn snapshot(ctx: &Ctx) -> EcsDiagnostics {
         })
         .collect();
     let archetypes = world
+        .raw_ref()
         .archetypes()
         .iter()
         .enumerate()

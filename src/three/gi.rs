@@ -76,7 +76,7 @@ pub struct GlobalIllumination {
     /// Default 2.
     pub spacing: f32,
     /// How many probes look around each frame, 1 to
-    /// [`MAX_GI_PROBES_PER_FRAME`]. Default 4.
+    /// [`GlobalIllumination::MAX_PROBES_PER_FRAME`](crate::render::GlobalIllumination::MAX_PROBES_PER_FRAME). Default 4.
     pub probes_per_frame: u32,
     /// How bright the bounced light is: 1 is physically based. Default 1.
     pub intensity: f32,
@@ -108,7 +108,7 @@ impl GlobalIllumination {
     }
 
     /// How many probes the grid has along x, y and z: `extent / spacing +
-    /// 1`, 2 to 64 each, fewer when that's more than [`MAX_GI_PROBES`] in
+    /// 1`, 2 to 64 each, fewer when that's more than [`GlobalIllumination::MAX_PROBES`](crate::render::GlobalIllumination::MAX_PROBES) in
     /// all (the grid shrinks; the spacing stays).
     /// ```
     /// use ponko::prelude::*;

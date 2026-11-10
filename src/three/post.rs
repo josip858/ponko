@@ -59,7 +59,7 @@ pub enum AntiAliasing {
 /// assert_eq!(ponko::MAX_RENDER_SCALE, 2.0);
 /// ```
 pub const MIN_RENDER_SCALE: f32 = 0.25;
-/// See [`MIN_RENDER_SCALE`].
+/// See [`GraphicsQuality::MIN_RENDER_SCALE`](crate::render::GraphicsQuality::MIN_RENDER_SCALE).
 pub const MAX_RENDER_SCALE: f32 = 2.0;
 
 /// Ground-truth ambient occlusion. Radius is in world units; quality controls
@@ -112,8 +112,8 @@ pub struct Post {
     /// The 3D scene is drawn at this fraction of the window's size in each
     /// direction, then scaled to the window before sprites and UI, which stay
     /// at the window's resolution: below 1 is cheaper and softer, above 1
-    /// (supersampling) sharper and costlier. From [`MIN_RENDER_SCALE`] to
-    /// [`MAX_RENDER_SCALE`]; anything else is clamped. Default 1 (no extra
+    /// (supersampling) sharper and costlier. From [`GraphicsQuality::MIN_RENDER_SCALE`](crate::render::GraphicsQuality::MIN_RENDER_SCALE) to
+    /// [`GraphicsQuality::MAX_RENDER_SCALE`](crate::render::GraphicsQuality::MAX_RENDER_SCALE); anything else is clamped. Default 1 (no extra
     /// pass).
     pub render_scale: f32,
     /// How much the scaled image is sharpened, 0 to 1 (an adaptive

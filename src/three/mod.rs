@@ -820,7 +820,7 @@ pub struct Lighting {
     /// lookups it adds, on every lit pixel.
     pub shadow_filter: u32,
     /// How many shadow views point and spot lights may share, 0 to
-    /// [`MAX_LIGHT_SHADOW_VIEWS`]: a shadowed spot light takes one, a
+    /// [`PointLight::MAX_SHADOW_VIEWS`](crate::d3::PointLight::MAX_SHADOW_VIEWS): a shadowed spot light takes one, a
     /// shadowed point light six. 0 turns point and spot light shadows off.
     /// Default 12.
     pub light_shadow_views: u32,
@@ -828,14 +828,14 @@ pub struct Lighting {
     /// texels: 128 to 2048, rounded down to a power of two. A light whose
     /// reach fills the view gets this; one twice as far away half of it,
     /// down to 64 (see [`PointLight3D::shadow_resolution`] to pick a
-    /// light's own). Default [`LIGHT_SHADOW_SIZE`].
+    /// light's own). Default [`PointLight::SHADOW_SIZE`](crate::d3::PointLight::SHADOW_SIZE).
     pub light_shadow_resolution: u32,
     /// Width and height of the depth atlas all point and spot light shadow
     /// views are packed into, in texels: 1024 to 8192, rounded down to a
     /// power of two (and no more than the GPU allows). It takes
     /// `4 * light_shadow_atlas²` bytes once a light casts shadows; when
     /// the views don't fit, the largest shrink. Changing it at run time
-    /// makes a new atlas. Default [`LIGHT_SHADOW_ATLAS_SIZE`].
+    /// makes a new atlas. Default [`PointLight::SHADOW_ATLAS_SIZE`](crate::d3::PointLight::SHADOW_ATLAS_SIZE).
     pub light_shadow_atlas: u32,
     /// Light bounced off the world's surfaces (global illumination). Off
     /// by default; see [`GlobalIllumination`].

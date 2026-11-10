@@ -31,6 +31,14 @@ fn filtered_2d_queries_exclude_entities_and_sensors_without_changing_legacy_call
             ctx.physics
                 .overlap_ball(vec2(5.0, 0.0), 1.0, QueryFilter::default().with_sensors(), &mut found);
             assert_eq!(found.len(), 1);
+            // The legacy wrappers keep seeing sensors, as before.
+            ctx.physics.entities_in_circle(vec2(5.0, 0.0), 1.0, &mut found);
+            assert_eq!(found.len(), 1);
+            ctx.physics.entities_at(vec2(5.0, 0.0), &mut found);
+            assert_eq!(found.len(), 1);
+            ctx.physics
+                .overlap_point(vec2(5.0, 0.0), QueryFilter::default(), &mut found);
+            assert!(found.is_empty());
             assert!(ctx.physics.mass(*solid).is_some());
             assert!(ctx.physics.apply_impulse(*solid, Vec2::ZERO));
         })

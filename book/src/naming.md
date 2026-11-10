@@ -191,12 +191,14 @@ The engine's built-in systems (`step_physics3d`, `draw_sprites`,
 each has a `Systems` id for `Game::remove` ([Systems](systems.md)). Their root
 spellings are deprecated forwarders that count as the same built-in.
 
-Use `world.raw()` for dynamic components/resources, chunks and archetypes;
-`world.raw_ref()` supplies read-only dynamic inspection. These views borrow the
-same world and preserve every pointer/layout requirement of the existing native
-interface. Existing `World` methods remain callable for compatibility but are
-hidden from the typed `World` documentation. C bindings continue to call the
-same storage operations.
+Use `world.raw()` for dynamic components and resources (`get_dynamic`,
+`insert_dynamic`, `spawn_dynamic`, `remove_dynamic`, the `*_resource_dynamic`
+calls), chunks (`for_each_chunk`) and archetypes; `world.raw_ref()` supplies
+read-only dynamic inspection. These views borrow the same world and preserve
+every pointer/layout requirement of the existing native interface. The same
+methods on `World` itself still compile as deprecated forwarders and are hidden
+from the typed `World` documentation. The C bindings call the same functions
+through `raw()`.
 
 ### Native filtered queries and prefab placement
 

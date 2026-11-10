@@ -580,12 +580,12 @@ fn c_world() -> (World, ponko::ecs_core::ComponentId) {
 
 fn c_unit(world: &World, e: Entity, id: ponko::ecs_core::ComponentId) -> CUnit {
     // SAFETY: `id` is CUnit's id.
-    unsafe { *world.get_dynamic(e, id).unwrap().cast::<CUnit>() }
+    unsafe { *world.raw_ref().get_dynamic(e, id).unwrap().cast::<CUnit>() }
 }
 
 fn spawn_c_unit(world: &mut World, id: ponko::ecs_core::ComponentId, unit: CUnit) -> Entity {
     // SAFETY: a valid CUnit.
-    unsafe { world.spawn_dynamic(&[(id, (&unit as *const CUnit).cast())]) }
+    unsafe { world.raw().spawn_dynamic(&[(id, (&unit as *const CUnit).cast())]) }
 }
 
 #[test]
@@ -662,7 +662,7 @@ fn described_components_spawn_and_add_with_missing_fields_zeroed() {
         .unwrap();
     assert_eq!(c_unit(&world, bare, id).level, 2);
     assert_eq!(world.remove_json(bare, "CUnit"), Ok(true));
-    assert!(world.get_dynamic(bare, id).is_none());
+    assert!(world.raw_ref().get_dynamic(bare, id).is_none());
 }
 
 #[test]
@@ -862,7 +862,12 @@ fn c_score_world() -> World {
 
 fn c_score(w: &World) -> CScore {
     // SAFETY: the resource holds a CScore.
-    unsafe { *w.get_resource_dynamic("game::Score").unwrap().cast::<CScore>() }
+    unsafe {
+        *w.raw_ref()
+            .get_resource_dynamic("game::Score")
+            .unwrap()
+            .cast::<CScore>()
+    }
 }
 
 #[test]
@@ -880,7 +885,7 @@ fn field_described_resources_read_write_and_save() {
     };
     // SAFETY: `value` is a CScore.
     unsafe {
-        w.insert_resource_dynamic(
+        w.raw().insert_resource_dynamic(
             "game::Score",
             std::alloc::Layout::new::<CScore>(),
             (&value as *const CScore).cast(),

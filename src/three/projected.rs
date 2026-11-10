@@ -33,7 +33,7 @@ pub const MAX_DECALS_PER_CLUSTER: usize = 64;
 /// Unlike a mesh decal, nothing is built: the decal is drawn onto whatever
 /// is inside the box each frame, so it follows moving and skinned models,
 /// costs the same however much geometry is under it, and is lit with the
-/// surface it lands on. Put hundreds on screen ([`MAX_DECALS`] at most).
+/// surface it lands on. Put hundreds on screen ([`Decal::MAX`](crate::d3::Decal::MAX) at most).
 /// Parent a decal to a model (see `Attached`) to carry it along.
 ///
 /// Images come from the texture array set with

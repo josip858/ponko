@@ -31,7 +31,7 @@ pub const TERRAIN_LAYERS: usize = 8;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TerrainMaterialDesc {
     /// Each layer's color texture ([`TextureKind::Color`](crate::terrain::TextureKind::Color)),
-    /// up to [`TERRAIN_LAYERS`].
+    /// up to [`TerrainTile::LAYERS`](crate::terrain::TerrainTile::LAYERS).
     pub layers: TextureArray,
     /// The layers' normal maps, one each in the same order
     /// ([`TextureKind::Data`](crate::terrain::TextureKind::Data), OpenGL style).
@@ -196,7 +196,7 @@ impl Graphics {
     ///
     /// # Panics
     ///
-    /// If there are more than [`TERRAIN_LAYERS`] layers, too few weight
+    /// If there are more than [`TerrainTile::LAYERS`](crate::terrain::TerrainTile::LAYERS) layers, too few weight
     /// images or normal maps, a size isn't above 0, or an array comes from
     /// another game.
     pub fn create_terrain_material(&mut self, desc: &TerrainMaterialDesc) -> Material {

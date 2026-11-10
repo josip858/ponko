@@ -940,26 +940,26 @@ impl WorldReflect for World {
                 type_name: name.to_string(),
                 get: Arc::new(move |w: &World, e| {
                     // SAFETY: the pointer is to a live value of `id`, `size` bytes.
-                    w.get_dynamic(e, id).map(|p| Ok(unsafe { g.read(p) }))
+                    w.raw_ref().get_dynamic(e, id).map(|p| Ok(unsafe { g.read(p) }))
                 }),
                 set: Arc::new(move |w: &mut World, e, v| {
-                    let bytes = l.bytes(w.get_dynamic(e, id), &v)?;
+                    let bytes = l.bytes(w.raw_ref().get_dynamic(e, id), &v)?;
                     // SAFETY: `reflect_fields`' caller promised these bytes are a valid value.
-                    unsafe { w.insert_dynamic(e, id, bytes.as_ptr()) };
+                    unsafe { w.raw().insert_dynamic(e, id, bytes.as_ptr()) };
                     Ok(())
                 }),
                 spawn: Arc::new(move |w: &mut World, v| {
                     let bytes = st.bytes(None, &v)?;
                     // SAFETY: as above.
-                    Ok(unsafe { w.spawn_dynamic(&[(id, bytes.as_ptr())]) })
+                    Ok(unsafe { w.raw().spawn_dynamic(&[(id, bytes.as_ptr())]) })
                 }),
                 spawn_at: Arc::new(move |w: &mut World, e, v| {
                     let bytes = sa.bytes(None, &v)?;
                     // SAFETY: as above.
-                    Ok(unsafe { w.spawn_at_dynamic(e, &[(id, bytes.as_ptr())]) })
+                    Ok(unsafe { w.raw().spawn_at_dynamic(e, &[(id, bytes.as_ptr())]) })
                 }),
                 check: Arc::new(move |v: &Value| k.bytes(None, v).map(drop)),
-                remove: Arc::new(move |w: &mut World, e| w.remove_dynamic(e, id)),
+                remove: Arc::new(move |w: &mut World, e| w.raw().remove_dynamic(e, id)),
             }
         };
         match reg.by_name.get(&name) {
@@ -1128,13 +1128,15 @@ impl WorldReflect for World {
             type_name: name.to_string(),
             get: Arc::new(move |w: &World| {
                 // SAFETY: the pointer is to the live resource, `layout.size()` bytes.
-                w.get_resource_dynamic(&get_name).map(|p| Ok(unsafe { read.read(p) }))
+                w.raw_ref()
+                    .get_resource_dynamic(&get_name)
+                    .map(|p| Ok(unsafe { read.read(p) }))
             }),
             set: Arc::new(move |w: &mut World, v| {
-                let bytes = write.bytes(w.get_resource_dynamic(&set_name), &v)?;
+                let bytes = write.bytes(w.raw_ref().get_resource_dynamic(&set_name), &v)?;
                 // SAFETY: `bytes` holds `layout.size()` bytes, a valid value as
                 // `reflect_resource_fields`' caller promised.
-                unsafe { w.insert_resource_dynamic(&set_name, layout, bytes.as_ptr()) };
+                unsafe { w.raw().insert_resource_dynamic(&set_name, layout, bytes.as_ptr()) };
                 Ok(())
             }),
             check: Arc::new(move |v: &Value| check.bytes(None, v).map(drop)),
@@ -1178,7 +1180,7 @@ impl WorldReflect for World {
         let reflected = self.reflected_components();
         let mut entities = Vec::new();
         let mut not_saved: std::collections::BTreeMap<String, usize> = Default::default();
-        for a in self.archetypes().iter().filter(|a| !a.is_empty()) {
+        for a in self.raw_ref().archetypes().iter().filter(|a| !a.is_empty()) {
             for &id in a.component_ids() {
                 // Rust components are reflected under their short name, C ones
                 // under the name they were registered with ("game::Health").

@@ -1225,7 +1225,7 @@ pub unsafe extern "C" fn crabby_ctx_remove_later(ctx: *mut CrabbyCtx, entity: u6
         commands(ctx, |c| {
             c.add(move |w| match crate::component(w, component) {
                 Ok((id, _)) => {
-                    w.remove_dynamic(Entity::from_bits(entity), id);
+                    w.raw().remove_dynamic(Entity::from_bits(entity), id);
                 }
                 Err(f) => report("remove_later", f),
             });

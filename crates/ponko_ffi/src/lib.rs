@@ -570,7 +570,7 @@ pub unsafe extern "C" fn crabby_component_register(
         // SAFETY: access validates null and guards the live caller-provided handle.
         unsafe {
             access(world, |w, _| {
-                if let Some(id) = w.component_by_name(name) {
+                if let Some(id) = w.raw_ref().component_by_name(name) {
                     let info = w.component_info(id);
                     if info.layout() != layout || info.type_id().is_some() || info.needs_drop() {
                         return Err(invalid("name is already registered with another layout or type"));
@@ -695,7 +695,7 @@ pub(crate) unsafe fn spawn_values(w: &mut World, values: &[CrabbyValue]) -> Resu
         components.push((id, ptr));
     }
     // SAFETY: every pointer refers to a value of the registered layout.
-    Ok(unsafe { w.spawn_dynamic(&components) })
+    Ok(unsafe { w.raw().spawn_dynamic(&components) })
 }
 
 /// Despawns an entity; stale or missing entities return `CRABBY_NOT_FOUND`.
@@ -780,6 +780,7 @@ pub unsafe extern "C" fn crabby_get(
         access(world, |w, _| {
             let (id, kind) = value_layout(w, id, out_data, size)?;
             let src = w
+                .raw_ref()
                 .get_dynamic(Entity::from_bits(entity), id)
                 .ok_or_else(|| error(CRABBY_NOT_FOUND, "entity or component not found"))?;
             match kind {
@@ -827,11 +828,11 @@ pub(crate) unsafe fn insert_value(
     // SAFETY: the caller validated the layout of `data`.
     unsafe {
         Ok(match kind {
-            Kind::Plain => w.insert_dynamic(e, id, data.cast()),
+            Kind::Plain => w.raw().insert_dynamic(e, id, data.cast()),
             Kind::Mirror(m) => {
                 let mut slot = Slot::new();
                 let value = m.convert(data, &mut slot)?;
-                w.insert_dynamic(e, id, value)
+                w.raw().insert_dynamic(e, id, value)
             }
         })
     }
@@ -850,7 +851,7 @@ pub unsafe extern "C" fn crabby_remove(world: *mut CrabbyWorld, entity: u64, id:
     boundary(|| unsafe {
         access(world, |w, _| {
             let (id, _) = component(w, id)?;
-            present(w.remove_dynamic(Entity::from_bits(entity), id))
+            present(w.raw().remove_dynamic(Entity::from_bits(entity), id))
         })
     })
 }
@@ -948,7 +949,7 @@ pub unsafe extern "C" fn crabby_query(
             access(world, |w, _| {
                 let (resolved, _) = resolve(w, input)?;
                 let mut first = 0;
-                w.for_each_chunk(&resolved[..count], |chunk| {
+                w.raw().for_each_chunk(&resolved[..count], |chunk| {
                     let view = CrabbyChunk {
                         count: chunk.entities.len(),
                         column_count: count,
@@ -997,7 +998,7 @@ pub unsafe extern "C" fn crabby_query_par(
                 let _commands_off = ParallelQuery::begin(handle);
                 let threads = rayon::current_num_threads().max(1);
                 let mut first = 0;
-                w.for_each_chunk(&resolved[..count], |chunk| {
+                w.raw().for_each_chunk(&resolved[..count], |chunk| {
                     chunk_in_parallel(&chunk, &sizes, first, threads, callback, user);
                     first += chunk.entities.len();
                 });

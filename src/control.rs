@@ -344,7 +344,7 @@ fn for_each_matching(
     }
     with.extend(needed.iter().cloned());
     let mut jsons: Vec<Value> = Vec::with_capacity(needed.len());
-    for a in world.archetypes().iter().filter(|a| !a.is_empty()) {
+    for a in world.raw_ref().archetypes().iter().filter(|a| !a.is_empty()) {
         let names: Vec<&str> = a
             .component_ids()
             .iter()
@@ -857,6 +857,7 @@ pub(crate) fn handle(ctx: &mut Ctx, method: &str, params: &Value) -> Result<Valu
         "world.summary" => {
             let world = &ctx.world;
             let archetypes: Vec<Value> = world
+                .raw_ref()
                 .archetypes()
                 .iter()
                 .filter(|a| !a.is_empty())

@@ -26,7 +26,7 @@ pub struct PointLight3D {
     pub range: f32,
     /// Cast shadows (six shadow views: one per cube face). Default false.
     /// Shadowed lights nearest the camera get views first; see
-    /// [`MAX_LIGHT_SHADOW_VIEWS`]. Lights left over shine unshadowed.
+    /// [`PointLight::MAX_SHADOW_VIEWS`](crate::d3::PointLight::MAX_SHADOW_VIEWS). Lights left over shine unshadowed.
     pub shadows: bool,
     /// Width and height of each of its shadow views in the shadow atlas, in
     /// texels (rounded down to a power of two, 64 to 2048). 0, the default,

@@ -996,6 +996,7 @@ fn evaluate(ctx: &Ctx, check: &ScenarioCheck) -> Result<(), Box<ScenarioFailure>
             }
             let world = &ctx.world;
             let actual: usize = world
+                .raw_ref()
                 .archetypes()
                 .iter()
                 .filter(|a| {
