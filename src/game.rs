@@ -48,11 +48,12 @@ pub enum Phase {
     /// [`Systems::UPDATE_PARTICLES`]) run at the end of this phase, after
     /// your systems in it.
     Animate,
-    /// Per-frame work after animation and before drawing. With the `3d`
-    /// feature, positional audio ([`Systems::UPDATE_AUDIO3D`]) runs at the
-    /// end of this phase, so sound follows where things ended up.
+    /// Per-frame work after animation and before drawing.
     Late,
-    /// Per-frame drawing after final positions are available.
+    /// Per-frame drawing after final positions are available. With the `3d`
+    /// feature, positional audio ([`Systems::UPDATE_AUDIO3D`]) runs at the
+    /// end of this phase, after the drawing systems, so sound follows where
+    /// everything ended up this frame.
     Draw,
 }
 
@@ -123,7 +124,8 @@ impl Systems {
     /// end of [`Phase::Animate`], after the animators.
     pub const UPDATE_PARTICLES: SystemId = SystemId(11);
     /// Moves positional sounds to this frame's listener and emitters
-    /// (feature `3d`). Stays at the end of [`Phase::Late`].
+    /// (feature `3d`). Stays at the end of [`Phase::Draw`], after the
+    /// drawing systems.
     pub const UPDATE_AUDIO3D: SystemId = SystemId(12);
 }
 
@@ -581,7 +583,7 @@ impl Game {
         {
             game.insert_system(Phase::Animate, System::last(crate::systems::update_animators));
             game.insert_system(Phase::Animate, System::last(crate::systems::update_particles));
-            game.insert_system(Phase::Late, System::last(crate::systems::update_audio3d));
+            game.insert_system(Phase::Draw, System::last(crate::systems::update_audio3d));
         }
         game
     }
@@ -1934,7 +1936,9 @@ mod tests {
         game.add_system(Phase::Draw, draw_sprites);
         assert_eq!(game.system_count(Systems::DRAW_SPRITES), 2);
         game = game.remove(Systems::DRAW_SPRITES);
-        assert_eq!(game.draw_systems.len(), 2);
+        assert_eq!(game.system_count(Systems::DRAW_SPRITES), 0);
+        assert_eq!(game.system_count(Systems::ANIMATE_SPRITES), 1);
+        assert_eq!(game.system_count(Systems::DRAW_TILEMAPS), 1);
         let game = game
             .spatial_grid(32.0)
             .remove(Systems::REBUILD_SPATIAL_GRID)
@@ -2013,7 +2017,13 @@ mod tests {
             .remove_system(crate::systems::animate_sprites)
             .remove_system(crate::draw_tilemaps)
             .remove_system(crate::draw_sprites);
-        assert!(game.sim_systems.is_empty() && game.draw_systems.is_empty());
+        assert!(game.sim_systems.is_empty());
+        // Only positional audio (feature `3d`) is left in `Draw`.
+        assert!(
+            game.draw_systems
+                .iter()
+                .all(|s| s.builtin == Some(Systems::UPDATE_AUDIO3D))
+        );
         let mut game = Game::new("t", 1, 1);
         assert_eq!(game.remove_named_system(std::any::type_name_of_val(&draw_sprites)), 1);
         assert_eq!(game.system_count(Systems::DRAW_SPRITES), 0);
@@ -2033,17 +2043,31 @@ mod tests {
             .remove(Systems::DRAW_SPRITES)
             .add(Phase::Draw, crate::draw_sprites);
         assert_eq!(game.system_count(Systems::DRAW_SPRITES), 1);
-        let listed = game.draw_systems.last().unwrap().name;
-        assert_eq!(listed, std::any::type_name_of_val(&crate::systems::draw_sprites));
+        let listed = game
+            .draw_systems
+            .iter()
+            .find(|s| s.builtin == Some(Systems::DRAW_SPRITES));
+        assert_eq!(
+            listed.unwrap().name,
+            std::any::type_name_of_val(&crate::systems::draw_sprites)
+        );
     }
 
     /// The built-in frame steps are systems: listed, timed and removable.
     #[cfg(feature = "3d")]
     #[test]
     fn animators_particles_and_positional_audio_are_listed_as_systems() {
+        fn user_draw(ctx: &mut Ctx) {
+            log(ctx, "draw");
+        }
+        fn late(ctx: &mut Ctx) {
+            log(ctx, "late");
+        }
+        // Added after the built-ins: they still end their phase.
         let mut game = Game::new("t", 1, 1)
-            .late_system(|ctx| log(ctx, "late"))
-            .add(Phase::Animate, |ctx| log(ctx, "animate"));
+            .late_system(late)
+            .add(Phase::Animate, |ctx| log(ctx, "animate"))
+            .add(Phase::Draw, user_draw);
         let mut ctx = ctx();
         game.run_systems(&mut ctx, 0);
         let listed: Vec<&str> = ctx
@@ -2062,8 +2086,12 @@ mod tests {
         let user_animate = listed.iter().position(|n| n.contains("closure")).unwrap();
         assert!(user_animate < at("update_animators"));
         assert!(at("update_animators") < at("update_particles"));
-        assert!(at("update_particles") < at("update_audio3d"));
-        assert!(at("update_audio3d") < at("animate_sprites"), "{listed:?}");
+        assert!(at("update_particles") < at("late"), "{listed:?}");
+        // Positional audio follows the late and the drawing systems.
+        assert!(at("late") < at("update_audio3d"), "{listed:?}");
+        assert!(at("draw_sprites") < at("update_audio3d"), "{listed:?}");
+        assert!(at("user_draw") < at("update_audio3d"), "{listed:?}");
+        assert_eq!(listed.last(), Some(&"update_audio3d"), "{listed:?}");
         let phases: Vec<_> = (game.systems.iter().chain(&game.late_systems))
             .map(|s| (s.stage, s.last))
             .collect();
@@ -2074,19 +2102,26 @@ mod tests {
                 (Phase::Animate, true),
                 (Phase::Animate, true),
                 (Phase::Late, false),
-                (Phase::Late, true),
             ]
         );
-        assert_eq!(ctx.world.resource::<Log>().0, ["animate dt=0.0000", "late dt=0.0000"]);
+        let last_draw = game.draw_systems.last().unwrap();
+        assert_eq!((last_draw.stage, last_draw.last), (Phase::Draw, true));
+        assert_eq!(last_draw.builtin, Some(Systems::UPDATE_AUDIO3D));
+        assert_eq!(
+            ctx.world.resource::<Log>().0,
+            ["animate dt=0.0000", "late dt=0.0000", "draw dt=0.0000"]
+        );
 
         // Removed like any other system, and placed again where the game wants it.
         let game = game
             .remove(Systems::UPDATE_PARTICLES)
             .remove(Systems::UPDATE_AUDIO3D)
-            .add(Phase::Draw, crate::systems::update_audio3d);
+            .add(Phase::Late, crate::systems::update_audio3d);
         assert_eq!(game.system_count(Systems::UPDATE_PARTICLES), 0);
         assert_eq!(game.system_count(Systems::UPDATE_ANIMATORS), 1);
-        assert_eq!(game.draw_systems.last().unwrap().builtin, Some(Systems::UPDATE_AUDIO3D));
+        assert_eq!(game.system_count(Systems::UPDATE_AUDIO3D), 1);
+        assert_eq!(game.late_systems.last().unwrap().builtin, Some(Systems::UPDATE_AUDIO3D));
+        assert_ne!(game.draw_systems.last().unwrap().builtin, Some(Systems::UPDATE_AUDIO3D));
     }
 
     #[test]
@@ -2143,10 +2178,9 @@ mod tests {
         let mut ctx = ctx();
         game.run_systems(&mut ctx, 0);
         let order: Vec<_> = ctx.perf.system_timings().iter().map(|t| t.name).collect();
-        assert!(
-            order[0].ends_with("move_right") && order.last().unwrap().ends_with("draw_sprites"),
-            "{order:?}"
-        );
+        let at = |name: &str| order.iter().position(|n| n.ends_with(name)).unwrap();
+        assert!(order[0].ends_with("move_right"), "{order:?}");
+        assert!(at("move_right") < at("draw_sprites"), "{order:?}");
     }
 
     #[test]

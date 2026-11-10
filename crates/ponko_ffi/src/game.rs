@@ -454,7 +454,7 @@ pub const CRABBY_SYSTEM_STEP_NAVMESH3D: u32 = 9;
 pub const CRABBY_SYSTEM_UPDATE_ANIMATORS: u32 = 10;
 /// Particle emitters and trails, at the end of `CRABBY_PHASE_ANIMATE`.
 pub const CRABBY_SYSTEM_UPDATE_PARTICLES: u32 = 11;
-/// Positional audio, at the end of `CRABBY_PHASE_LATE`.
+/// Positional audio, at the end of `CRABBY_PHASE_DRAW` (after the drawing systems).
 pub const CRABBY_SYSTEM_UPDATE_AUDIO3D: u32 = 12;
 
 /// Removes systems by id (Rust's `Game::remove`): an id from

@@ -67,8 +67,8 @@ C: `ponko_game_add_system`) puts a system in any phase; `sim_system`,
 | `SimLast` | each fixed tick, last | bookkeeping that must see the whole tick | |
 | `Frame` | each rendered frame | `system`, the closure returned from `run`'s setup | interpolated physics transforms |
 | `Animate` | each rendered frame | pose work, before the engine's | animators, then particles (`3d`) |
-| `Late` | each rendered frame | `late_system`: cameras and anything that follows a final pose | positional audio (`3d`) |
-| `Draw` | each rendered frame | your own drawing | sprite animation, tilemaps, sprites |
+| `Late` | each rendered frame | `late_system`: cameras and anything that follows a final pose | |
+| `Draw` | each rendered frame | your own drawing | sprite animation, tilemaps, sprites; positional audio last (`3d`) |
 
 Headless runs (`run_headless`) run the fixed-tick phases only.
 
@@ -92,8 +92,8 @@ simulation logic added before it, should move that logic to
 
 The animators, the particles and positional audio stay at the **end** of
 their phase: a system you add to `Animate` runs before the engine poses
-the skeletons, and one you add to `Late` runs before sounds are placed, no
-matter when you add it. To run *after* the engine's pose, use the next
+the skeletons, and one you add to `Late` or `Draw` runs before sounds are
+placed, no matter when you add it. To run *after* the engine's pose, use the next
 phase (`Late` for a camera that follows a bone).
 
 ## One frame, in order
@@ -123,7 +123,7 @@ The functions are in `ponko::systems`; the ids in `Systems` name them for
 | `interpolate_physics3d` | `Systems::INTERPOLATE_PHYSICS3D` | `Game::physics3d` | `Frame` |
 | `update_animators` | `Systems::UPDATE_ANIMATORS` | always, with `3d` | end of `Animate` |
 | `update_particles` | `Systems::UPDATE_PARTICLES` | always, with `3d` | end of `Animate` |
-| `update_audio3d` | `Systems::UPDATE_AUDIO3D` | always, with `3d` | end of `Late` |
+| `update_audio3d` | `Systems::UPDATE_AUDIO3D` | always, with `3d` | end of `Draw` |
 | `animate_sprites` | `Systems::ANIMATE_SPRITES` | always | `Draw` |
 | `draw_tilemaps` | `Systems::DRAW_TILEMAPS` | always | `Draw` |
 | `draw_sprites` | `Systems::DRAW_SPRITES` | always | `Draw` |

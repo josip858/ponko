@@ -299,7 +299,7 @@ inline constexpr system_id step_navmesh3d{CRABBY_SYSTEM_STEP_NAVMESH3D};
 inline constexpr system_id update_animators{CRABBY_SYSTEM_UPDATE_ANIMATORS};
 /// Particle emitters and trails; stays at the end of phase::animate.
 inline constexpr system_id update_particles{CRABBY_SYSTEM_UPDATE_PARTICLES};
-/// Positional audio; stays at the end of phase::late.
+/// Positional audio; stays at the end of phase::draw, after the drawing systems.
 inline constexpr system_id update_audio3d{CRABBY_SYSTEM_UPDATE_AUDIO3D};
 } // namespace systems
 /// Engine services an access declaration can name (see crabby::access).
