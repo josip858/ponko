@@ -458,6 +458,12 @@ pub struct UiTheme {
     /// let _ = UiTheme::default().text;
     /// ```
     pub text: Color,
+    /// Text of titles ([`Ui::title`]).
+    /// ```
+    /// use ponko::*;
+    /// let _ = UiTheme::default().title;
+    /// ```
+    pub title: Color,
     /// Font handle, from `Graphics::load_font`.
     /// ```
     /// use ponko::*;
@@ -470,6 +476,12 @@ pub struct UiTheme {
     /// let _ = UiTheme::default().text_size;
     /// ```
     pub text_size: f32,
+    /// Line height of titles ([`Ui::title`]) in logical units.
+    /// ```
+    /// use ponko::*;
+    /// assert!(UiTheme::default().title_size > UiTheme::default().text_size);
+    /// ```
+    pub title_size: f32,
     /// Border thickness of controls in logical units; panels and text have none.
     /// ```
     /// use ponko::*;
@@ -479,7 +491,8 @@ pub struct UiTheme {
 }
 
 impl Default for UiTheme {
-    /// The engine's look: dark blue-grey controls, white text, orange accent.
+    /// The engine's look: dark blue-grey controls, white text, orange
+    /// accent, titles in the text color and half again as tall.
     fn default() -> Self {
         let paint = UiPaint::default();
         Self {
@@ -490,8 +503,10 @@ impl Default for UiTheme {
             disabled: paint.disabled,
             accent: paint.border,
             text: paint.color,
+            title: paint.color,
             font: paint.font,
             text_size: paint.font_size,
+            title_size: paint.font_size * 1.5,
             border_width: paint.border_width,
         }
     }
@@ -553,6 +568,23 @@ impl UiTheme {
             font: self.font,
             font_size: self.text_size,
             ..UiPaint::default()
+        }
+    }
+
+    /// The paint a title gets ([`Ui::title`]): a label's, in the title
+    /// color and size.
+    /// ```
+    /// use ponko::*;
+    /// let theme = UiTheme { title: Color::YELLOW, title_size: 30.0, ..Default::default() };
+    /// let paint = theme.title_paint();
+    /// assert_eq!((paint.color, paint.font_size), (Color::YELLOW, 30.0));
+    /// assert_eq!(paint.background.a, 0.0);
+    /// ```
+    pub fn title_paint(&self) -> UiPaint {
+        UiPaint {
+            color: self.title,
+            font_size: self.title_size,
+            ..self.paint(UiWidget::Label)
         }
     }
 }
@@ -815,6 +847,26 @@ impl Ui {
     pub fn label(&mut self, parent: UiId, text: impl AsRef<str>) -> UiBuilder<'_> {
         self.build(parent, UiWidget::Label).text(text)
     }
+    /// A title: a label in the theme's title color and size
+    /// ([`UiTheme::title`], [`UiTheme::title_size`]), which it follows when
+    /// the theme changes.
+    /// ```
+    /// use ponko::*;
+    /// let mut ui = Ui::default();
+    /// ui.set_theme(UiTheme { title: Color::YELLOW, title_size: 30.0, ..Default::default() });
+    /// let root = ui.root().id();
+    /// let lobby = ui.title(root, "LOBBY").layout(UiLayout::row(36.0)).id();
+    /// let paint = ui.paint(lobby).unwrap();
+    /// assert_eq!((paint.color, paint.font_size), (Color::YELLOW, 30.0));
+    /// ```
+    pub fn title(&mut self, parent: UiId, text: impl AsRef<str>) -> UiBuilder<'_> {
+        let paint = self.theme.title_paint();
+        let builder = self.build(parent, UiWidget::Label).text(text).paint(paint);
+        if let Some(n) = builder.ui.node_mut(builder.id) {
+            n.title = true;
+        }
+        builder
+    }
     /// A button; activating it queues [`crate::UiEvent::Clicked`].
     /// ```
     /// use ponko::*;
@@ -925,7 +977,11 @@ impl Ui {
         }
         follow_style!(panel, button, button_hovered, button_pressed, accent, text, text_size);
         for n in self.nodes.iter_mut().flatten() {
-            let (from, to) = (old.paint(n.widget), theme.paint(n.widget));
+            let (from, to) = if n.title {
+                (old.title_paint(), theme.title_paint())
+            } else {
+                (old.paint(n.widget), theme.paint(n.widget))
+            };
             let p = &mut n.paint;
             macro_rules! follow {
                 ($($field:ident),*) => {$(

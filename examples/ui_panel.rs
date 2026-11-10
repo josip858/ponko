@@ -1,7 +1,7 @@
 //! Retained UI on a screen in the 3D world: `cargo run --features 3d --example ui_panel`.
 use ponko::*;
 
-fn setup(ctx: &mut Ctx) {
+pub fn setup(ctx: &mut Ctx) {
     ctx.camera3d.position = vec3(0.0, 1.6, 1.0);
     ctx.camera3d.look_at(vec3(0.0, 1.5, -2.0));
     let floor_material = ctx.gfx.create_material(MaterialDesc::color(Color::hex(0x6B7B58)));
@@ -19,7 +19,7 @@ fn setup(ctx: &mut Ctx) {
 }
 
 // ANCHOR: panel_events
-fn terminal(ctx: &mut Ctx) {
+pub fn terminal(ctx: &mut Ctx) {
     // Aim with the middle of the screen, not the mouse (a locked cursor, a controller in VR).
     let (eye, forward) = (ctx.camera3d.position, ctx.camera3d.forward());
     ctx.ui.set_pointer_ray(Some((eye, forward)));

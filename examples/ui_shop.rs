@@ -1,7 +1,7 @@
 //! A retained shop: item grid, scrolling, input and modal confirmation.
 use ponko::*;
 
-fn build(ctx: &mut Ctx) {
+pub fn build(ctx: &mut Ctx) {
     // ANCHOR: shop_tree
     let ui = &mut ctx.ui;
     let root = ui.root().layout(UiLayout::fill().padding(24.0).gap(12.0)).id();
@@ -41,7 +41,7 @@ fn build(ctx: &mut Ctx) {
 }
 
 // ANCHOR: shop_events
-fn shop(ctx: &mut Ctx) {
+pub fn shop(ctx: &mut Ctx) {
     // UI input and layout ran before this system. Nodes are found by name.
     let ui = &mut ctx.ui;
     let [title, buy, message, dialog] = ["title", "buy", "message", "dialog"].map(|name| ui.find(name).unwrap());

@@ -50,6 +50,10 @@
 // Without a window, the code that only the window loop calls is unused.
 #![cfg_attr(not(feature = "window"), allow(dead_code))]
 
+// Tests include example files (`use ponko::*;`) to check them as they are.
+#[cfg(test)]
+extern crate self as ponko;
+
 mod access;
 mod actions;
 mod alloc_count;

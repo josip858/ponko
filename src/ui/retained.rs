@@ -418,6 +418,8 @@ pub(super) struct Node {
     pub access_name: String,
     /// The name it is found by ([`Ui::find`]); empty: none.
     pub name: String,
+    /// A title ([`Ui::title`]): painted from the theme's title color and size.
+    pub title: bool,
 }
 pub(super) struct Screen {
     pub root: UiId,
@@ -560,6 +562,7 @@ impl Ui {
             anchor: 0,
             access_name: String::new(),
             name: String::new(),
+            title: false,
         }));
         id
     }
@@ -1056,15 +1059,46 @@ impl Ui {
             );
         }
         for i in 0..self.screens.len() {
+            let root = self.screens[i].root;
             self.place(
-                self.screens[i].root,
-                Vec2::ZERO,
+                root,
+                self.root_offset(root),
                 Rect::new(0.0, 0.0, viewport.x, viewport.y),
             );
         }
         if self.focus.is_some_and(|id| !self.focusable(id)) {
             self.focus = None;
         }
+    }
+    /// Where a screen root's `auto` margins move it: they take the window's
+    /// free space, as they do for a child of a flex container (both sides
+    /// `auto` centers it, one side pushes it to the other edge). Taffy gives
+    /// a root's auto margins nothing, because a root has no container. Roots
+    /// out of the flow are placed by their insets instead.
+    fn root_offset(&self, root: UiId) -> Vec2 {
+        let Some(node) = self.node(root) else { return Vec2::ZERO };
+        let (Ok(style), Ok(layout)) = (self.tree.style(node.layout), self.tree.layout(node.layout)) else {
+            return Vec2::ZERO;
+        };
+        if matches!(style.position, Position::Absolute | Position::Fixed) {
+            return Vec2::ZERO;
+        }
+        let (margin, own) = (&style.margin, layout.margin);
+        let share = |start: bool, end: bool, free: f32| match (start, end) {
+            (true, true) => free * 0.5,
+            (true, false) => free,
+            _ => 0.0,
+        };
+        let free = self.viewport / self.scale
+            - vec2(
+                layout.size.width + own.left + own.right,
+                layout.size.height + own.top + own.bottom,
+            );
+        let free = free.max(Vec2::ZERO);
+        vec2(
+            share(margin.left.is_auto(), margin.right.is_auto(), free.x),
+            share(margin.top.is_auto(), margin.bottom.is_auto(), free.y),
+        ) * self.scale
     }
     fn place(&mut self, id: UiId, origin: Vec2, clip: Rect) {
         let layout = *self.tree.layout(self.node(id).unwrap().layout).unwrap();
