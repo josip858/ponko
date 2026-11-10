@@ -251,27 +251,23 @@ fn cached_parallel_chunks_follow_growth_and_preserve_order() {
 
 // ---- the work plan across archetypes of every size ---------------------------
 
-/// Rows per parallel chunk at least (`PAR_MIN_CHUNK`). Runs of rows no
-/// longer than that run on the calling thread as they are found; after the
-/// first chunk of them a clock starts, and once they took 25 µs (at once
-/// under Miri) the rest is planned, and runs on the pool if it would take
-/// another 50 µs at the measured rate.
+/// Rows per parallel chunk at least (`PAR_MIN_CHUNK`). A query over small
+/// archetypes only times its first chunk of rows on the calling thread and
+/// runs the rest in parallel unless the whole query would take under 50 µs.
 const MIN_CHUNK: usize = if cfg!(miri) { 64 } else { 512 };
 
-/// Asserts that a query over `n` rows of slow work reaches worker threads:
-/// the calling thread runs at most three chunks of small runs before it
-/// plans the rest (the untimed first one, the timed one, and the last run
-/// it started), so more than six chunks leave at least three for the pool
-/// (chunks are `MIN_CHUNK` rows on a 4-thread pool at these sizes).
+/// Asserts that a query over `n` rows reaches worker threads: more than four
+/// chunks, so at least three parallel chunks remain after the timed first
+/// one (chunks are `MIN_CHUNK` rows on a 4-thread pool at these sizes).
 #[track_caller]
 fn assert_reaches_workers(n: usize) {
-    assert!(n > 6 * MIN_CHUNK, "{n} rows are too few to reach the workers");
+    assert!(n > 4 * MIN_CHUNK, "{n} rows are too few to reach the workers");
 }
 
-/// Per-entity work that makes a query of small runs slow enough for the
-/// pool: at least 200 ns per entity, so one timed chunk takes over 100 µs
-/// and the rest is planned and run in parallel. Not needed under Miri, which
-/// plans after the first timed chunk and always uses the pool.
+/// Per-entity work that makes any query over more than one chunk of rows
+/// slow enough to run in parallel: at least 200 ns per entity, so the timed
+/// first chunk alone takes over 100 µs. Not needed under Miri, which always
+/// runs the parallel path.
 fn slow(slow: bool) {
     if slow && !cfg!(miri) {
         let start = std::time::Instant::now();
@@ -383,7 +379,7 @@ fn many_tiny_archetypes_keep_the_sequential_order() {
     spawn_layouts(
         &mut w,
         layouts,
-        |bits| if cfg!(miri) { 8 + bits % 3 } else { 8 + bits % 8 },
+        |bits| if cfg!(miri) { 6 + bits % 3 } else { 8 + bits % 8 },
     );
     let n = assert_parallel_order(&mut w, all_ids);
     assert_reaches_workers(n);
@@ -449,7 +445,7 @@ fn empty_archetypes_take_no_positions() {
     // Every odd layout has no rows of its own: an empty archetype between
     // filled ones.
     let layouts = if cfg!(miri) { 64 } else { 512 };
-    spawn_layouts(&mut w, layouts, |bits| if bits % 2 == 1 { 0 } else { 16 + bits % 4 });
+    spawn_layouts(&mut w, layouts, |bits| if bits % 2 == 1 { 0 } else { 10 + bits % 4 });
     // Empty some filled archetypes too, by despawning their rows.
     let gone: Vec<Entity> = w.query::<Entity>().with::<M<2>>().without::<M<1>>().iter().collect();
     for e in gone {
@@ -477,7 +473,7 @@ fn empty_archetypes_take_no_positions() {
 fn filters_apply_to_the_plan_across_many_tiny_archetypes() {
     let layouts = if cfg!(miri) { 64 } else { 512 };
     let mut w = World::new();
-    spawn_layouts(&mut w, layouts, |bits| 23 + bits % 4);
+    spawn_layouts(&mut w, layouts, |bits| 17 + bits % 4);
     fn with_without(w: &mut World) -> Query<'_, &Id> {
         w.query::<&Id>().with::<M<0>>().without::<M<3>>()
     }
@@ -497,7 +493,7 @@ fn queried_components_narrow_the_plan_and_optional_ones_do_not() {
     use std::sync::atomic::{AtomicU64, Ordering};
     let layouts = if cfg!(miri) { 64 } else { 512 };
     let mut w = World::new();
-    spawn_layouts(&mut w, layouts, |bits| 12 + bits % 3);
+    spawn_layouts(&mut w, layouts, |bits| 9 + bits % 3);
     let expected: Vec<(u64, bool)> = w
         .query::<(&Id, Option<&M<1>>, &M<5>)>()
         .iter()
@@ -529,7 +525,7 @@ fn cached_queries_plan_many_tiny_archetypes_in_order() {
     // Enough layouts for the matching cache to engage (128 and up).
     let layouts = if cfg!(miri) { 160 } else { 512 };
     let mut w = World::new();
-    spawn_layouts(&mut w, layouts, |bits| if cfg!(miri) { 5 } else { 12 + bits % 16 });
+    spawn_layouts(&mut w, layouts, |bits| if cfg!(miri) { 3 } else { 12 + bits % 16 });
     fn cached(w: &mut World) -> Query<'_, &Id> {
         w.query::<&Id>().cached().without::<M<6>>()
     }
@@ -579,7 +575,7 @@ fn changed_filters_split_many_tiny_archetypes_into_runs_in_order() {
     let layouts = if cfg!(miri) { 64 } else { 512 };
     let mut w = World::new();
     w.track_changes::<Id>();
-    spawn_layouts(&mut w, layouts, |bits| 7 + bits % 6);
+    spawn_layouts(&mut w, layouts, |bits| 5 + bits % 6);
     let seen = w.advance_change_tick();
     // Change every third entity: each archetype yields several runs.
     let all: Vec<Entity> = w.query::<Entity>().iter().collect();
@@ -624,10 +620,9 @@ fn a_mapper_panic_across_many_tiny_archetypes_drops_each_written_value_once() {
     }
     let layouts = if cfg!(miri) { 64 } else { 512 };
     let mut w = World::new();
-    spawn_layouts(&mut w, layouts, |bits| 5 + bits % 4);
+    spawn_layouts(&mut w, layouts, |bits| 3 + bits % 4);
     let n = w.query::<&Id>().count();
-    // A panic in the rows the calling thread runs first, and one in the
-    // part the pool runs.
+    // A panic in the timed first chunk, and one in the part after it.
     for (heavy, at) in [(false, MIN_CHUNK / 2), (true, n * 2 / 3)] {
         let panic_at = w.query::<&Id>().iter().nth(at).unwrap().0;
         let drops = Arc::new(AtomicUsize::new(0));
