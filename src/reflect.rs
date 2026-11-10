@@ -14,6 +14,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
+mod builtin_schemas;
+
 use crate::schema::{SchemaSource, schema_json};
 
 /// Why a reflection call failed.
@@ -897,6 +899,9 @@ impl WorldReflect for World {
             );
             return;
         }
+        if let Some(schema) = builtin_schemas::builtin::<T>() {
+            reg.schemas.insert(name.clone(), (schema, SchemaSource::Described));
+        }
         reg.by_name.insert(name.clone(), reg.list.len());
         reg.list.push(Reflected {
             name,
@@ -1470,6 +1475,8 @@ pub(crate) fn reflect_sprite(world: &mut World) {
     if reg.by_name.contains_key("Sprite") {
         return;
     }
+    reg.schemas
+        .insert("Sprite".into(), (builtin_schemas::sprite(), SchemaSource::Described));
     reg.by_name.insert("Sprite".into(), reg.list.len());
     reg.list.push(Reflected {
         name: "Sprite".into(),
@@ -1942,6 +1949,8 @@ pub(crate) fn reflect_model(world: &mut World) {
     if reg.by_name.contains_key("Model") {
         return;
     }
+    reg.schemas
+        .insert("Model".into(), (builtin_schemas::model(), SchemaSource::Described));
     reg.by_name.insert("Model".into(), reg.list.len());
     reg.list.push(Reflected {
         name: "Model".into(),
@@ -1963,6 +1972,10 @@ pub(crate) fn reflect_model(world: &mut World) {
         check: Arc::new(check::<ModelJson>),
         remove: Arc::new(remove::<crate::render::Model>),
     });
+    reg.schemas.insert(
+        "ShadowMesh".into(),
+        (builtin_schemas::shadow(), SchemaSource::Described),
+    );
     reg.by_name.insert("ShadowMesh".into(), reg.list.len());
     reg.list.push(Reflected {
         name: "ShadowMesh".into(),
@@ -2035,6 +2048,8 @@ pub(crate) fn reflect_model(world: &mut World) {
         check: Arc::new(check::<ModelMaterialsJson>),
         remove: Arc::new(remove::<crate::render::ModelMaterials>),
     });
+    reg.schemas
+        .insert("LodGroup".into(), (builtin_schemas::lod(), SchemaSource::Described));
     reg.by_name.insert("LodGroup".into(), reg.list.len());
     reg.list.push(Reflected {
         name: "LodGroup".into(),
@@ -2124,6 +2139,13 @@ pub(crate) fn reflect_collider(world: &mut World) {
     if reg.by_name.contains_key("Collider3D") {
         return;
     }
+    reg.schemas.insert(
+        "Collider3D".into(),
+        (
+            builtin_schemas::builtin::<crate::d3::Collider>().unwrap(),
+            SchemaSource::Described,
+        ),
+    );
     reg.by_name.insert("Collider3D".into(), reg.list.len());
     reg.list.push(Reflected {
         name: "Collider3D".into(),

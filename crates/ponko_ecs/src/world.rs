@@ -69,6 +69,9 @@ pub struct World {
     // Append-only: query matching caches use indices and len() as a generation.
     pub(crate) archetypes: Vec<Archetype>,
     pub(crate) query_matches: crate::query::MatchCache,
+    /// Reused work-plan storage of parallel queries.
+    #[cfg(feature = "parallel")]
+    pub(crate) par_plan: crate::query::ParPlan,
     archetype_by_ids: HashMap<Box<[ComponentId]>, usize>,
     pub(crate) entities: Entities,
     bundles: TypeMap<BundleInfo>,
@@ -177,6 +180,8 @@ impl World {
             by_name: HashMap::new(),
             archetypes: Vec::new(),
             query_matches: Default::default(),
+            #[cfg(feature = "parallel")]
+            par_plan: Default::default(),
             archetype_by_ids: HashMap::new(),
             entities: Entities::default(),
             bundles: TypeMap::default(),

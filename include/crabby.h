@@ -982,6 +982,23 @@ typedef struct CrabbyFrameStats {
   float gpu_ms;
 } CrabbyFrameStats;
 
+typedef struct CrabbyGpuUploads {
+  uint64_t bytes;
+  uint64_t instances;
+  uint64_t sprites;
+  uint64_t static_batches;
+  uint64_t uniforms;
+  uint64_t lights;
+  uint64_t materials;
+  uint64_t skins;
+  uint64_t meshes;
+  uint64_t textures;
+  uint64_t other;
+  uint64_t buffer_bytes_created;
+  uint32_t buffers_created;
+  uint32_t reallocations;
+} CrabbyGpuUploads;
+
 typedef struct CrabbyRigidBody {
   uint32_t kind;
   float gravity_scale;
@@ -2880,6 +2897,9 @@ enum CrabbyStatus crabby_ctx_remove_particle_emitter3d(struct CrabbyCtx *ctx, ui
 enum CrabbyStatus crabby_ctx_frame_stats(const struct CrabbyCtx *ctx,
                                          struct CrabbyFrameStats *out_stats);
 
+enum CrabbyStatus crabby_ctx_gpu_uploads(const struct CrabbyCtx *ctx,
+                                         struct CrabbyGpuUploads *out_uploads);
+
 enum CrabbyStatus crabby_ctx_set_perf_hud(struct CrabbyCtx *ctx, bool on);
 
 enum CrabbyStatus crabby_ctx_record_trace(struct CrabbyCtx *ctx, const char *path, uint32_t frames);
@@ -3178,6 +3198,14 @@ enum CrabbyStatus crabby_world_save(struct CrabbyWorld *world,
                                     size_t *out_len);
 
 enum CrabbyStatus crabby_world_load(struct CrabbyWorld *world, const char *json);
+
+enum CrabbyStatus crabby_world_describe_component(struct CrabbyWorld *world,
+                                                  const char *name,
+                                                  const char *schema);
+
+enum CrabbyStatus crabby_world_describe_resource(struct CrabbyWorld *world,
+                                                 const char *name,
+                                                 const char *schema);
 
 bool crabby_seq_newer(uint16_t a, uint16_t b);
 

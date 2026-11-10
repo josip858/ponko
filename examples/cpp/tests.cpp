@@ -2139,6 +2139,9 @@ static void profiling() {
         ctx.set_profiling(true);
         CHECK(ctx.perf_report().json().size() > 2);
         ctx.set_profiling(false);
+        // Headless: no renderer, so nothing uploaded to the GPU.
+        const ponko::gpu_uploads uploads = ctx.gpu_uploads();
+        CHECK(uploads.bytes == 0 && uploads.buffers_created == 0 && uploads.reallocations == 0);
     });
 }
 
