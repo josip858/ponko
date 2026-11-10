@@ -366,3 +366,105 @@ fn a_lookup_works_across_many_archetypes_with_a_cached_query() {
     }
     assert_eq!(w.get::<Health>(hub).unwrap().0, 512);
 }
+
+// ---- lookups and change detection ---------------------------------------------
+
+/// Entities whose `Health` changed after `since`, in handle order.
+fn changed_health(w: &mut World, since: Tick) -> Vec<Entity> {
+    let mut out: Vec<Entity> = w
+        .query::<Entity>()
+        .filter::<Changed<Health>>()
+        .since(since)
+        .iter()
+        .collect();
+    out.sort_by_key(|e| e.to_bits());
+    out
+}
+
+#[test]
+fn writes_through_a_lookup_count_as_changes() {
+    let mut w = World::new();
+    w.track_changes::<Health>();
+    let hit = w.spawn((Health(10),));
+    let spared = w.spawn((Health(10),));
+    w.spawn((Target(hit), Damage(3)));
+    let seen = w.advance_change_tick();
+    assert!(changed_health(&mut w, seen).is_empty());
+
+    w.query::<(&Target, &Damage)>()
+        .with_lookup::<&mut Health>()
+        .for_each(|(target, damage), others| {
+            if let Some(health) = others.get_mut(target.0) {
+                health.0 -= damage.0;
+            }
+        });
+    assert_eq!(w.get::<Health>(hit).unwrap().0, 7);
+    assert_eq!(
+        changed_health(&mut w, seen),
+        vec![hit],
+        "only the entity written through the lookup"
+    );
+    assert!(!changed_health(&mut w, seen).contains(&spared));
+
+    // Reading through a lookup changes nothing, as with `World::get`.
+    let seen = w.advance_change_tick();
+    w.query::<&Target>()
+        .with_lookup::<&Health>()
+        .for_each(|target, others| {
+            assert_eq!(others.get(target.0).map(|h| h.0), Some(7));
+        });
+    assert!(changed_health(&mut w, seen).is_empty());
+}
+
+#[test]
+fn a_lookup_writing_an_untracked_component_still_works() {
+    let mut w = World::new();
+    w.track_changes::<Damage>(); // the world tracks something, but not Health
+    let hit = w.spawn((Health(10),));
+    w.spawn((Target(hit), Damage(4)));
+    w.query::<(&Target, &Damage)>()
+        .with_lookup::<&mut Health>()
+        .for_each(|(target, damage), others| others.get_mut(target.0).unwrap().0 -= damage.0);
+    assert_eq!(w.get::<Health>(hit).unwrap().0, 6);
+}
+
+#[test]
+#[should_panic(expected = "which the query's `Added`/`Changed` filter reads")]
+fn a_lookup_cannot_write_what_the_querys_changed_filter_reads() {
+    let mut w = World::new();
+    w.track_changes::<Health>();
+    let other = w.spawn((Health(2),));
+    w.spawn((Health(1), Target(other)));
+    w.query::<&Target>()
+        .filter::<Changed<Health>>()
+        .with_lookup::<&mut Health>()
+        .for_each(|_, _| {});
+}
+
+#[test]
+#[should_panic(expected = "which the query's `Added`/`Changed` filter reads")]
+fn a_lookup_cannot_write_what_an_added_filter_inside_an_or_reads() {
+    let mut w = World::new();
+    w.track_changes::<Health>();
+    w.query::<&Target>()
+        .filter::<Or<(Added<Health>, With<Damage>)>>()
+        .with_lookup::<&mut Health>()
+        .for_each(|_, _| {});
+}
+
+#[test]
+fn a_lookup_may_read_what_the_querys_filter_reads() {
+    let mut w = World::new();
+    w.track_changes::<Health>();
+    let a = w.spawn((Health(5),));
+    w.get_mut::<Health>(a).unwrap();
+    let seen = w.advance_change_tick();
+    w.get_mut::<Health>(a).unwrap().0 = 6;
+    let mut read = Vec::new();
+    w.query::<Entity>()
+        .filter::<Changed<Health>>()
+        .since(seen)
+        .with_lookup::<&Health>()
+        .for_each(|e, others| read.push(others.get(e).unwrap().0));
+    assert_eq!(read, vec![6]);
+}

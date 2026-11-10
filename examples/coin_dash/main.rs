@@ -32,7 +32,7 @@ mod game;
 #[cfg(target_arch = "wasm32")]
 fn main() {
     // Everything, startup included, is in the game's plugins.
-    game::build().system(game::smoke::publish_web_state).run(|_| {});
+    game::build().system(game::smoke::publish_web_state).configured().run();
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -40,7 +40,7 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
         // Everything, startup included, is in the game's plugins.
-        [] => game::build().run(|_| {}),
+        [] => game::build().configured().run(),
         ["--smoke", mode, rest @ ..] if matches!(*mode, "headless" | "window") => {
             let report = match rest {
                 [] => None,
@@ -66,9 +66,9 @@ fn smoke(mode: &str, report: Option<std::path::PathBuf>) {
     let name = mode.to_string();
     let setup = move |ctx: &mut ponko::Ctx| setup_smoke(ctx, report, &name);
     if mode == "window" {
-        build_smoke(game::save_path()).run(setup);
+        build_smoke(game::save_path()).setup(setup).run();
     } else {
-        let world = build_smoke(game::save_path()).run_headless(MAX_TICKS + 1, setup);
+        let world = build_smoke(game::save_path()).setup(setup).run_headless(MAX_TICKS + 1);
         if !world.resource::<Smoke>().finished() {
             eprintln!("coin_dash: the walk-through did not finish");
             std::process::exit(1);

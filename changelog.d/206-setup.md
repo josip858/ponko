@@ -1,3 +1,8 @@
+### Added
+- `Game::configured()`: the closure-free `.run()` and `.run_headless(ticks)`
+  for a game whose startup is all in its plugins and systems, instead of
+  `.run(|_| {})`. `coin_dash` uses it.
+
 ### Changed
 - The examples and the guide put startup code on the builder:
   `.setup(|ctx| ...)` followed by `.run()` or `.run_headless(ticks)`.

@@ -122,6 +122,10 @@ game.run(); // or run_headless(ticks)
   callback and the first system see what it spawned.
 - Add systems and options first: after the first `setup`, the builder only
   takes more `setup` and `plugin` calls and the `run` methods.
+- A game whose startup is all in its [plugins](systems.md#plugins) and
+  systems has no `setup` to add: `.configured()` gives it the same
+  `run()` and `run_headless(ticks)` (C++ already has `run()` and
+  `run_headless(ticks)` on any game; in C, pass a null setup).
 - Nothing is returned, so two branches can pick different startup code
   (above). The state a frame closure would have captured goes in a
   resource, or in a [system that owns its state](systems.md#systems-with-state).

@@ -8,7 +8,10 @@
   entities: `others.get(entity)` reads and `others.get_mut(entity)` changes
   components the query doesn't write, so "find in one query, change after
   it" no longer needs a collected `Vec`. Overlap between the query and the
-  lookup panics once, when the query is built.
+  lookup panics once, when the query is built. Writes through `get_mut`
+  count as changes for `Changed<T>`, as with `World::get_mut`, so a lookup
+  can't write a component the query's own `Added`/`Changed` filter reads
+  (that also panics when the query is built).
 - `World::get_many_mut::<T, N>([a, b])` borrows one component of several
   different entities mutably.
 - None of these allocates, and plain query iteration is unchanged. They are

@@ -270,7 +270,8 @@ type SetupFn = Box<dyn FnOnce(&mut Ctx)>;
 
 /// A game with stored startup callbacks and closure-free run methods.
 ///
-/// Returned by [`Game::setup`]. Configure systems and window options on `Game`
+/// Returned by [`Game::setup`], or by [`Game::configured`] for a game with
+/// no setup of its own. Configure systems and window options on `Game`
 /// first, then register one or more setup callbacks. This separate type lets
 /// existing `Game::run(setup)` calls keep compiling: Rust cannot overload
 /// inherent methods by argument count.
@@ -827,6 +828,30 @@ impl Game {
     /// ```
     pub fn setup(mut self, setup: impl FnOnce(&mut Ctx) + 'static) -> ConfiguredGame {
         self.setups.push(Box::new(setup));
+        ConfiguredGame { game: self }
+    }
+
+    /// The game as it is, with the closure-free `.run()` and
+    /// `.run_headless(ticks)` of [`ConfiguredGame`], for a game whose startup
+    /// is all in its plugins and systems (or that needs none). It adds no
+    /// setup; [`setup`](Self::setup) does the same with one.
+    ///
+    /// ```
+    /// use ponko::{Ctx, Game, Plugin};
+    /// struct Score(u32);
+    /// struct Scoring;
+    /// impl Plugin for Scoring {
+    ///     fn build(&self, game: Game) -> Game {
+    ///         game.sim_system(|ctx| ctx.world.resource_mut::<Score>().0 += 1)
+    ///     }
+    ///     fn setup(&self, ctx: &mut Ctx) {
+    ///         ctx.world.insert_resource(Score(0));
+    ///     }
+    /// }
+    /// let world = Game::new("Plugins only", 1, 1).plugin(Scoring).configured().run_headless(3);
+    /// assert_eq!(world.resource::<Score>().0, 3);
+    /// ```
+    pub fn configured(self) -> ConfiguredGame {
         ConfiguredGame { game: self }
     }
 
