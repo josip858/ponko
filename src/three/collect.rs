@@ -658,8 +658,9 @@ impl Frame3D {
                 {
                     // The model's own mesh, wherever it is drawn (not a
                     // separate `ShadowMesh`), takes the override.
-                    let own = overridden(m.mesh.id, material, parts);
-                    if own != m.mesh.id {
+                    // Most models have none: nothing is looked up for them.
+                    if material.is_some() || parts.is_some() {
+                        let own = overridden(m.mesh.id, material, parts);
                         for mesh in &mut meshes {
                             if *mesh == m.mesh.id {
                                 *mesh = own;
