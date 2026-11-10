@@ -57,6 +57,7 @@ extern crate self as ponko;
 mod access;
 mod actions;
 mod alloc_count;
+mod asset_cache;
 mod assets;
 mod attach;
 mod audio;
