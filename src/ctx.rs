@@ -35,17 +35,6 @@ pub(crate) fn screen_projection(size: Vec2) -> Mat4 {
     )
 }
 
-/// Which loader a cached file went through.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum AssetKind {
-    Texture,
-    Font,
-    Sound,
-    /// A sound loaded with `load_stream`: the same name can also be a
-    /// `load_sound`, decoded whole, and the two are different sounds.
-    Stream,
-}
-
 /// What every system gets: the world and the engine's services. Systems are
 /// `fn(&mut Ctx)`.
 ///
@@ -1148,6 +1137,7 @@ pub(crate) fn region(texture: &Texture, region: Option<Rect>) -> (Vec2, [u16; 4]
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::asset_cache::AssetKind;
     use crate::texture::DrawParams;
 
     fn timing(dt: f32) -> FrameTiming {
@@ -1185,7 +1175,7 @@ mod tests {
         assert_ne!(from_source, from_folder, "same name, other source: another asset");
         assert_eq!(from_source.width(), 3);
         assert_eq!(ctx.assets.watcher.watched(), 1, "source assets are not watched");
-        let keys: Vec<_> = ctx.gfx.loaded.keys().map(|(origin, _)| origin.clone()).collect();
+        let keys = ctx.gfx.loaded_textures.origins();
         assert!(keys.contains(&assets::Origin::Source {
             source: "mem".into(),
             name: name.clone()
@@ -1252,8 +1242,8 @@ mod tests {
             source: "mem".into(),
             name: "theme.wav".into(),
         };
-        assert!(ctx.audio.loaded.contains_key(&(origin.clone(), AssetKind::Stream)));
-        assert!(ctx.audio.loaded.contains_key(&(origin, AssetKind::Sound)));
+        assert!(ctx.audio.loaded.contains(&origin, AssetKind::Stream));
+        assert!(ctx.audio.loaded.contains(&origin, AssetKind::Sound));
         // Freeing the stream forgets it: loading again makes a new one.
         ctx.free(stream);
         assert_ne!(ctx.audio.load_stream("theme.wav"), stream);
