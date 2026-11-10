@@ -6,7 +6,7 @@
 //! tree except the theme, which gives new nodes their [`UiPaint`].
 
 use super::retained::{Ui, UiId, UiPaint, UiTextAlign, UiWidget};
-use crate::{Color, Font, Texture};
+use crate::{Color, Font, Texture, UiStyle};
 use taffy::prelude::*;
 
 /// Layout presets for the common shapes of game UI, so a screen needs no
@@ -331,6 +331,48 @@ impl UiLayout {
         self.0.size.height = percent(fraction);
         self
     }
+    /// Puts its top edge `y` pixels below its parent's top, instead of where
+    /// the preset put it: a [`centered`](Self::centered) dialog that sits
+    /// near the top, an [`anchored`](Self::anchored) panel placed in pixels.
+    /// On a node in a row or column it is a margin above it.
+    /// ```
+    /// use ponko::*;
+    /// let mut ui = Ui::default();
+    /// let dialog = ui.root().layout(UiLayout::centered(200.0, 100.0).top(40.0)).id();
+    /// ui.push_screen(dialog, true);
+    /// ui.layout(vec2(800.0, 600.0));
+    /// assert_eq!(ui.rect(dialog).unwrap().min, vec2(300.0, 40.0));
+    /// ```
+    pub fn top(mut self, y: f32) -> Self {
+        if self.0.position == Position::Absolute {
+            self.0.inset.top = length(y);
+            self.0.margin.top = zero();
+        } else {
+            self.0.margin.top = length(y);
+        }
+        self
+    }
+    /// Puts its left edge `x` pixels right of its parent's left; see
+    /// [`top`](Self::top).
+    /// ```
+    /// use ponko::*;
+    /// let mut ui = Ui::default();
+    /// let root = ui.root().layout(UiLayout::fill()).id();
+    /// let map = ui.panel(root).layout(UiLayout::anchored(0.0, 0.0, 0.25, 0.25).left(16.0).top(16.0)).id();
+    /// ui.push_screen(root, false);
+    /// ui.layout(vec2(800.0, 600.0));
+    /// assert_eq!(ui.rect(map).unwrap().min, vec2(16.0, 16.0));
+    /// assert_eq!(ui.rect(map).unwrap().size(), vec2(200.0, 150.0));
+    /// ```
+    pub fn left(mut self, x: f32) -> Self {
+        if self.0.position == Position::Absolute {
+            self.0.inset.left = length(x);
+            self.0.margin.left = zero();
+        } else {
+            self.0.margin.left = length(x);
+        }
+        self
+    }
     /// The Taffy style, to read or adjust a field the presets don't cover.
     /// ```
     /// use ponko::*;
@@ -456,6 +498,34 @@ impl Default for UiTheme {
 }
 
 impl UiTheme {
+    /// The style the [immediate widgets](Ui::immediate) get from this theme:
+    /// one theme for the retained tree and the debug widgets. A field this
+    /// theme leaves at its default keeps the immediate widgets' own default
+    /// (their panels are see-through, for overlays), so the default theme
+    /// gives `UiStyle::default()`; a field it changes is taken as it is.
+    /// `padding` is the immediate widgets' own.
+    /// ```
+    /// use ponko::*;
+    /// assert_eq!(UiTheme::default().style(), UiStyle::default());
+    /// let theme = UiTheme { accent: Color::GREEN, panel: Color::BLACK, ..Default::default() };
+    /// let style = theme.style();
+    /// assert_eq!((style.accent, style.panel), (Color::GREEN, Color::BLACK));
+    /// assert_eq!(style.button, UiStyle::default().button);
+    /// ```
+    pub fn style(&self) -> UiStyle {
+        let (plain, mut style) = (UiTheme::default(), UiStyle::default());
+        macro_rules! take {
+            ($($theme:ident => $style:ident),*) => {$(
+                if self.$theme != plain.$theme {
+                    style.$style = self.$theme;
+                }
+            )*};
+        }
+        take!(panel => panel, control => button, hover => button_hovered, pressed => button_pressed,
+              accent => accent, text => text, text_size => text_size);
+        style
+    }
+
     /// The paint a new node of this widget gets. Labels and images have a
     /// clear background.
     /// ```
@@ -693,6 +763,20 @@ impl UiBuilder<'_> {
         self.ui.set_accessible_name(self.id, name);
         self
     }
+    /// A name to find the node by later ([`Ui::find`]), instead of keeping
+    /// its id.
+    /// ```
+    /// use ponko::*;
+    /// let mut ui = Ui::default();
+    /// let root = ui.root().id();
+    /// ui.label(root, "0 coins").name("hud.coins");
+    /// let coins = ui.find("hud.coins").unwrap();
+    /// assert_eq!(ui.text(coins), Some("0 coins"));
+    /// ```
+    pub fn name(self, name: impl AsRef<str>) -> Self {
+        self.ui.set_name(self.id, name);
+        self
+    }
 }
 
 impl Ui {
@@ -803,6 +887,20 @@ impl Ui {
     /// Replace the theme. New nodes take their paint from it; existing nodes
     /// follow it in every paint field still equal to the old theme's value,
     /// and keep the fields set on them.
+    ///
+    /// The [immediate widgets](Ui::immediate) follow the theme by the same
+    /// rule: every field of their [`UiStyle`] still equal to what the old
+    /// theme gave them (see [`UiTheme::style`]) takes the new theme's, and a
+    /// field set by hand stays.
+    /// ```
+    /// use ponko::*;
+    /// let mut ui = Ui::default();
+    /// ui.immediate.style.text_size = 20.0; // set by hand: kept
+    /// ui.set_theme(UiTheme { accent: Color::GREEN, text_size: 12.0, ..Default::default() });
+    /// assert_eq!(ui.immediate.style.accent, Color::GREEN);
+    /// assert_eq!(ui.immediate.style.text_size, 20.0);
+    /// ```
+    ///
     /// ```
     /// use ponko::*;
     /// let mut ui = Ui::default();
@@ -815,6 +913,17 @@ impl Ui {
     /// ```
     pub fn set_theme(&mut self, theme: UiTheme) {
         let old = std::mem::replace(&mut self.theme, theme);
+        // The immediate widgets follow the same way.
+        let (from, to) = (old.style(), theme.style());
+        let style = &mut self.immediate.style;
+        macro_rules! follow_style {
+            ($($field:ident),*) => {$(
+                if style.$field == from.$field {
+                    style.$field = to.$field;
+                }
+            )*};
+        }
+        follow_style!(panel, button, button_hovered, button_pressed, accent, text, text_size);
         for n in self.nodes.iter_mut().flatten() {
             let (from, to) = (old.paint(n.widget), theme.paint(n.widget));
             let p = &mut n.paint;
@@ -841,6 +950,70 @@ impl Ui {
                 slice
             );
         }
+    }
+    /// Names a node, so code that didn't build it finds it with
+    /// [`find`](Self::find): an update system needs no resource full of ids.
+    /// A name belongs to one node of this tree: naming another node the same
+    /// moves the name to it. An empty name takes the node's name off. Dotted
+    /// names (`"chat.history"`) are a convention, not a hierarchy. Stale ids
+    /// are ignored.
+    /// ```
+    /// use ponko::*;
+    /// let mut ui = Ui::default();
+    /// let root = ui.root().id();
+    /// let a = ui.label(root, "a").id();
+    /// let b = ui.label(root, "b").id();
+    /// ui.set_name(a, "status");
+    /// assert_eq!((ui.find("status"), ui.name(a)), (Some(a), Some("status")));
+    /// ui.set_name(b, "status"); // moves
+    /// assert_eq!((ui.find("status"), ui.name(a), ui.name(b)), (Some(b), None, Some("status")));
+    /// ui.set_name(b, "");
+    /// assert_eq!(ui.find("status"), None);
+    /// ```
+    pub fn set_name(&mut self, id: UiId, name: impl AsRef<str>) {
+        let name = name.as_ref();
+        let Some(old) = self
+            .node_mut(id)
+            .map(|n| std::mem::replace(&mut n.name, name.to_string()))
+        else {
+            return;
+        };
+        if self.names.get(&old) == Some(&id) {
+            self.names.remove(&old);
+        }
+        if name.is_empty() {
+            return;
+        }
+        if let Some(before) = self.names.insert(name.to_string(), id).filter(|&b| b != id)
+            && let Some(n) = self.node_mut(before)
+        {
+            n.name.clear();
+        }
+    }
+    /// The node named `name` ([`set_name`](Self::set_name), or `.name(..)`
+    /// on a builder), if there is one. A removed node's name is free again.
+    /// ```
+    /// use ponko::*;
+    /// let mut ui = Ui::default();
+    /// let root = ui.root().name("shop").id();
+    /// let buy = ui.button(root, "Buy").name("shop.buy").id();
+    /// assert_eq!(ui.find("shop.buy"), Some(buy));
+    /// assert_eq!(ui.find("shop.sell"), None);
+    /// ui.remove(root); // with its children
+    /// assert_eq!((ui.find("shop"), ui.find("shop.buy")), (None, None));
+    /// ```
+    pub fn find(&self, name: &str) -> Option<UiId> {
+        self.names.get(name).copied()
+    }
+    /// A node's name, or `None` without one (or for a stale id).
+    /// ```
+    /// use ponko::*;
+    /// let mut ui = Ui::default();
+    /// let root = ui.root().name("menu").id();
+    /// assert_eq!(ui.name(root), Some("menu"));
+    /// ```
+    pub fn name(&self, id: UiId) -> Option<&str> {
+        self.node(id).map(|n| n.name.as_str()).filter(|n| !n.is_empty())
     }
     /// A node's resolved paint (theme plus its own settings), or `None` for a
     /// stale id.

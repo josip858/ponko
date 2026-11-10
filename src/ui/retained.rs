@@ -416,6 +416,8 @@ pub(super) struct Node {
     pub anchor: usize,
     /// Accessible name override; empty means "derive it from the text".
     pub access_name: String,
+    /// The name it is found by ([`Ui::find`]); empty: none.
+    pub name: String,
 }
 pub(super) struct Screen {
     pub root: UiId,
@@ -472,6 +474,8 @@ pub struct Ui {
     external_fonts: bool,
     consumed: bool,
     pub(super) theme: super::UiTheme,
+    /// The named nodes ([`Ui::find`]).
+    pub(super) names: std::collections::HashMap<String, UiId>,
     /// The immediate widgets (a panel, a label, a button drawn the frame
     /// they are called) and their style. Only the screen's UI (`ctx.ui`)
     /// shows them; a [`UiPanel3D`](crate::UiPanel3D)'s tree leaves it unused.
@@ -508,6 +512,7 @@ impl Default for Ui {
             external_fonts: false,
             consumed: false,
             theme: super::UiTheme::default(),
+            names: std::collections::HashMap::new(),
             immediate: super::UiImmediate::default(),
             overlay_has_pointer: false,
             #[cfg(feature = "3d")]
@@ -554,6 +559,7 @@ impl Ui {
             caret: 0,
             anchor: 0,
             access_name: String::new(),
+            name: String::new(),
         }));
         id
     }
@@ -591,6 +597,9 @@ impl Ui {
                 parent.children.retain(|&c| c != id);
             }
             let _ = self.tree.remove(n.layout);
+            if self.names.get(&n.name) == Some(&id) {
+                self.names.remove(&n.name);
+            }
         }
         self.screens.retain(|s| s.root != id);
         self.visible.retain(|&n| n != id);
@@ -834,6 +843,39 @@ impl Ui {
     /// ```
     pub fn next_event(&mut self) -> Option<UiEvent> {
         (!self.events.is_empty()).then(|| self.events.remove(0))
+    }
+    /// The node clicked since the last call, if any: takes the queued events
+    /// and returns the last click's node. For screens that react only to
+    /// clicks; the other events it takes are dropped, so read
+    /// [`events`](Self::events) instead on a screen whose inputs matter.
+    /// ```
+    /// use ponko::*;
+    /// let mut ui = Ui::default();
+    /// let root = ui.root().layout(UiLayout::fill()).id();
+    /// let ok = ui.button(root, "OK").layout(UiLayout::fixed(100.0, 40.0)).id();
+    /// ui.push_screen(root, false);
+    /// let at = |pressed, held, released| UiInput {
+    ///     pointer: vec2(50.0, 20.0),
+    ///     pressed,
+    ///     held,
+    ///     released,
+    ///     ..Default::default()
+    /// };
+    /// ui.frame(vec2(800.0, 600.0), &at(false, false, false));
+    /// assert_eq!(ui.take_click(), None);
+    /// ui.frame(vec2(800.0, 600.0), &at(true, true, false));
+    /// ui.frame(vec2(800.0, 600.0), &at(false, false, true));
+    /// assert_eq!(ui.take_click(), Some(ok));
+    /// assert_eq!(ui.take_click(), None);
+    /// ```
+    pub fn take_click(&mut self) -> Option<UiId> {
+        self.events
+            .drain(..)
+            .filter_map(|e| match e {
+                UiEvent::Clicked(id) => Some(id),
+                _ => None,
+            })
+            .last()
     }
     /// The pointer belongs to UI: it is over a widget of the tree or an
     /// [immediate](Self::immediate) one drawn this frame or the previous
