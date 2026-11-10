@@ -1,5 +1,5 @@
 ### Added
-- A curated `prelude`, the one glob import a game starts with, and public modules for the rest: `net`, `perf`, `render`, `anim`, `terrain`, `ui`, `physics`, `physics3d`, `nav`, `d2`, `d3`, `systems`, `reflect` (with `reflect::json`), `ecs_core` (now a documented module) and the other service modules. New root modules brought in by `use ponko::*;` take precedence over a dependency of the same name (`audio`, `input`, `net`, `render`, `ui`, `random`, `events`, ...); write `::name::...` for the crate, or switch to `use ponko::prelude::*;`.
+- A curated `prelude`, the one glob import a game starts with, and public modules for the rest: `net`, `perf`, `render`, `anim`, `terrain`, `ui`, `physics`, `physics3d`, `nav`, `d2`, `d3`, `systems`, `reflect` (with `reflect::json`), `ecs_core` (now a documented module) and the other service modules. New root modules brought in by `use ponko::*;` can clash with a dependency of the same name (`audio`, `input`, `net`, `render`, `ui`, `random`, `events`, ...): a path in code means the Ponko module and `use name::...;` is ambiguous (E0659). Write `::name::...` for the crate, or switch to `use ponko::prelude::*;`. `ponko::nav` names its navigation-mesh types `NavMesh`, `NavAgent` and `NavObstacle`, as in `d3`.
 - Associated constants on their types (`d3::Decal::MAX`, `spatial::SpatialGrid::SORT_EVERY`, `render::GraphicsQuality::MIN_RENDER_SCALE`, `terrain::TerrainTile::LODS`, ...), `perf::Instant`, and `world.raw()` / `world.raw_ref()` views with the dynamic component, resource, chunk and archetype methods.
 
 ### Changed
@@ -38,6 +38,7 @@
   - `scope`: `ProfileScope`, `ScopeGuard`, `ScopeTiming`.
   - `spatial`: `GridEntry`, `spatial_key`, `SpatialGrid`.
   - `stream`: `CellStreamer`, `Job`.
+  - `systems`: `animate_sprites`, `apply_net_poses`, `draw_sprites`, `draw_tilemaps`, `follow_attachments`, `interpolate_physics3d`, `rebuild_spatial_grid`, `step_navmesh3d`, `step_physics`, `step_physics3d` (re-exports of the same functions, so the root glob combines with `systems::*`).
   - `streaming`: `AssetState`, `DEFAULT_UPLOAD_BUDGET`, `StreamedAsset`, `UploadStats`.
   - `system_view`: `SystemView`, `ViewEvents`.
   - `terrain`: `FarTerrain`, `Heightfield`, `TerrainMaterialDesc`, `TerrainTile`, `TerrainTileData`, `TextureArray`, `TextureKind`.

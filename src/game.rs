@@ -145,32 +145,32 @@ impl SystemId {
 }
 
 /// The id of built-in system function `name` (a type name), with the name
-/// it is listed under: the old crate-root spellings count as the same system.
+/// it is listed under. The old crate-root spellings re-export the same
+/// functions, so they have the same type name.
 fn builtin_id(name: &str) -> Option<(SystemId, &'static str)> {
-    /// The function in `ponko::systems` and its old crate-root spelling.
-    macro_rules! both {
+    /// The function in `ponko::systems`, listed once under its own name.
+    macro_rules! builtin {
         ($name:ident) => {{
-            #[allow(deprecated)]
-            let root = std::any::type_name_of_val(&crate::systems::at_root::$name);
-            [std::any::type_name_of_val(&crate::systems::$name), root]
+            let path = std::any::type_name_of_val(&crate::systems::$name);
+            [path, path]
         }};
     }
     #[cfg(feature = "3d")]
     let one = |name: &'static str| [name, name];
     let entries = [
-        (both!(animate_sprites), Systems::ANIMATE_SPRITES),
-        (both!(draw_tilemaps), Systems::DRAW_TILEMAPS),
-        (both!(draw_sprites), Systems::DRAW_SPRITES),
-        (both!(rebuild_spatial_grid), Systems::REBUILD_SPATIAL_GRID),
-        (both!(follow_attachments), Systems::FOLLOW_ATTACHMENTS),
+        (builtin!(animate_sprites), Systems::ANIMATE_SPRITES),
+        (builtin!(draw_tilemaps), Systems::DRAW_TILEMAPS),
+        (builtin!(draw_sprites), Systems::DRAW_SPRITES),
+        (builtin!(rebuild_spatial_grid), Systems::REBUILD_SPATIAL_GRID),
+        (builtin!(follow_attachments), Systems::FOLLOW_ATTACHMENTS),
         #[cfg(feature = "physics")]
-        (both!(step_physics), Systems::PHYSICS),
+        (builtin!(step_physics), Systems::PHYSICS),
         #[cfg(feature = "physics3d")]
-        (both!(step_physics3d), Systems::PHYSICS3D),
+        (builtin!(step_physics3d), Systems::PHYSICS3D),
         #[cfg(feature = "physics3d")]
-        (both!(interpolate_physics3d), Systems::INTERPOLATE_PHYSICS3D),
+        (builtin!(interpolate_physics3d), Systems::INTERPOLATE_PHYSICS3D),
         #[cfg(feature = "navmesh")]
-        (both!(step_navmesh3d), Systems::STEP_NAVMESH3D),
+        (builtin!(step_navmesh3d), Systems::STEP_NAVMESH3D),
         #[cfg(feature = "3d")]
         (
             one(std::any::type_name_of_val(&crate::systems::update_animators)),

@@ -176,13 +176,10 @@ only where the two names really are different things:
 
 - `Collider`, `RigidBody`, `Velocity`, `Shape` and `Physics` at the root are
   the 2D ones; `d3` has the 3D ones under the same names.
-- `QueryFilter` at the root is the ECS query-filter trait; `d2` and `d3`
-  have the physics query filters.
+- `QueryFilter` at the root is the ECS query-filter trait; `d2`, `d3` and
+  `physics` have the physics query filters.
 - `Joint` at the root is the skeleton joint (`anim::Joint`); `d3::Joint` is
   the physics joint (`Joint3D`).
-- The root's deprecated built-in system forwarders (`step_physics`,
-  `draw_sprites`, ...) are functions of their own, so they clash with a
-  `systems::*` glob.
 
 The way out is the same for each: drop `use ponko::*;` for
 `use ponko::prelude::*;`, or import the module rather than its glob
@@ -230,6 +227,7 @@ major release:
 - `scope`: `ProfileScope`, `ScopeGuard`, `ScopeTiming`.
 - `spatial`: `GridEntry`, `spatial_key`, `SpatialGrid`.
 - `stream`: `CellStreamer`, `Job`.
+- `systems`: `animate_sprites`, `apply_net_poses`, `draw_sprites`, `draw_tilemaps`, `follow_attachments`, `interpolate_physics3d`, `rebuild_spatial_grid`, `step_navmesh3d`, `step_physics`, `step_physics3d`.
 - `streaming`: `AssetState`, `DEFAULT_UPLOAD_BUDGET`, `StreamedAsset`, `UploadStats`.
 - `system_view`: `SystemView`, `ViewEvents`.
 - `terrain`: `FarTerrain`, `Heightfield`, `TerrainMaterialDesc`, `TerrainTile`, `TerrainTileData`, `TextureArray`, `TextureKind`.
@@ -239,8 +237,9 @@ What does warn: the root constants that became associated constants
 (`MAX_DECALS` → `d3::Decal::MAX`, `MAX_DECALS_PER_CLUSTER`, `MAX_GI_PROBES`,
 `MAX_GI_PROBES_PER_FRAME`, `MAX_LIGHT_SHADOW_VIEWS`, `LIGHT_SHADOW_SIZE`,
 `LIGHT_SHADOW_ATLAS_SIZE`, `MIN_RENDER_SCALE`, `MAX_RENDER_SCALE`,
-`TERRAIN_LODS`, `TERRAIN_LAYERS`, `SPATIAL_SORT_EVERY`), the root forwarders
-of the built-in systems, and `World`'s dynamic methods (below).
+`TERRAIN_LODS`, `TERRAIN_LAYERS`, `SPATIAL_SORT_EVERY`), which are constants
+of their own, and `World`'s dynamic methods (below). Everything else in the
+list above only keeps compiling, silently.
 
 Use `d3::Decal::MAX`, `d3::Decal::MAX_PER_CLUSTER`,
 `spatial::SpatialGrid::<()>::SORT_EVERY`, `render::GraphicsQuality::MIN_RENDER_SCALE`
@@ -258,17 +257,22 @@ often name their own type `Animation`.
 ### Root modules and crates of the same name
 
 `use ponko::*;` also brings in the root modules (`audio`, `input`, `net`,
-`render`, `ui`, `random`, `events`, ...). A glob-imported module takes
-precedence over a dependency of the same name, so with the root glob,
-`net::...` means `ponko::net`, not a `net` crate. Write `::net::...` for the
-crate, or use `use ponko::prelude::*;`, which holds no such modules apart
-from `d2`, `d3`, `systems` and `actions`. The clock module is private, so
-the `time` crate is not shadowed.
+`render`, `ui`, `random`, `events`, ...), which are new in this release. With
+the root glob and a dependency of the same name, a path in code
+(`net::connect()`) means `ponko::net`, and a `use net::...;` declaration is
+an error (E0659: `net` is ambiguous). Write `::net::...` (`use ::net::connect;`)
+for the crate, or use `use ponko::prelude::*;`, which holds no such modules
+apart from `d2`, `d3`, `systems` and `actions`. The clock module is private,
+so the `time` crate is not shadowed; `Instant` is `perf::Instant` (and still
+`ponko::Instant`).
+
+`ponko::nav` names the navigation-mesh types as `d3` does (`NavMesh`,
+`NavAgent`, `NavObstacle`), so they don't clash with the root's `Mesh`.
 
 The engine's built-in systems (`step_physics3d`, `draw_sprites`,
 `animate_sprites`, `rebuild_spatial_grid`, ...) live in `ponko::systems`, and
 each has a `Systems` id for `Game::remove` ([Systems](systems.md)). Their root
-spellings are deprecated forwarders that count as the same built-in.
+spellings are deprecated re-exports of the same functions (listed above).
 
 Use `world.raw()` for dynamic components and resources (`get_dynamic`,
 `insert_dynamic`, `spawn_dynamic`, `remove_dynamic`, the `*_resource_dynamic`

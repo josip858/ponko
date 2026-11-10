@@ -76,17 +76,20 @@ imports, unit and tuple struct values, and the combination of the root glob
 with the prelude or a module glob all keep working. Those re-exports carry
 `#[deprecated]`, but rustc does not warn through a re-export, so the
 [naming chapter](book/src/naming.md#the-root-glob-and-deprecated-root-spellings)
-and the CHANGELOG list each of them instead. Root constants that became
-associated constants, the root forwarders of the built-in systems and the
-dynamic `World` methods (now behind `World::raw`) are separate items and do
-warn. C/C++ names and layouts remain flat and unchanged.
+and the CHANGELOG list each of them instead. This includes the
+root spellings of the built-in systems (`step_physics`, `draw_sprites`, ...),
+which keep compiling but do not warn. Only the root constants that became
+associated constants and the dynamic `World` methods (now behind
+`World::raw`) are separate items, and those do warn. C/C++ names and layouts
+remain flat and unchanged.
 
 The root glob also brings in the root modules (`audio`, `input`, `net`,
-`render`, `ui`, ...). A glob-imported module takes precedence over a
-dependency of the same name, so a game that writes `use ponko::*;` and
-depends on a same-named crate must spell the crate `::name::...` (or import
-`ponko::prelude::*` instead). A new root module is therefore a source change
-for such games: the CHANGELOG names every root module a release adds.
+`render`, `ui`, ...). For a game that writes `use ponko::*;` and depends on a
+crate of the same name, a path in code then means the Ponko module, and a
+`use name::...;` declaration is ambiguous (E0659); the way out is to spell
+the crate `::name::...` or to import `ponko::prelude::*` instead. A new root
+module is therefore a source change for such games: the CHANGELOG names
+every root module a release adds.
 
 Nothing is removed without warning. Before an item is removed in the next
 major release, at least one minor release ships it marked `#[deprecated]`
