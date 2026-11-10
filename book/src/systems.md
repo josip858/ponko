@@ -231,7 +231,8 @@ impl Plugin for Hud {
 Game::new("Modules", 1280, 720)
     .plugin(Player { speed: 4.0 })
     .plugin(Hud)
-    .run(|_| {});
+    .configured() // startup is in the plugins: no setup of its own
+    .run();
 ```
 
 </div>
