@@ -1811,6 +1811,9 @@ pub unsafe extern "C" fn crabby_ctx_ui_text(
 ) -> CrabbyStatus {
     // SAFETY: forwarded caller contract.
     boundary(|| unsafe {
+        // Outputs first: a bad output is refused before the tree is touched,
+        // whatever the node.
+        check_output(buffer, capacity, out_len)?;
         with_ui(ctx, target, |ui| {
             let id = existing(ui, id)?;
             copy_string(ui.text(id).unwrap_or(""), buffer, capacity, out_len)
@@ -2627,6 +2630,7 @@ pub unsafe extern "C" fn crabby_ctx_ui_name(
 ) -> CrabbyStatus {
     // SAFETY: forwarded caller contract.
     boundary(|| unsafe {
+        check_output(buffer, capacity, out_len)?;
         with_ui(ctx, target, |ui| {
             let id = existing(ui, id)?;
             copy_string(ui.name(id).unwrap_or(""), buffer, capacity, out_len)
@@ -2654,15 +2658,21 @@ pub unsafe extern "C" fn crabby_ctx_ui_take_click(ctx: *mut CrabbyCtx, target: u
     })
 }
 
+/// Refuses a null `out_len`, or a null `buffer` with a capacity.
+fn check_output(buffer: *mut c_char, capacity: usize, out_len: *mut usize) -> Result<(), Failure> {
+    if out_len.is_null() || (buffer.is_null() && capacity != 0) {
+        return Err(invalid("output is null"));
+    }
+    Ok(())
+}
+
 /// Writes `value` NUL-terminated into `buffer` of `capacity` bytes and its
 /// length to `out_len` (see `crabby_ctx_ui_text`).
 ///
 /// # Safety
 /// `buffer` writable for `capacity` bytes, or null with capacity 0; `out_len` null or writable.
 unsafe fn copy_string(value: &str, buffer: *mut c_char, capacity: usize, out_len: *mut usize) -> Result<(), Failure> {
-    if out_len.is_null() || (buffer.is_null() && capacity != 0) {
-        return Err(invalid("output is null"));
-    }
+    check_output(buffer, capacity, out_len)?;
     // SAFETY: validated non-null outputs; the caller supplies the stated capacity.
     unsafe {
         out_len.write(value.len());

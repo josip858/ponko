@@ -16,7 +16,7 @@
 //! | [`interpolate_physics3d`] | `INTERPOLATE_PHYSICS3D` | `Game::physics3d` | `Frame` |
 //! | [`update_animators`] | `UPDATE_ANIMATORS` | always (`3d`) | end of `Animate` |
 //! | [`update_particles`] | `UPDATE_PARTICLES` | always (`3d`) | end of `Animate` |
-//! | [`update_audio3d`] | `UPDATE_AUDIO3D` | always (`3d`) | end of `Late` |
+//! | [`update_audio3d`] | `UPDATE_AUDIO3D` | always (`3d`) | end of `Draw` |
 //! | [`animate_sprites`] | `ANIMATE_SPRITES` | always | `Draw` |
 //! | [`draw_tilemaps`] | `DRAW_TILEMAPS` | always | `Draw` |
 //! | [`draw_sprites`] | `DRAW_SPRITES` | always | `Draw` |
@@ -77,7 +77,7 @@ pub fn update_particles(ctx: &mut Ctx) {
 
 /// Moves every positional sound ([`AudioSource3D`](crate::d3::AudioSource))
 /// to this frame's listener and emitters. The game runs it at the end of
-/// [`Phase::Late`](crate::Phase::Late)
+/// [`Phase::Draw`](crate::Phase::Draw), after the drawing systems
 /// ([`Systems::UPDATE_AUDIO3D`](crate::Systems::UPDATE_AUDIO3D)), so sound
 /// follows where everything ended up this frame.
 #[cfg(feature = "3d")]

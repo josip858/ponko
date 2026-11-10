@@ -2,9 +2,11 @@
 - The automatic animator, particle and positional-audio updates are ordinary
   systems (feature `3d`): `Systems::UPDATE_ANIMATORS` and
   `Systems::UPDATE_PARTICLES` at the end of `Phase::Animate`,
-  `Systems::UPDATE_AUDIO3D` at the end of `Phase::Late`. They are listed in
+  `Systems::UPDATE_AUDIO3D` at the end of `Phase::Draw`. They are listed in
   `system_timings`, and `Game::remove` takes them out. They run where they
-  ran before: after your `Animate` systems and after your `Late` systems.
+  ran before: the animators and particles after your frame (`Animate`)
+  systems and before your `Late` ones, positional audio after your `Late`
+  and drawing systems.
 - `ponko::systems`: the engine's built-in system functions in one module
   (`systems::draw_sprites`, `systems::step_physics3d`,
   `systems::follow_attachments`, `systems::update_animators`, ...), with a

@@ -66,6 +66,7 @@ pub mod terrain;
 pub mod access;
 pub mod actions;
 pub mod alloc_count;
+mod asset_cache;
 pub mod assets;
 pub mod attach;
 pub mod audio;

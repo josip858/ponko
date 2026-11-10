@@ -888,7 +888,8 @@ impl Ui {
     pub fn image(&mut self, parent: UiId, texture: Texture) -> UiBuilder<'_> {
         self.build(parent, UiWidget::Image).texture(texture, 0.0)
     }
-    /// A clipped, scrolling container.
+    /// A clipped, scrolling container. Not called `scroll`, because
+    /// [`Ui::scroll`] already reads a node's scroll offset.
     /// ```
     /// use ponko::prelude::*;
     /// let mut ui = ponko::ui::Ui::default();
