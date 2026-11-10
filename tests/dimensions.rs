@@ -1,6 +1,8 @@
 //! Dimension modules preserve component identity, serialized names and query behavior.
 use ponko::prelude::*;
+#[cfg(any(feature = "physics", feature = "physics3d"))]
 use std::sync::Arc;
+#[cfg(any(feature = "physics", feature = "physics3d"))]
 use std::sync::atomic::{AtomicBool, Ordering};
 mod common;
 
