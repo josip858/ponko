@@ -732,7 +732,8 @@ impl Frame3D {
                             };
                             // The group's renderers take its override; a
                             // level's separate shadow casters keep theirs.
-                            let mesh = if drawn {
+                            // (The cheap test first: most groups have no override.)
+                            let mesh = if drawn && (material.is_some() || parts.is_some()) {
                                 overridden(r.mesh.id, material, parts)
                             } else {
                                 r.mesh.id
@@ -783,7 +784,12 @@ impl Frame3D {
                     let casts = !matches!(shadow, Some(ShadowMesh(None)));
                     let f = classify(t, (center, radius), casts.then_some((center, radius)));
                     if f != 0 {
-                        let meshes = meshes.map(|mesh| overridden(mesh, material, parts));
+                        // Most tiles have no override: skip the lookup.
+                        let meshes = if material.is_some() || parts.is_some() {
+                            meshes.map(|mesh| overridden(mesh, material, parts))
+                        } else {
+                            meshes
+                        };
                         touch(
                             (e.to_bits(), retained::TERRAIN),
                             e.to_bits(),
