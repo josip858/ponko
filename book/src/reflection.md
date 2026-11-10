@@ -60,7 +60,7 @@ tweak) lives in resources. Reflect them the same way:
 
 ```rust
 # use serde::{Deserialize, Serialize};
-# use serde_json::json;
+# use ponko::reflect::json::json;
 #[derive(Serialize, Deserialize)]
 struct Score { red: u32, blue: u32 }
 
