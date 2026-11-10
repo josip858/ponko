@@ -75,9 +75,15 @@ from `book/` after changes reach `main`.
 Start with `use ponko::prelude::*;`, then `use ponko::d2::*;` or
 `use ponko::d3::*;`. Both expose `Transform`, `Camera`, `RigidBody`, `Collider`,
 `Velocity`, `Shape`, `Physics`, and `Hit` (physics features required).
+`d2` also holds `Sprite`, `TileMap`, `Attached`, `SpriteSheet`, `Animation`
+and the 2D grids (`SpatialGrid`, `NavGrid`, `FlowField`); `d3` holds models,
+materials, lights, decals, text, particles, terrain, animation, audio sources
+and navigation agents. A game with both dimensions in one file imports one
+module and qualifies the other (`d2::Transform` next to bare 3D names).
 The modules are aliases for existing types: layout, component identity and saved
 names are unchanged. Context fields remain `camera`/`camera3d` and
-`physics`/`physics3d` so both dimensions can coexist.
+`physics`/`physics3d` so both dimensions can coexist; their types are
+`d2::Camera`/`d3::Camera` and `d2::Physics`/`d3::Physics`.
 
 | Retained root spelling | Preferred spelling |
 |---|---|
@@ -171,7 +177,19 @@ Use `d3::Decal::MAX`, `d3::Decal::MAX_PER_CLUSTER`,
 and `MAX_RENDER_SCALE`, `terrain::TerrainTile::LODS` and `LAYERS`,
 `d3::PointLight::SHADOW_SIZE`, `SHADOW_ATLAS_SIZE` and `MAX_SHADOW_VIEWS`, and
 `render::GlobalIllumination::MAX_PROBES` and `MAX_PROBES_PER_FRAME`.
-The old constants remain available for compatibility.
+The old root constants remain available as deprecated constants with the
+same values; the new `d3`, `render` and `terrain` modules export only the
+associated forms. Constants that already belong to one module keep their name
+there (`net::MAX_PLAYERS`, `input::MAX_GAMEPADS`, `random::DEFAULT_SEED`,
+`physics3d::PHYSICS3D_HZ`, `scenario::SCENARIO_VERSION`,
+`streaming::DEFAULT_UPLOAD_BUDGET`); their root spellings are deprecated too.
+`Instant` moved to `time::Instant`, `Graphics` to `gfx::Graphics`, `Field` to
+`reflect::Field`, and `ComponentId` and `WorldView` to `ecs_core`.
+
+The engine's built-in systems (`step_physics3d`, `draw_sprites`,
+`animate_sprites`, `rebuild_spatial_grid`, ...) live in `ponko::systems`, and
+each has a `Systems` id for `Game::remove` ([Systems](systems.md)). Their root
+spellings are deprecated forwarders that count as the same built-in.
 
 Use `world.raw()` for dynamic components/resources, chunks and archetypes;
 `world.raw_ref()` supplies read-only dynamic inspection. These views borrow the

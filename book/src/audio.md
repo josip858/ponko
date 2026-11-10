@@ -64,7 +64,7 @@ the ALSA headers (`libasound2-dev` on Debian and Ubuntu).
 
 ## Sound in 3D
 
-With the `3d` feature, pair `AudioSource3D` with `Transform3D`, or play a
+With the `3d` feature, pair `d3::AudioSource` with `d3::Transform`, or play a
 one-off sound at a point with `ctx.play_sound_at`. Every frame, after your
 systems, the engine moves each sound to its entity and sets its volume,
 panning and doppler from where the listener is. The listener follows

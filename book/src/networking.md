@@ -419,7 +419,7 @@ own clock and the state; every frame, `sample` your clock:
   (snapshots kept; at least twice `delay` × your send rate).
 
 With the `3d` feature, the `NetPose` component holds a stream and the system
-`systems::apply_net_poses` sets the `Transform3D` position and rotation of every entity
+`systems::apply_net_poses` sets the `d3::Transform` position and rotation of every entity
 that has one, from `ctx.time.elapsed()`; add it with `Game::system` so entities move
 every frame:
 

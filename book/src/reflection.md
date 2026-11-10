@@ -102,7 +102,7 @@ left out of saves.
 
 ## The methods
 
-All of them come from `WorldReflect`, which `use ponko::*;` brings in.
+All of them come from `WorldReflect`, which `use ponko::prelude::*;` brings in.
 
 | Method | Does |
 |---|---|

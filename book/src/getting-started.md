@@ -79,8 +79,10 @@ create in `setup` and move into the closure are your game state. For small
 games that's all you need; when things grow, move to
 [entities and systems](ecs.md).
 
-Everything comes in with `use ponko::*;`: `Game`, `Ctx`, `Vec2`,
-`Color`, `Key`, the ECS types and the built-in components.
+Everything here comes in with `use ponko::prelude::*;`: `Game`, `Ctx`,
+`Vec2`, `Color`, `Key`, the ECS types and the common components. Add
+`use ponko::d2::*;` or `use ponko::d3::*;` for one dimension's names
+([Naming and compatibility](naming.md)).
 
 ## Setup on the builder
 
