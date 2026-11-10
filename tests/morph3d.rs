@@ -3,14 +3,17 @@
 #![cfg(feature = "3d")]
 
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::anim::{
     AnimationGraph, AnimationLayer, AnimationParameter, AnimationState, AnimationTrack, Animator, Interpolation,
     LayerBlend, MorphAnimation, MorphFrame, MorphTarget, Motion, MotionChild, Skeleton, SkinOf,
 };
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::Transform;
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{MeshData, Model};
 
 // ANCHOR: morph

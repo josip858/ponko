@@ -3,18 +3,27 @@
 //! resources and the failure contract.
 
 #[allow(unused_imports)]
-use ponko::d2::{Collider, RigidBody, Sprite, Transform as Transform2D};
+#[cfg(feature = "physics")]
+use ponko::d2::{Collider, RigidBody};
 #[allow(unused_imports)]
-use ponko::d3::{
-    Collider as Collider3D, NavAgent as NavAgent3D, NavMesh as NavMesh3D, RigidBody as RigidBody3D,
-    Transform as Transform3D,
-};
+use ponko::d2::{Sprite, Transform as Transform2D};
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
+use ponko::d3::Transform as Transform3D;
+#[allow(unused_imports)]
+#[cfg(feature = "physics3d")]
+use ponko::d3::{Collider as Collider3D, RigidBody as RigidBody3D};
+#[allow(unused_imports)]
+#[cfg(feature = "navmesh")]
+use ponko::d3::{NavAgent as NavAgent3D, NavMesh as NavMesh3D};
+#[allow(unused_imports)]
+#[cfg(feature = "navmesh")]
 use ponko::nav::{NavBakeSettings, NavSource};
 #[allow(unused_imports)]
 use ponko::net::{Desync, Net, NetState};
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::MeshData;
 use serde::{Deserialize, Serialize};
 

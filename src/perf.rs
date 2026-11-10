@@ -232,7 +232,7 @@ impl Perf {
 
     /// Turns on the deeper profiling: your [`profile_scope!`](crate::profile_scope)
     /// scopes and [`Perf::scope`] calls are timed, allocations are counted
-    /// (if [`CountingAllocator`](crate::alloc_count::CountingAllocator) is installed), and
+    /// (if [`CountingAllocator`] is installed), and
     /// [`report`](Self::report) has numbers. The overlay
     /// ([`set_hud`](Self::set_hud)) and `PONKO_BENCH` switch it on by themselves. While
     /// it is off, scopes cost one atomic load.

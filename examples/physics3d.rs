@@ -8,6 +8,7 @@
 //! mouse looks, WASD walks, Shift runs, Space jumps; left click shoves the
 //! crate you're looking at.
 
+#[cfg(feature = "3d")]
 use ponko::d3::*;
 use ponko::prelude::*;
 

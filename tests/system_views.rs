@@ -7,8 +7,10 @@ use ponko::access::{AccessConflict, Service, SystemAccess};
 #[allow(unused_imports)]
 use ponko::audio::Audio;
 #[allow(unused_imports)]
+#[cfg(feature = "physics")]
 use ponko::d2::Physics;
 #[allow(unused_imports)]
+#[cfg(feature = "physics3d")]
 use ponko::d3::Physics as Physics3D;
 #[allow(unused_imports)]
 use ponko::input::Input;
@@ -655,8 +657,10 @@ mod guide {
     #[allow(unused_imports)]
     use ponko::audio::Audio;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics")]
     use ponko::d2::Physics;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics3d")]
     use ponko::d3::Physics as Physics3D;
     #[allow(unused_imports)]
     use ponko::input::Input;
@@ -731,8 +735,10 @@ mod physics2d {
     #[allow(unused_imports)]
     use ponko::audio::Audio;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics")]
     use ponko::d2::Physics;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics3d")]
     use ponko::d3::Physics as Physics3D;
     #[allow(unused_imports)]
     use ponko::input::Input;
@@ -787,8 +793,10 @@ mod physics3d {
     #[allow(unused_imports)]
     use ponko::audio::Audio;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics")]
     use ponko::d2::Physics;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics3d")]
     use ponko::d3::Physics as Physics3D;
     #[allow(unused_imports)]
     use ponko::input::Input;

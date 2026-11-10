@@ -1,5 +1,6 @@
 #![cfg(feature = "3d")]
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::{PointLight as PointLight3D, SpotLight as SpotLight3D, Transform as Transform3D};
 use ponko::prelude::*;
 

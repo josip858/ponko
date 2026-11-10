@@ -8,7 +8,10 @@
 //! Keys: R starts over, Escape quits.
 
 #[allow(unused_imports)]
-use ponko::d2::{Collider, Hit as RayHit, Physics, RigidBody, Shape, Transform as Transform2D};
+use ponko::d2::Transform as Transform2D;
+#[allow(unused_imports)]
+#[cfg(feature = "physics")]
+use ponko::d2::{Collider, Hit as RayHit, Physics, RigidBody, Shape};
 use ponko::prelude::*;
 
 const W: f32 = 1000.0;

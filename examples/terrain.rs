@@ -9,6 +9,7 @@
 //! `VIEW=high|low|under|cliff` picks where the camera starts, `HOUR=18.5` the
 //! time of day. `BENCH=1` prints the frame's cost after 300 frames and quits.
 
+#[cfg(feature = "3d")]
 use ponko::d3::*;
 use ponko::prelude::*;
 

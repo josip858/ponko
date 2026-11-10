@@ -5,6 +5,7 @@
 //! change.
 
 #[allow(unused_imports)]
+#[cfg(feature = "physics")]
 use ponko::d2::Physics;
 #[allow(unused_imports)]
 use ponko::input::Input;

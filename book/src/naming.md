@@ -179,3 +179,23 @@ same world and preserve every pointer/layout requirement of the existing native
 interface. Existing `World` methods remain callable for compatibility but are
 hidden from the typed `World` documentation. C bindings continue to call the
 same storage operations.
+
+### Native filtered queries and prefab placement
+
+The native headers keep flat names. C uses `PonkoQueryFilter2D` (zero means
+solids only), `ponko_ctx_cast_ray_filtered`, and `ponko_ctx_overlap_ball`.
+Existing 3D ray/sphere calls already accept `PonkoQueryFilter3D`.
+C++ offers `filter2d`/`filter3d` and overloads of `cast_ray_filtered` and
+`overlap_ball` with the same argument order in both dimensions. The filter is
+explicit, so the vector/filter types select the dimension. Existing ray and
+overlap methods retain their behavior.
+
+C prefab placement adds `ponko_ctx_spawn_prefab3d` (position, preserving saved
+rotation/scale), `ponko_ctx_spawn_prefab_transform3d` and
+`ponko_ctx_spawn_prefab_transform2d` (complete transform). C++ uses the same
+flat method names without the `ponko_ctx_` prefix. These are separate names
+rather than overloads of the old `spawn_prefab`: otherwise an existing
+`spawn_prefab(path, {x, y})` would become ambiguous with a 3D aggregate.
+Outputs are validated before spawning; invalid paths and null outputs do not
+spawn an entity. The compiled native `dimensions.c` and `dimensions.cpp` tests
+exercise filtering, buffer sizing, errors, placement and legacy calls.

@@ -12,11 +12,14 @@
 use std::collections::HashMap;
 
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::Transform;
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{Material, MaterialDesc, Sky};
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::terrain::{TerrainTile, TerrainTileData};
 
 const N: usize = 129;

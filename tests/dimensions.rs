@@ -52,6 +52,7 @@ fn filtered_2d_queries_exclude_entities_and_sensors_without_changing_legacy_call
 #[cfg(feature = "physics3d")]
 #[test]
 fn filtered_3d_queries_use_the_same_spelling_and_hit_fields() {
+    #[cfg(feature = "3d")]
     use ponko::d3::*;
     Game::new("queries", 1, 1)
         .physics3d(Vec3::ZERO)
@@ -108,11 +109,17 @@ fn filtered_3d_queries_use_the_same_spelling_and_hit_fields() {
 #[cfg(feature = "3d")]
 #[test]
 fn prefab_3d_placement_preserves_identity_rotation_scale_and_saved_names() {
+    #[cfg(feature = "3d")]
     use ponko::d3::*;
 
     let file = common::TempAsset::new("dimension-prefab.json");
     Game::new("prefab", 1, 1).run_headless(0, |ctx| {
-        let e = ctx.world.spawn((Transform::default(),));
+        let source = Transform {
+            rotation: Quat::from_rotation_y(0.25),
+            scale: Vec3::splat(2.0),
+            ..Default::default()
+        };
+        let e = ctx.world.spawn((source,));
         ctx.assets.save_prefab(&ctx.world, e, file.name()).unwrap();
         let at = Transform::at(vec3(4.0, 5.0, 6.0)).rotated(Quat::from_rotation_y(0.5));
         let placed = ctx.spawn_prefab(file.name(), at).unwrap();
@@ -122,6 +129,31 @@ fn prefab_3d_placement_preserves_identity_rotation_scale_and_saved_names() {
             ctx.world.get::<Transform>(positioned).unwrap().position,
             vec3(7.0, 8.0, 9.0)
         );
+        assert_eq!(
+            ctx.world.get::<Transform>(positioned).unwrap().rotation,
+            source.rotation
+        );
+        assert_eq!(ctx.world.get::<Transform>(positioned).unwrap().scale, source.scale);
         assert!(ctx.world.save().to_string().contains("Transform3D"));
+    });
+}
+
+#[test]
+fn prefab_2d_transform_placement_sets_rotation_and_scale_as_well_as_position() {
+    use ponko::d2::Transform;
+    let file = common::TempAsset::new("dimension-prefab-2d.json");
+    Game::new("prefab", 1, 1).run_headless(0, |ctx| {
+        let source = Transform::at(vec2(1.0, 2.0)).rotated(0.25);
+        let e = ctx.world.spawn((source,));
+        ctx.assets.save_prefab(&ctx.world, e, file.name()).unwrap();
+        let position = ctx.spawn_prefab(file.name(), vec2(3.0, 4.0)).unwrap();
+        assert_eq!(ctx.world.get::<Transform>(position).unwrap().rotation, source.rotation);
+        let at = Transform {
+            position: vec2(5.0, 6.0),
+            rotation: 0.75,
+            scale: vec2(2.0, 3.0),
+        };
+        let placed = ctx.spawn_prefab(file.name(), at).unwrap();
+        assert_eq!(ctx.world.get::<Transform>(placed), Some(&at));
     });
 }

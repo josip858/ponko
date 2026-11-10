@@ -12,9 +12,11 @@ use ponko::audio::AudioEffects;
 #[allow(unused_imports)]
 use ponko::d2::{Sprite, Transform as Transform2D};
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::{AudioListener, ReflectionProbe, Transform};
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{ComputePass, GraphicsQuality, MaterialDesc, Mesh, MeshData, QualityLevel};
 #[allow(unused_imports)]
 use ponko::ui::{UiEvent, UiId, UiInput, UiWidget};
@@ -542,23 +544,32 @@ mod three {
     #[allow(unused_imports)]
     use ponko::d2::Transform as Transform2D;
     #[allow(unused_imports)]
+    #[cfg(feature = "3d")]
     use ponko::d3::AudioListener;
     #[allow(unused_imports)]
+    #[cfg(feature = "3d")]
     use ponko::d3::ReflectionProbe;
     #[allow(unused_imports)]
+    #[cfg(feature = "3d")]
     use ponko::d3::Transform;
     use ponko::prelude::*;
     #[allow(unused_imports)]
+    #[cfg(feature = "3d")]
     use ponko::render::ComputePass;
     #[allow(unused_imports)]
+    #[cfg(feature = "3d")]
     use ponko::render::GraphicsQuality;
     #[allow(unused_imports)]
+    #[cfg(feature = "3d")]
     use ponko::render::MaterialDesc;
     #[allow(unused_imports)]
+    #[cfg(feature = "3d")]
     use ponko::render::Mesh;
     #[allow(unused_imports)]
+    #[cfg(feature = "3d")]
     use ponko::render::MeshData;
     #[allow(unused_imports)]
+    #[cfg(feature = "3d")]
     use ponko::render::QualityLevel;
     #[allow(unused_imports)]
     use ponko::ui::UiEvent;

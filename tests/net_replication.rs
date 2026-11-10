@@ -435,6 +435,7 @@ fn interest_decides_what_each_peer_is_sent() {
 #[cfg(feature = "3d")]
 #[test]
 fn net_pose_moves_a_transform_from_buffered_snapshots() {
+    #[cfg(feature = "3d")]
     use ponko::d3::Transform as Transform3D;
     use ponko::systems::apply_net_poses;
     use ponko::{Game, net::NetPose};

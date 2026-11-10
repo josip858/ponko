@@ -6,18 +6,23 @@ mod common;
 
 use common::TempAsset;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::anim::Blend;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::{PointLight, SpotLight, Transform};
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{
-    AmbientOcclusion, AntiAliasing, ComputePass, GlobalIllumination, GpuBuffer, GpuFeature, GpuTier, GraphicsQuality,
-    InstanceBatchOptions, InstanceLevel, LodGroup, LodHysteresis, LodLevel, LodPick, LodRenderer, LodShadow, Material,
-    MaterialDesc, Mesh, MeshData, Model, ModelMaterial, Post, QualityLevel, ScreenEffect, Sky, TargetCamera,
-    TargetEffect, Tonemap,
+    AmbientOcclusion, AntiAliasing, ComputePass, GlobalIllumination, GpuBuffer, GraphicsQuality, InstanceBatchOptions,
+    InstanceLevel, LodGroup, LodHysteresis, LodLevel, LodPick, LodRenderer, LodShadow, Material, MaterialDesc, Mesh,
+    MeshData, Model, ModelMaterial, Post, QualityLevel, ScreenEffect, Sky, TargetCamera, TargetEffect, Tonemap,
 };
 #[allow(unused_imports)]
+use ponko::render::{GpuFeature, GpuTier};
+#[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::terrain::{FarTerrain, Heightfield, TerrainMaterialDesc, TerrainTile, TerrainTileData, TextureKind};
 
 // ANCHOR: three_d

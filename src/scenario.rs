@@ -294,7 +294,7 @@ impl InputScenario {
     /// `expect_count` (`component`, `equals`). Every step has a `tick`.
     /// Steps may come in any order; their step number is their position in
     /// the file, from 0. Unknown fields, a newer `version`, more than
-    /// [`ponko::scenario::MAX_SCENARIO_STEPS`] steps, a duration over [`ponko::scenario::MAX_SCENARIO_TICKS`]
+    /// [`crate::scenario::MAX_SCENARIO_STEPS`] steps, a duration over [`crate::scenario::MAX_SCENARIO_TICKS`]
     /// and steps at or after `duration` are errors, so a typo can't silently
     /// weaken a test.
     /// ```
@@ -426,7 +426,7 @@ pub enum ScenarioStatus {
     Passed,
     /// A check failed; the run ended there.
     Failed,
-    /// Ended early by [`ponko::input::Input::cancel_scenario`](crate::input::Input::cancel_scenario), a tool, a client that
+    /// Ended early by [`crate::input::Input::cancel_scenario`], a tool, a client that
     /// disconnected, or a scenario that replaced it.
     Cancelled,
 }
@@ -575,7 +575,7 @@ pub(crate) struct Leftover {
     owner: Option<u64>,
 }
 
-/// What [`ponko::input::Input`](crate::input::Input) keeps for scenarios.
+/// What [`crate::input::Input`] keeps for scenarios.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Scenarios {
     pub(crate) run: Option<ScenarioRun>,
@@ -588,7 +588,7 @@ impl crate::input::Input {
     /// Starts `scenario` on the next simulation tick, which is its tick 0,
     /// replacing (and cancelling) one that is running. Use it from systems and
     /// tests; [`Game::input_scenario`](crate::Game::input_scenario) starts one
-    /// with the game. The run's [`ponko::scenario::ScenarioReport`] is kept in `world` and
+    /// with the game. The run's [`crate::scenario::ScenarioReport`] is kept in `world` and
     /// its ticks are counted on `time` (the game's are `ctx.world` and
     /// `ctx.time`).
     /// ```

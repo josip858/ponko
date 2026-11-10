@@ -2,7 +2,11 @@
 //! belts and the custom contact hook.
 #![cfg(feature = "physics3d")]
 #[allow(unused_imports)]
-use ponko::d3::{Collider, ContactModifier, RigidBody, Transform, Velocity};
+#[cfg(feature = "3d")]
+use ponko::d3::Transform;
+#[allow(unused_imports)]
+#[cfg(feature = "physics3d")]
+use ponko::d3::{Collider, ContactModifier, RigidBody, Velocity};
 use ponko::prelude::*;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};

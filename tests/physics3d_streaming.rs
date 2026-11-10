@@ -7,13 +7,20 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 #[allow(unused_imports)]
-use ponko::d3::{Character, Collider, QueryFilter, RigidBody, Transform};
+#[cfg(feature = "3d")]
+use ponko::d3::Transform;
 #[allow(unused_imports)]
+#[cfg(feature = "physics3d")]
+use ponko::d3::{Character, Collider, QueryFilter, RigidBody};
+#[allow(unused_imports)]
+#[cfg(feature = "physics3d")]
 use ponko::physics3d::{ColliderFocus, CollisionMeshData, TerrainCollider};
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::Material;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::terrain::{Heightfield, TerrainTileData};
 
 const GRAVITY: Vec3 = Vec3::new(0.0, -9.81, 0.0);

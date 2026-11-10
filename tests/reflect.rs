@@ -3,11 +3,13 @@
 #[allow(unused_imports)]
 use ponko::d2::{Sprite, Transform as Transform2D};
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::{Decal, PointLight, SpotLight, Transform};
 use ponko::prelude::*;
 #[allow(unused_imports)]
 use ponko::reflect::ReflectError;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{LodGroup, LodHysteresis, Model, ModelMaterial, ReceivesDecals};
 use serde::{Deserialize, Serialize};
 

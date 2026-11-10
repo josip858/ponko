@@ -8,7 +8,10 @@
 //! - 1 / 2 / 3 / 4: simulation speed 1x / 4x / 16x / 64x.  Escape: quit.
 
 #[allow(unused_imports)]
-use ponko::d2::{Sprite, Transform as Transform2D, Velocity};
+#[cfg(feature = "physics")]
+use ponko::d2::Velocity;
+#[allow(unused_imports)]
+use ponko::d2::{Sprite, Transform as Transform2D};
 use ponko::prelude::*;
 
 /// Velocity in pixels per second.

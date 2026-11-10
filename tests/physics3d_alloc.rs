@@ -23,9 +23,13 @@ use std::sync::Mutex;
 use rapier3d::control::{CharacterAutostep, CharacterLength, KinematicCharacterController};
 
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
+use ponko::d3::Transform as Transform3D;
+#[allow(unused_imports)]
+#[cfg(feature = "physics3d")]
 use ponko::d3::{
     Character as Character3D, Collider as Collider3D, QueryFilter as QueryFilter3D, RigidBody as RigidBody3D,
-    Transform as Transform3D, Vehicle as Vehicle3D, Wheel as Wheel3D,
+    Vehicle as Vehicle3D, Wheel as Wheel3D,
 };
 #[allow(unused_imports)]
 use ponko::net::Pose;

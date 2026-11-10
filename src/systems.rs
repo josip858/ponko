@@ -95,7 +95,7 @@ pub mod at_root {
     macro_rules! moved {
         ($($(#[$cfg:meta])? $name:ident => $note:literal;)*) => {$(
             $(#[$cfg])?
-            #[doc = concat!("Moved to [`ponko::systems::", stringify!($name), "`](crate::systems::", stringify!($name), ").")]
+            #[doc = concat!("Moved to [`crate::systems::", stringify!($name), "`].")]
             #[deprecated(note = $note)]
             pub fn $name(ctx: &mut Ctx) {
                 super::$name(ctx)

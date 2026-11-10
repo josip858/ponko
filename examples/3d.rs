@@ -9,6 +9,7 @@
 //!   3 second warmup, prints the averages as JSON and quits (the same
 //!   measurement as the Unity version of this scene).
 
+#[cfg(feature = "3d")]
 use ponko::d3::*;
 use ponko::prelude::*;
 

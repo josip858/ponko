@@ -1,6 +1,10 @@
 #![cfg(feature = "physics3d")]
 #[allow(unused_imports)]
-use ponko::d3::{Collider, Joint, JointAxis, JointDrive, JointMotion, RigidBody, Transform};
+#[cfg(feature = "3d")]
+use ponko::d3::Transform;
+#[allow(unused_imports)]
+#[cfg(feature = "physics3d")]
+use ponko::d3::{Collider, Joint, JointAxis, JointDrive, JointMotion, RigidBody};
 use ponko::prelude::*;
 
 #[test]

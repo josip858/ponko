@@ -32,3 +32,71 @@ fn old_enum_imports_remain_available() {
     use ponko::Shape3D::Sphere;
     assert!(matches!(Sphere { radius: 1.0 }, d3::Shape::Sphere { radius: 1.0 }));
 }
+
+#[test]
+fn old_root_service_types_do_not_require_an_optional_subsystem() {
+    // This is the old default import contract, independently of the new prelude.
+    // In particular, turning 3D off must not hide 2D, UI, networking or profiling.
+    macro_rules! available { ($($ty:ty),* $(,)?) => { $(let _: Option<$ty> = None;)* }; }
+    available!(
+        SystemAccess,
+        Service,
+        AccessConflict,
+        Audio,
+        AudioEffects,
+        Camera2D,
+        Transform2D,
+        Sprite,
+        Assets,
+        MemorySource,
+        AssetInventory,
+        AssetClass,
+        GpuResidency,
+        Input,
+        Sound,
+        SoundParams,
+        Playing,
+        Font,
+        TextParams,
+        Texture,
+        DrawParams,
+        Rect,
+        Graphics,
+        Time,
+        Turns,
+        ActionMap,
+        InputEvent,
+        Random,
+        Rng,
+        Net,
+        NetState,
+        Pose,
+        Authority,
+        Interest,
+        Perf,
+        PerfReport,
+        Budget,
+        AllocReport,
+        ScopeTiming,
+        FrameStats,
+        SystemTiming,
+        Ui,
+        UiId,
+        UiImmediate,
+        UiInput,
+        UiLayout,
+        UiPaint,
+        UiRole,
+        UiStyle,
+        UiTextAlign,
+        UiTheme,
+        UiWidget,
+        UiAccessNode,
+        UiAccessTree,
+        UiAccessValue,
+    );
+    let _: fn() -> perf::AllocCounts = alloc_counts;
+    let _: fn(Vec2, f32) -> u64 = spatial_key;
+    const DIFFERENCE: i16 = seq_diff(1, 0);
+    assert_eq!(DIFFERENCE, 1);
+}

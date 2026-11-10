@@ -1,10 +1,16 @@
 //! Headless navigation: compile with `--no-default-features --features navmesh`.
 #[allow(unused_imports)]
-use ponko::d3::{NavAgent, NavMesh, NavObstacle, Transform};
+#[cfg(feature = "3d")]
+use ponko::d3::Transform;
 #[allow(unused_imports)]
+#[cfg(feature = "navmesh")]
+use ponko::d3::{NavAgent, NavMesh, NavObstacle};
+#[allow(unused_imports)]
+#[cfg(feature = "navmesh")]
 use ponko::nav::{NavBakeSettings, NavSource};
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::MeshData;
 
 // ANCHOR: bake

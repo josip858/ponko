@@ -2,6 +2,7 @@
 #[allow(unused_imports)]
 use ponko::audio::{AudioEffects, AudioRolloff};
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::{AudioSettings, AudioSource, Transform};
 use ponko::prelude::*;
 

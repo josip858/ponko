@@ -104,7 +104,7 @@ use ponko_ecs::{AccessLog, Component, ViewAccess, World};
 use crate::Ctx;
 use crate::Phase;
 
-/// An engine service on [`Ctx`](crate::Ctx) that a system can declare,
+/// An engine service on [`Ctx`] that a system can declare,
 /// beside its components, resources, events and commands.
 ///
 /// Names follow the service fields of `Ctx`. Two declarations conflict on
@@ -266,7 +266,7 @@ fn add_event(items: &mut Vec<Item>, it: Item) {
 
 /// What a system declares it reads and writes.
 ///
-/// Two declared systems in the same [`Phase`](crate::Phase) conflict (and
+/// Two declared systems in the same [`Phase`] conflict (and
 /// keep their order) when either is exclusive, both touch the same
 /// component, resource or [`Service`] and one writes it, one sends an event
 /// type the other reads or both send it, or either records commands (any

@@ -2,14 +2,17 @@
 //! `Ctx::live_counts` for every resource kind, in headless runs.
 
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::Transform;
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{
     Compute, ComputePass, Effect, GpuBuffer, InstanceBatch, InstanceBatchOptions, Material, MaterialDesc, Mesh,
     MeshData, Model, ModelMaterial, ScreenEffect, Shader, TargetCamera,
 };
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::terrain::{TextureArray, TextureKind};
 
 /// Writes the built-in font to a file `load_font` can read.

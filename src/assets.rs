@@ -51,7 +51,7 @@
 //! 1. **Acquire** its bytes by name: from the [`AssetSource`]s a game added,
 //!    in order, then from the default source (the `assets/` folders on
 //!    desktop, the files fetched from `assets/index.json` in a browser).
-//! 2. **Decode** them on the CPU ([`decode_image`]): no GPU, any thread.
+//! 2. **Decode** them on the CPU (`decode_image`): no GPU, any thread.
 //! 3. **Create** the GPU resource on the game thread (`Graphics::create_texture`).
 
 use std::collections::HashMap;
@@ -687,7 +687,7 @@ impl Assets {
     /// only from `assets/`.
     ///
     /// Assets from sources are never hot reloaded: only files found in
-    /// `assets/` are watched. See [`AssetSource`](crate::AssetSource) for
+    /// `assets/` are watched. See [`AssetSource`] for
     /// names, caching and hot reload.
     ///
     /// Add sources in setup, before loading what they hold: assets loaded

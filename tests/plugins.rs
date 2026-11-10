@@ -76,8 +76,10 @@ fn builtin_ids_and_legacy_removal_coexist() {
 #[test]
 fn stable_physics_id_removes_step_after_repeated_configuration() {
     #[allow(unused_imports)]
+    #[cfg(feature = "physics")]
     use ponko::d2::Collider;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics")]
     use ponko::d2::RigidBody;
     #[allow(unused_imports)]
     use ponko::d2::Transform as Transform2D;

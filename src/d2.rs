@@ -5,6 +5,8 @@ pub use crate::camera::Camera2D as Camera;
 pub use crate::collision::{BodyKind, CollisionStarted, CollisionStopped};
 pub use crate::ecs::{Sprite, Transform2D as Transform};
 #[cfg(feature = "physics")]
+pub use crate::physics::step_physics;
+#[cfg(feature = "physics")]
 pub use crate::physics::{Collider, Physics, QueryFilter, RayHit as Hit, RigidBody, Shape, Velocity};
 pub use crate::sheet::{Animation, SpriteSheet};
 pub use crate::tilemap::TileMap;

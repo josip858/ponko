@@ -10,11 +10,13 @@ use std::rc::Rc;
 #[allow(unused_imports)]
 use ponko::d2::{Sprite, Transform as Transform2D};
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::Transform;
 #[allow(unused_imports)]
 use ponko::inventory::AssetClass;
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{LodGroup, LodLevel, LodRenderer, Mesh, MeshData, Model};
 #[allow(unused_imports)]
 use ponko::residency::ResidencyKind;

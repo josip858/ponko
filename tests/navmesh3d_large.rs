@@ -2,11 +2,17 @@
 //! opt-in carving layers, and carving that blocks a corridor completely.
 #![cfg(feature = "navmesh")]
 #[allow(unused_imports)]
-use ponko::d3::{NavAgent as NavAgent3D, NavMesh as NavMesh3D, NavObstacle as NavObstacle3D, Transform as Transform3D};
+#[cfg(feature = "3d")]
+use ponko::d3::Transform as Transform3D;
 #[allow(unused_imports)]
+#[cfg(feature = "navmesh")]
+use ponko::d3::{NavAgent as NavAgent3D, NavMesh as NavMesh3D, NavObstacle as NavObstacle3D};
+#[allow(unused_imports)]
+#[cfg(feature = "navmesh")]
 use ponko::nav::{NavBakeSettings, NavSource};
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::MeshData;
 use std::time::Instant;
 

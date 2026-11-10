@@ -37,14 +37,19 @@ fn fixed_phases_run_in_order_and_frame_phases_stay_out_of_headless() {
 #[test]
 fn physics_builder_placement_does_not_change_observed_tick() {
     #[allow(unused_imports)]
+    #[cfg(feature = "physics")]
     use ponko::d2::Physics;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics3d")]
     use ponko::d3::Collider as Collider3D;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics3d")]
     use ponko::d3::RigidBody as RigidBody3D;
     #[allow(unused_imports)]
+    #[cfg(feature = "3d")]
     use ponko::d3::Transform as Transform3D;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics3d")]
     use ponko::d3::Velocity as Velocity3D;
     #[allow(unused_imports)]
     use ponko::input::Input;
@@ -82,14 +87,19 @@ fn physics_builder_placement_does_not_change_observed_tick() {
 #[test]
 fn before_physics_feeds_the_same_tick_and_sim_system_sees_the_result() {
     #[allow(unused_imports)]
+    #[cfg(feature = "physics")]
     use ponko::d2::Physics;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics3d")]
     use ponko::d3::Collider as Collider3D;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics3d")]
     use ponko::d3::RigidBody as RigidBody3D;
     #[allow(unused_imports)]
+    #[cfg(feature = "3d")]
     use ponko::d3::Transform as Transform3D;
     #[allow(unused_imports)]
+    #[cfg(feature = "physics3d")]
     use ponko::d3::Velocity as Velocity3D;
     #[allow(unused_imports)]
     use ponko::input::Input;

@@ -6,9 +6,12 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
+use ponko::d3::Transform as Transform3D;
+#[allow(unused_imports)]
+#[cfg(feature = "physics3d")]
 use ponko::d3::{
-    Collider as Collider3D, RigidBody as RigidBody3D, Transform as Transform3D, Vehicle as Vehicle3D,
-    Velocity as Velocity3D, Wheel as Wheel3D,
+    Collider as Collider3D, RigidBody as RigidBody3D, Vehicle as Vehicle3D, Velocity as Velocity3D, Wheel as Wheel3D,
 };
 use ponko::prelude::*;
 

@@ -10,6 +10,7 @@
 //! `HEADLESS=1` drives it by script instead, without a window, and checks
 //! that it speeds up, turns and stops.
 
+#[cfg(feature = "3d")]
 use ponko::d3::*;
 use ponko::prelude::*;
 

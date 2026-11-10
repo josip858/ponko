@@ -1,5 +1,6 @@
 #![cfg(feature = "3d")]
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::{ReflectionProbe as ReflectionProbe3D, Transform as Transform3D};
 use ponko::prelude::*;
 

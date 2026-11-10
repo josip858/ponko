@@ -76,7 +76,7 @@ pub struct RenderStats {
     pub record_ms: f32,
     /// Of `cpu_ms`, the time handing the command buffers to the GPU, in ms.
     pub submit_ms: f32,
-    /// 3D models the camera draws (one per drawn [`Model`](crate::render::Model)).
+    /// 3D models the camera draws (one per drawn [`Model`]).
     pub instances: usize,
     /// Triangles the camera's passes draw (each once, though the depth
     /// prepass draws the solid ones a second time).

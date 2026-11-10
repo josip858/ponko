@@ -14,9 +14,11 @@
 //! (`cargo run --example web_smoke_3d --features 3d`).
 
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::Transform;
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{MaterialDesc, MeshData, Model, ModelMaterial};
 use serde_json::json;
 use std::cell::Cell;

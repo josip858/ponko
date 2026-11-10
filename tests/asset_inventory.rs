@@ -6,8 +6,10 @@
 use ponko::inventory::AssetClass;
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{GpuBuffer, Material, MaterialDesc, Mesh, MeshData};
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::terrain::{TextureArray, TextureKind};
 
 fn headless(setup: impl FnOnce(&mut Ctx)) {

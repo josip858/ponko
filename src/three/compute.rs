@@ -136,7 +136,7 @@ impl Graphics {
     ///
     /// For GPU buffers, define `fn update(i: u32)` instead, accessing the
     /// read-write `items: array<vec4<f32>>`. Schedule it with
-    /// [`ponko::render::ComputePass::for_buffer`]; it shares the texture passes' frame uniforms
+    /// [`crate::render::ComputePass::for_buffer`]; it shares the texture passes' frame uniforms
     /// and ordering. WebGL2 skips buffer passes and buffer-driven draws.
     ///
     /// ```no_run
@@ -151,7 +151,7 @@ impl Graphics {
     /// If the file can't be read or doesn't compile (the message says where).
     /// With hot reload on, a file that doesn't compile doesn't panic: it
     /// gets a stand-in and stays watched until a saved fix compiles
-    /// ([`ponko::render::ShaderOutcome::Failed`](crate::render::ShaderOutcome::Failed), [`Graphics::shader_status`](crate::Graphics::shader_status)).
+    /// ([`crate::render::ShaderOutcome::Failed`], [`Graphics::shader_status`](crate::Graphics::shader_status)).
     pub fn load_compute(&mut self, path: &str) -> Compute {
         self.try_load_compute(path).unwrap_or_else(|e| panic!("ponko: {e}"))
     }
@@ -322,7 +322,7 @@ impl GpuBuffer {
 impl Graphics {
     /// Creates `len` elements. Initial data may be empty or exactly `len` elements.
     /// A freed buffer's id is reused first (see [`Ctx::free`](crate::Ctx::free)).
-    /// Panics for zero length or mismatched data. See [`ponko::render::GpuBuffer`].
+    /// Panics for zero length or mismatched data. See [`crate::render::GpuBuffer`].
     pub fn create_gpu_buffer(&mut self, len: u32, data: &[crate::Vec4]) -> GpuBuffer {
         assert!(
             len > 0 && (data.is_empty() || data.len() == len as usize),
@@ -377,7 +377,7 @@ impl Graphics {
         }
     }
     /// Updates a range before the next frame. Panics for invalid handles or ranges.
-    /// See [`ponko::render::GpuBuffer`] for an example.
+    /// See [`crate::render::GpuBuffer`] for an example.
     pub fn write_gpu_buffer(&mut self, b: GpuBuffer, offset: u32, data: &[crate::Vec4]) {
         let len = self.gpu_buffer_len(b).expect("invalid GPU buffer");
         assert!(

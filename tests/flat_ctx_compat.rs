@@ -11,12 +11,14 @@ use ponko::audio::AudioEffects;
 #[allow(unused_imports)]
 use ponko::d2::Transform as Transform2D;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::{
     AudioListener as AudioListener3D, AudioSettings as AudioSettings3D, ReflectionProbe as ReflectionProbe3D,
     Transform as Transform3D,
 };
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{ComputePass, GraphicsQuality, MaterialDesc, MeshData, QualityLevel};
 #[allow(unused_imports)]
 use ponko::residency::ResidencyKind;

@@ -12,9 +12,11 @@
 use std::time::Instant;
 
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::Transform;
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{Model, Sky};
 
 /// The middle and size of where the scene's models are.

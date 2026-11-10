@@ -8,9 +8,11 @@
 //! `SHOT=path.png` saves frame 60 and quits.
 
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::Transform;
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{MaterialDesc, MeshData, Model, ScreenEffect, Sky, TargetEffect};
 
 /// Writes the frame's light into its render target; a smaller target than

@@ -7,11 +7,14 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 #[allow(unused_imports)]
 use ponko::d2::Transform as Transform2D;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::Transform as Transform3D;
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{Mesh, MeshData, Model};
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::terrain::{FarTerrain, TerrainTileData};
 
 #[test]

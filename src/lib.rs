@@ -149,6 +149,7 @@ pub use camera::Rect;
 pub use collision::{BodyKind, CollisionStarted, CollisionStopped};
 #[doc(hidden)]
 pub use color::Color;
+#[doc(hidden)]
 pub use ctx::Ctx;
 #[doc(hidden)]
 pub use diagnostics::ECS_DIAGNOSTICS_VERSION;
@@ -193,7 +194,6 @@ pub use schema::ValueSchema;
 #[doc(hidden)]
 pub use sheet::{Animation, SpriteSheet};
 #[doc(hidden)]
-#[doc(hidden)]
 pub use spatial::RawGridView;
 /// The Steamworks SDK (re-exported `steamworks` crate, feature `steam`):
 /// create the [`steamworks::Client`] for [`Net::steam_host`] here, and use
@@ -211,6 +211,7 @@ pub use systems::at_root::*;
 /// use ponko::ui::layout::Style;
 /// let style: Style = Style::default();
 /// ```
+#[doc(hidden)]
 pub use taffy as ui_layout;
 #[doc(hidden)]
 pub use text::{Font, TextParams};
@@ -271,9 +272,11 @@ pub use web_time::Instant;
 mod environment;
 
 /// Prefab placement in either dimension.
+#[doc(hidden)]
 pub use scene::Placement;
 
 mod compat;
 #[doc(hidden)]
 #[allow(deprecated)]
+#[doc(hidden)]
 pub use compat::*;

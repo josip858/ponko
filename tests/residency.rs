@@ -8,9 +8,11 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::d3::Transform as Transform3D;
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{LodGroup, LodLevel, LodRenderer, Mesh, MeshData, Model};
 #[allow(unused_imports)]
 use ponko::residency::{ResidencyKind, ResidencyStats};

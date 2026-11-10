@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use ponko::prelude::*;
 #[allow(unused_imports)]
+#[cfg(feature = "3d")]
 use ponko::render::{
     Compute, ComputePass, Effect, Material, MaterialDesc, ScreenEffect, Shader, ShaderKind, ShaderOutcome, ShaderStatus,
 };
