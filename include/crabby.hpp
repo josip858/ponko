@@ -2202,6 +2202,9 @@ class layout {
     }
     static CrabbyUiSides sides(length top, length right, length bottom, length left) { return {top, right, bottom, left}; }
 public:
+    layout() = default;
+    /// Starts from a C layout, such as a preset (`ui::row(30)`, `ui::fixed(220, 40)`).
+    explicit layout(const CrabbyUiLayout& c) : c_(c) {}
     layout& display(ui::display d) { c_.display = static_cast<std::uint32_t>(d); return *this; }
     layout& position(ui::position p) { c_.position = static_cast<std::uint32_t>(p); return *this; }
     /// Out of flow, placed by `inset` inside the closest relative ancestor.
@@ -2234,6 +2237,20 @@ public:
     layout& inset(length top, length right, length bottom, length left) { c_.inset = sides(top, right, bottom, left); return *this; }
     layout& gap(length columns, length rows) { c_.gap = {columns, rows}; return *this; }
     layout& gap(float both) { return gap(points(both), points(both)); }
+    /// Puts its top edge `y` points below its parent's top instead of where
+    /// the preset put it (a `centered` dialog near the top); in a row or
+    /// column it is a margin above it.
+    layout& top(float y) {
+        if (c_.position == static_cast<std::uint32_t>(ui::position::absolute)) { c_.inset.top = points(y); c_.margin.top = points(0); }
+        else c_.margin.top = points(y);
+        return *this;
+    }
+    /// Puts its left edge `x` points right of its parent's left; see `top`.
+    layout& left(float x) {
+        if (c_.position == static_cast<std::uint32_t>(ui::position::absolute)) { c_.inset.left = points(x); c_.margin.left = points(0); }
+        else c_.margin.left = points(x);
+        return *this;
+    }
     layout& align_items(align a) { c_.align_items = static_cast<std::uint32_t>(a); return *this; }
     layout& align_self(align a) { c_.align_self = static_cast<std::uint32_t>(a); return *this; }
     layout& justify_items(align a) { c_.justify_items = static_cast<std::uint32_t>(a); return *this; }
@@ -2305,6 +2322,26 @@ public:
     CrabbyUiPaint raw() const { return c_; }
 };
 
+// Layout presets (Rust `UiLayout`): the common shapes, so no screen needs
+// its own helpers. Refine them by chaining: `ui::fill().padding(24).gap(12)`.
+/// A full-width row `height` points tall; its children go left to right.
+inline layout row(float height) { return layout(crabby_ui_layout_row(height)); }
+/// A full-height column `width` points wide; its children stack.
+inline layout column(float width) { return layout(crabby_ui_layout_column(width)); }
+/// All of the parent (the window for a screen root), shrinking to what its siblings leave.
+inline layout fill() { return layout(crabby_ui_layout_fill()); }
+/// Exactly `width` x `height` points, never shrunk.
+inline layout fixed(float width, float height) { return layout(crabby_ui_layout_fixed(width, height)); }
+/// Out of the flow at `x`, `y`, `width` x `height` in fractions of the parent.
+inline layout anchored(float x, float y, float width, float height) { return layout(crabby_ui_layout_anchored(x, y, width, height)); }
+/// `width` x `height` points in the middle of the parent: a dialog.
+inline layout centered(float width, float height) { return layout(crabby_ui_layout_centered(width, height)); }
+
+/// The colors and text defaults of a tree (Rust `UiTheme`): new nodes take
+/// their paint from it, and the screen's immediate widgets follow it.
+using theme = CrabbyUiTheme;
+inline theme default_theme() { return crabby_ui_theme_default(); }
+
 enum class event_kind : std::uint32_t { clicked = 0, changed = 1, submitted = 2, screen_popped = 3 };
 /// Something that happened: a button was clicked, a value changed, Enter was
 /// pressed in an input (`submitted`), or Cancel popped a screen (`node` is its root).
@@ -2364,6 +2401,11 @@ public:
         id n = none; const CrabbyUiLayout c = l.raw();
         detail::check(crabby_ctx_ui_add_slider(raw_, target_, parent, value, &c, &n)); return n;
     }
+    /// A title: a label in the theme's title color and size, which it keeps following.
+    id add_title(id parent, const char* text, const layout& l = {}) {
+        id n = none; const CrabbyUiLayout c = l.raw();
+        detail::check(crabby_ctx_ui_add_title(raw_, target_, parent, text, &c, &n)); return n;
+    }
     /// Removes a node and everything under it; their ids stay invalid.
     void remove(id node) { detail::check(crabby_ctx_ui_remove(raw_, target_, node)); }
 
@@ -2380,6 +2422,25 @@ public:
         detail::check(crabby_ctx_ui_text(raw_, target_, node, nullptr, 0, &len));
         std::string out(len + 1, '\0');
         detail::check(crabby_ctx_ui_text(raw_, target_, node, &out[0], out.size(), &len));
+        out.resize(len);
+        return out;
+    }
+    /// The node's paint as drawn: the theme's, plus what was set on it.
+    CrabbyUiPaint resolved_paint(id node) const { CrabbyUiPaint p = crabby_ui_paint_default(); detail::check(crabby_ctx_ui_paint(raw_, target_, node, &p)); return p; }
+    ui::theme theme() const { ui::theme t = default_theme(); detail::check(crabby_ctx_ui_theme(raw_, target_, &t)); return t; }
+    /// Replaces the theme; nodes keep the paint fields set on them.
+    void set_theme(const ui::theme& t) { detail::check(crabby_ctx_ui_set_theme(raw_, target_, &t)); }
+    /// Names a node, so code that didn't build it finds it: no list of ids to keep.
+    /// A name belongs to one node; an empty name takes it off.
+    void set_name(id node, const char* name) { detail::check(crabby_ctx_ui_set_name(raw_, target_, node, name)); }
+    /// The node with this name, if any.
+    std::optional<id> find(const char* name) const { id n = none; detail::check(crabby_ctx_ui_find(raw_, target_, name, &n)); return maybe(n); }
+    /// A node's name (empty without one).
+    std::string name(id node) const {
+        std::size_t len = 0;
+        detail::check(crabby_ctx_ui_name(raw_, target_, node, nullptr, 0, &len));
+        std::string out(len + 1, '\0');
+        detail::check(crabby_ctx_ui_name(raw_, target_, node, &out[0], out.size(), &len));
         out.resize(len);
         return out;
     }
@@ -2415,6 +2476,9 @@ public:
         detail::check(status);
         return event{static_cast<event_kind>(e.kind), e.id};
     }
+    /// Takes the queued events and gives the last click's node, if any: for
+    /// screens that react only to clicks (the other events are dropped).
+    std::optional<id> take_click() { id n = none; detail::check(crabby_ctx_ui_take_click(raw_, target_, &n)); return maybe(n); }
     /// Takes every queued event.
     std::vector<event> events() {
         std::vector<event> all;

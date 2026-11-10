@@ -1688,6 +1688,21 @@ typedef struct CrabbyUiEvent {
   uint64_t id;
 } CrabbyUiEvent;
 
+typedef struct CrabbyUiTheme {
+  struct CrabbyColor panel;
+  struct CrabbyColor control;
+  struct CrabbyColor hover;
+  struct CrabbyColor pressed;
+  struct CrabbyColor disabled;
+  struct CrabbyColor accent;
+  struct CrabbyColor text;
+  struct CrabbyColor title;
+  struct CrabbyFont font;
+  float text_size;
+  float title_size;
+  float border_width;
+} CrabbyUiTheme;
+
 typedef struct CrabbyFrictionCurve {
   float extremum_slip;
   float extremum_value;
@@ -4272,6 +4287,61 @@ enum CrabbyStatus crabby_ctx_ui_frame(struct CrabbyCtx *ctx,
                                       const struct CrabbyUiInput *input);
 
 enum CrabbyStatus crabby_ctx_ui_insert_text(struct CrabbyCtx *ctx, const char *text);
+
+struct CrabbyUiLayout crabby_ui_layout_row(float height);
+
+struct CrabbyUiLayout crabby_ui_layout_column(float width);
+
+struct CrabbyUiLayout crabby_ui_layout_fill(void);
+
+struct CrabbyUiLayout crabby_ui_layout_fixed(float width, float height);
+
+struct CrabbyUiLayout crabby_ui_layout_anchored(float x, float y, float width, float height);
+
+struct CrabbyUiLayout crabby_ui_layout_centered(float width, float height);
+
+struct CrabbyUiTheme crabby_ui_theme_default(void);
+
+enum CrabbyStatus crabby_ctx_ui_theme(struct CrabbyCtx *ctx,
+                                      uint64_t target,
+                                      struct CrabbyUiTheme *out_theme);
+
+enum CrabbyStatus crabby_ctx_ui_set_theme(struct CrabbyCtx *ctx,
+                                          uint64_t target,
+                                          const struct CrabbyUiTheme *theme);
+
+enum CrabbyStatus crabby_ctx_ui_paint(struct CrabbyCtx *ctx,
+                                      uint64_t target,
+                                      uint64_t id,
+                                      struct CrabbyUiPaint *out_paint);
+
+enum CrabbyStatus crabby_ctx_ui_add_title(struct CrabbyCtx *ctx,
+                                          uint64_t target,
+                                          uint64_t parent,
+                                          const char *text,
+                                          const struct CrabbyUiLayout *layout,
+                                          uint64_t *out_id);
+
+enum CrabbyStatus crabby_ctx_ui_set_name(struct CrabbyCtx *ctx,
+                                         uint64_t target,
+                                         uint64_t id,
+                                         const char *name);
+
+enum CrabbyStatus crabby_ctx_ui_find(struct CrabbyCtx *ctx,
+                                     uint64_t target,
+                                     const char *name,
+                                     uint64_t *out_id);
+
+enum CrabbyStatus crabby_ctx_ui_name(struct CrabbyCtx *ctx,
+                                     uint64_t target,
+                                     uint64_t id,
+                                     char *buffer,
+                                     size_t capacity,
+                                     size_t *out_len);
+
+enum CrabbyStatus crabby_ctx_ui_take_click(struct CrabbyCtx *ctx,
+                                           uint64_t target,
+                                           uint64_t *out_id);
 
 struct CrabbyFrictionCurve crabby_friction_curve_forward(void);
 

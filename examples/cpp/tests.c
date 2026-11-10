@@ -467,10 +467,71 @@ static void ui_panels(void) {
     CHECK(ponko_game_run_headless(game, 0, panel_setup, NULL, &w) == PONKO_OK);
     CHECK(ponko_world_free(w) == PONKO_OK);
 }
+/* Layout presets, the theme, titles, names and take_click. */
+static void ui_presets_setup(PonkoCtx* ctx, void* user) {
+    (void)user;
+    PonkoUiLayout fill = ponko_ui_layout_fill();
+    fill.padding.top = fill.padding.left = (PonkoUiLength){PONKO_UI_LENGTH_POINTS, 10};
+    PonkoUiLayout row = ponko_ui_layout_row(40), fixed = ponko_ui_layout_fixed(100, 30);
+    PonkoUiLayout column = ponko_ui_layout_column(120);
+    PonkoUiLayout map = ponko_ui_layout_anchored(0.75f, 0, 0.25f, 0.25f);
+    PonkoUiLayout dialog_layout = ponko_ui_layout_centered(200, 100);
+    uint64_t root, title, buy, side, corner, dialog, found, clicked;
+    CHECK(ponko_ctx_ui_add_panel(ctx, PONKO_UI_SCREEN, PONKO_UI_NONE, &fill, &root) == PONKO_OK);
+    CHECK(ponko_ctx_ui_add_title(ctx, PONKO_UI_SCREEN, root, "Shop", &row, &title) == PONKO_OK);
+    CHECK(ponko_ctx_ui_add_button(ctx, PONKO_UI_SCREEN, root, "Buy", &fixed, &buy) == PONKO_OK);
+    CHECK(ponko_ctx_ui_add_panel(ctx, PONKO_UI_SCREEN, root, &column, &side) == PONKO_OK);
+    CHECK(ponko_ctx_ui_add_panel(ctx, PONKO_UI_SCREEN, root, &map, &corner) == PONKO_OK);
+    CHECK(ponko_ctx_ui_add_panel(ctx, PONKO_UI_SCREEN, PONKO_UI_NONE, &dialog_layout, &dialog) == PONKO_OK);
+    CHECK(ponko_ctx_ui_push_screen(ctx, PONKO_UI_SCREEN, root, false) == PONKO_OK);
+    CHECK(ponko_ctx_ui_push_screen(ctx, PONKO_UI_SCREEN, dialog, false) == PONKO_OK);
+    CHECK(ponko_ctx_ui_layout(ctx, PONKO_UI_SCREEN, (PonkoVec2){800, 600}) == PONKO_OK);
+    PonkoRect r;
+    CHECK(ponko_ctx_ui_rect(ctx, PONKO_UI_SCREEN, title, &r) == PONKO_OK && r.min.y == 10 && r.max.y == 50);
+    CHECK(ponko_ctx_ui_rect(ctx, PONKO_UI_SCREEN, buy, &r) == PONKO_OK && r.min.x == 10 && r.max.x == 110);
+    CHECK(ponko_ctx_ui_rect(ctx, PONKO_UI_SCREEN, corner, &r) == PONKO_OK && r.min.x == 600 && r.max.y == 150);
+    CHECK(ponko_ctx_ui_rect(ctx, PONKO_UI_SCREEN, dialog, &r) == PONKO_OK && r.min.x == 300 && r.min.y == 250);
+    CHECK(ponko_ctx_ui_pop_screen(ctx, PONKO_UI_SCREEN, &found) == PONKO_OK && found == dialog);
+    /* The theme: read, changed, followed by titles and the immediate widgets. */
+    PonkoUiTheme theme = ponko_ui_theme_default();
+    CHECK(ponko_ctx_ui_theme(ctx, PONKO_UI_SCREEN, &theme) == PONKO_OK && theme.title_size > theme.text_size);
+    theme.title = (PonkoColor){1, 1, 0, 1};
+    theme.title_size = 30;
+    theme.accent = (PonkoColor){0, 1, 0, 1};
+    CHECK(ponko_ctx_ui_set_theme(ctx, PONKO_UI_SCREEN, &theme) == PONKO_OK);
+    PonkoUiPaint paint;
+    CHECK(ponko_ctx_ui_paint(ctx, PONKO_UI_SCREEN, title, &paint) == PONKO_OK);
+    CHECK(paint.font_size == 30 && paint.color.g == 1 && paint.color.b == 0);
+    CHECK(ponko_ctx_ui_paint(ctx, PONKO_UI_SCREEN, buy, &paint) == PONKO_OK && paint.border.g == 1 && paint.border.r == 0);
+    PonkoUiStyle style;
+    CHECK(ponko_ctx_ui_style(ctx, &style) == PONKO_OK && style.accent.g == 1 && style.accent.r == 0);
+    theme.text_size = -1;
+    CHECK(ponko_ctx_ui_set_theme(ctx, PONKO_UI_SCREEN, &theme) == PONKO_INVALID_ARGUMENT);
+    /* Names instead of kept ids. */
+    CHECK(ponko_ctx_ui_set_name(ctx, PONKO_UI_SCREEN, buy, "shop.buy") == PONKO_OK);
+    CHECK(ponko_ctx_ui_find(ctx, PONKO_UI_SCREEN, "shop.buy", &found) == PONKO_OK && found == buy);
+    CHECK(ponko_ctx_ui_find(ctx, PONKO_UI_SCREEN, "shop.sell", &found) == PONKO_OK && found == PONKO_UI_NONE);
+    char name[16]; size_t len;
+    CHECK(ponko_ctx_ui_name(ctx, PONKO_UI_SCREEN, buy, name, sizeof name, &len) == PONKO_OK && len == 8 && strcmp(name, "shop.buy") == 0);
+    /* take_click: the last click's node, once. */
+    PonkoVec2 window = {800, 600};
+    PonkoUiInput in = ponko_ui_input_default();
+    in.pointer = (PonkoVec2){50, 65}; in.pressed = true; in.held = true;
+    CHECK(ponko_ctx_ui_frame(ctx, PONKO_UI_SCREEN, window, &in) == PONKO_OK);
+    in.pressed = false; in.held = false; in.released = true;
+    CHECK(ponko_ctx_ui_frame(ctx, PONKO_UI_SCREEN, window, &in) == PONKO_OK);
+    CHECK(ponko_ctx_ui_take_click(ctx, PONKO_UI_SCREEN, &clicked) == PONKO_OK && clicked == buy);
+    CHECK(ponko_ctx_ui_take_click(ctx, PONKO_UI_SCREEN, &clicked) == PONKO_OK && clicked == PONKO_UI_NONE);
+    CHECK(ponko_ctx_ui_remove(ctx, PONKO_UI_SCREEN, root) == PONKO_OK);
+    CHECK(ponko_ctx_ui_find(ctx, PONKO_UI_SCREEN, "shop.buy", &found) == PONKO_OK && found == PONKO_UI_NONE);
+}
 static void retained_ui(void) {
     PonkoGame* game = ponko_game_new("c ui", 1, 1); CHECK(game);
     PonkoWorld* w = NULL;
     CHECK(ponko_game_run_headless(game, 0, ui_setup, NULL, &w) == PONKO_OK);
+    CHECK(ponko_world_free(w) == PONKO_OK);
+    game = ponko_game_new("c ui presets", 1, 1); CHECK(game);
+    CHECK(ponko_game_run_headless(game, 0, ui_presets_setup, NULL, &w) == PONKO_OK);
     CHECK(ponko_world_free(w) == PONKO_OK);
 }
 /* Ribbon and line defaults, and a decal cut from a floor. */

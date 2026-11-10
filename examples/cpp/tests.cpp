@@ -1811,6 +1811,61 @@ static void ui_panels() {
     });
 }
 
+// Layout presets, the theme, titles, names and take_click.
+static void retained_ui_presets() {
+    ponko::game("retained ui presets", 1, 1).run_headless(0, [&](ponko::ctx& ctx) {
+        namespace u = ponko::ui;
+        auto ui = ctx.ui_retained();
+        const ponko::vec2 window{800, 600};
+        auto root = ui.add_panel(u::none, u::fill().padding(10).gap(5));
+        auto title = ui.add_title(root, "Shop", u::row(40));
+        auto bar = ui.add_panel(root, u::row(50).gap(10));
+        auto side = ui.add_panel(bar, u::column(120));
+        auto buy = ui.add_button(bar, "Buy", u::fixed(100, 30));
+        auto map = ui.add_panel(root, u::anchored(0.75f, 0, 0.25f, 0.25f));
+        ui.push_screen(root);
+        auto dialog = ui.add_panel(u::none, u::centered(200, 100).top(40));
+        ui.push_screen(dialog, true);
+        ui.layout_for(window);
+        CHECK(ui.rect(title).min.y == 10 && ui.rect(title).max.x == 790);
+        CHECK(ui.rect(bar).min.y == 55 && ui.rect(side).max.x == 130 && ui.rect(side).max.y == 105);
+        CHECK(ui.rect(buy).min.x == 140 && ui.rect(buy).max.x == 240);
+        CHECK(ui.rect(map).min.x == 600 && ui.rect(map).max.y == 150);
+        CHECK(ui.rect(dialog).min.x == 300 && ui.rect(dialog).min.y == 40);
+        CHECK(ui.pop_screen() == dialog);
+
+        // One theme for the tree and the immediate widgets.
+        auto theme = ui.theme();
+        CHECK(theme.title_size > theme.text_size && ui.resolved_paint(title).font_size == theme.title_size);
+        theme.accent = {0, 1, 0, 1};
+        theme.title = {1, 1, 0, 1};
+        theme.title_size = 30;
+        ui.set_theme(theme);
+        CHECK(ui.theme().title_size == 30 && ui.resolved_paint(title).font_size == 30);
+        CHECK(ui.resolved_paint(buy).border.g == 1 && ctx.ui_style().accent.g == 1);
+        theme.border_width = -1;
+        throws([&] { ui.set_theme(theme); });
+
+        // Names instead of a list of ids.
+        ui.set_name(buy, "shop.buy");
+        CHECK(ui.find("shop.buy") == buy && ui.name(buy) == "shop.buy" && !ui.find("shop.sell"));
+        ui.set_name(side, "shop.buy");  // moves the name
+        CHECK(ui.find("shop.buy") == side && ui.name(buy).empty());
+
+        // take_click: the last click's node, once.
+        auto input = u::default_input();
+        input.pointer = {190, 70};
+        input.pressed = input.held = true;
+        ui.frame(window, input);
+        input.pressed = input.held = false;
+        input.released = true;
+        ui.frame(window, input);
+        CHECK(ui.take_click() == buy && !ui.take_click());
+        ui.remove(root);
+        CHECK(!ui.find("shop.buy"));
+    });
+}
+
 static void retained_ui() {
     ponko::game("retained ui", 1, 1).run_headless(0, [&](ponko::ctx& ctx) {
         auto ui = ctx.ui_retained();
@@ -2384,6 +2439,7 @@ int main() {
     contacts3d();
     ribbons_and_decals();
     retained_ui();
+    retained_ui_presets();
     ui_panels();
     events();
     profiling();
