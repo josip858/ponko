@@ -103,7 +103,11 @@ pub struct RenderStats {
 
 /// Bytes the renderer uploaded to the GPU, by kind, and the buffers it
 /// created, over one frame: [`RenderStats::uploads`].
+///
+/// `#[non_exhaustive]`: new counts can arrive in a minor release. Read the
+/// fields; to make one (in a test), start from `GpuUploads::default()`.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct GpuUploads {
     /// 3D models' per-frame records (transforms and colors), for the
     /// camera, target cameras and probe views.

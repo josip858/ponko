@@ -202,21 +202,21 @@ fn headless_runs_upload_nothing_to_the_gpu() {
 
 #[test]
 fn gpu_upload_counts_mirror_the_rust_ones_field_for_field() {
-    let rust = ponko::GpuUploads {
-        instances: 1,
-        sprites: 2,
-        static_batches: 3,
-        uniforms: 4,
-        lights: 5,
-        materials: 6,
-        skins: 7,
-        meshes: 8,
-        textures: 9,
-        other: 10,
-        buffers_created: 11,
-        reallocations: 12,
-        buffer_bytes_created: 13,
-    };
+    // `GpuUploads` is `#[non_exhaustive]`: set every field there is now.
+    let mut rust = ponko::GpuUploads::default();
+    rust.instances = 1;
+    rust.sprites = 2;
+    rust.static_batches = 3;
+    rust.uniforms = 4;
+    rust.lights = 5;
+    rust.materials = 6;
+    rust.skins = 7;
+    rust.meshes = 8;
+    rust.textures = 9;
+    rust.other = 10;
+    rust.buffers_created = 11;
+    rust.reallocations = 12;
+    rust.buffer_bytes_created = 13;
     let c = CrabbyGpuUploads::from(rust);
     assert_eq!(c.bytes, rust.bytes());
     assert_eq!(

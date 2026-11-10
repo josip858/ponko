@@ -194,6 +194,13 @@ impl Particles {
                 buffer.write(queue, 0, data);
             }
         }
+        // Past the most the device holds (reported), nothing is drawn.
+        let fits = |buffer: &Synced, size: usize| (buffer.fits() / size) as u32;
+        let instances = fits(&self.instances, size_of::<ParticleInstance>());
+        clip(&mut self.runs, instances, |r| (&mut r.first, &mut r.count));
+        let strips = fits(&self.strip_vertices, size_of::<StripVertex>());
+        clip(&mut self.strip_runs, strips, |r| (&mut r.first, &mut r.count));
+        self.text_count = self.text_count.min(fits(&self.text_vertices, size_of::<TextVertex>()));
         let camera = Camera {
             view_proj: view_proj.to_cols_array_2d(),
             right: frame.right,
@@ -278,6 +285,16 @@ impl Particles {
         }
     }
 }
+/// Shortens `runs` (each `first` and `count` of items) to the first `fits`
+/// items.
+fn clip<R>(runs: &mut Vec<R>, fits: u32, range: impl Fn(&mut R) -> (&mut u32, &mut u32)) {
+    runs.retain_mut(|r| {
+        let (first, count) = range(r);
+        *count = (*count).min(fits.saturating_sub(*first));
+        *count > 0
+    });
+}
+
 /// A vertex buffer for `capacity` `T`s, written one changed `T` at a time
 /// (with up to four unchanged ones between two changed ones along, and in
 /// at most [`MAX_WRITES`] writes a frame).

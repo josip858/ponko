@@ -99,19 +99,56 @@ fn created(size: u64) {
 /// Whether a buffer holding `capacity` items must be replaced to hold
 /// `needed`; if so, sets `capacity` to the size to make it (`needed`
 /// rounded up to a power of two, so a buffer that keeps growing is
-/// replaced only a logarithmic number of times) and counts a
-/// reallocation. Capacities never shrink.
+/// replaced only a logarithmic number of times, but never past `most`,
+/// the most the device's buffers hold) and counts a reallocation.
+/// Capacities never shrink.
 ///
 /// The caller then makes the new buffer, and everything that refers to the
-/// old one (bind groups, a [`Mirror`]) anew: the old one is dropped.
-#[cfg_attr(not(feature = "3d"), allow(dead_code))]
-pub(crate) fn outgrown(capacity: &mut usize, needed: usize) -> bool {
+/// old one (bind groups, a [`Mirror`]) anew: the old one is dropped. When
+/// `needed` is more than `most`, `capacity` ends below it: the caller
+/// draws only what fits, and says so (see [`too_big`]).
+pub(crate) fn outgrown(capacity: &mut usize, needed: usize, most: usize) -> bool {
     if needed <= *capacity {
         return false;
     }
-    *capacity = needed.next_power_of_two();
+    let grown = needed.next_power_of_two().min(most);
+    if grown <= *capacity {
+        return false;
+    }
+    *capacity = grown;
     reallocated();
     true
+}
+
+/// The most bytes a buffer of `usage` can hold on `device`, a multiple of
+/// 4: storage buffers are bound whole, so also no more than one binding.
+pub(crate) fn most_bytes(device: &wgpu::Device, usage: wgpu::BufferUsages) -> usize {
+    let limits = device.limits();
+    let mut most = limits.max_buffer_size;
+    if usage.contains(wgpu::BufferUsages::STORAGE) {
+        most = most.min(limits.max_storage_buffer_binding_size);
+    }
+    usize::try_from(most).unwrap_or(usize::MAX) / 4 * 4
+}
+
+/// Reports (to stderr) that `what` needed `needed` bytes, more than the
+/// `most` this device's buffers hold, and what is drawn instead (`then`).
+/// The caller reports once until it fits again, not every frame.
+pub(crate) fn too_big(what: &str, needed: usize, most: usize, then: &str) {
+    #[cfg(test)]
+    TOO_BIG.with(|c| c.set(c.get() + 1));
+    eprintln!("ponko: {what} need {needed} bytes, more than this GPU's buffers hold ({most}); {then}");
+}
+
+#[cfg(test)]
+thread_local! {
+    static TOO_BIG: Cell<u32> = const { Cell::new(0) };
+}
+
+/// The [`too_big`] reports since the last call on this thread.
+#[cfg(test)]
+pub(crate) fn take_too_big() -> u32 {
+    TOO_BIG.with(|c| c.replace(0))
 }
 
 /// Counts a buffer or texture replaced by a bigger one (see [`outgrown`]).
@@ -384,6 +421,10 @@ pub(crate) struct Synced {
     page: usize,
     bridge: usize,
     max_writes: usize,
+    /// The most bytes the device lets it hold (see [`most_bytes`]).
+    most: usize,
+    /// More was asked for than `most`: reported, not yet fitting again.
+    full: bool,
 }
 
 #[cfg_attr(not(feature = "3d"), allow(dead_code))]
@@ -400,7 +441,8 @@ impl Synced {
         kind: Upload,
         (page, bridge, max_writes): (usize, usize, usize),
     ) -> Self {
-        let capacity = bytes.max(4).next_multiple_of(4);
+        let most = most_bytes(device, usage);
+        let capacity = bytes.max(4).next_multiple_of(4).min(most);
         Self {
             buffer: Self::make(device, label, usage, capacity),
             mirror: Mirror::default(),
@@ -411,6 +453,8 @@ impl Synced {
             page,
             bridge,
             max_writes,
+            most,
+            full: false,
         }
     }
 
@@ -429,23 +473,35 @@ impl Synced {
         &self.buffer
     }
 
-    /// Makes room for `bytes`. True when that took a new buffer: whatever
-    /// refers to the old one (bind groups) must be made again.
+    /// Makes room for `bytes`, or as many as the device allows (see
+    /// [`fits`](Self::fits); more is reported once). True when that took a
+    /// new buffer: whatever refers to the old one (bind groups) must be made
+    /// again.
     pub fn reserve(&mut self, device: &wgpu::Device, bytes: usize) -> bool {
-        if !outgrown(&mut self.capacity, bytes) {
-            return false;
+        let grew = outgrown(&mut self.capacity, bytes, self.most);
+        if grew {
+            self.buffer = Self::make(device, self.label, self.usage, self.capacity);
+            self.mirror.forget();
         }
-        self.buffer = Self::make(device, self.label, self.usage, self.capacity);
-        self.mirror.forget();
-        true
+        let full = bytes > self.capacity;
+        if full && !self.full {
+            too_big(self.label, bytes, self.most, "drawing only what fits");
+        }
+        self.full = full;
+        grew
+    }
+
+    /// How many bytes it holds: writes past them are dropped.
+    pub fn fits(&self) -> usize {
+        self.capacity
     }
 
     /// Brings bytes `offset..offset + data.len()` up to `data`, uploading
-    /// only the pages that changed, in at most its `max_writes` writes. They
-    /// must fit (see [`reserve`](Self::reserve)); `offset` and `data.len()`
-    /// are multiples of 4.
+    /// only the pages that changed, in at most its `max_writes` writes. What
+    /// doesn't fit (see [`reserve`](Self::reserve)) is dropped; `offset` and
+    /// `data.len()` are multiples of 4.
     pub fn write(&mut self, queue: &wgpu::Queue, offset: usize, data: &[u8]) {
-        debug_assert!(offset + data.len() <= self.capacity, "{} overflows", self.label);
+        let data = &data[..data.len().min(self.capacity.saturating_sub(offset))];
         let (buffer, uploads) = (&self.buffer, queue.uploading(self.kind));
         let paging = (self.page, self.bridge);
         self.mirror
@@ -582,6 +638,20 @@ mod tests {
         out.clear();
         m.sync_bridged(0, &third, 4, 8, |at, b| out.push((at, b.len())));
         assert!(out.is_empty(), "and what was bridged is known");
+    }
+
+    #[test]
+    fn buffers_grow_by_powers_of_two_up_to_the_device_limit() {
+        take();
+        let mut capacity = 16;
+        assert!(!outgrown(&mut capacity, 16, 1000), "it fits");
+        assert!(outgrown(&mut capacity, 17, 1000));
+        assert_eq!(capacity, 32);
+        assert!(outgrown(&mut capacity, 600, 1000), "not rounded past the limit");
+        assert_eq!(capacity, 1000);
+        assert!(!outgrown(&mut capacity, 5000, 1000), "nothing bigger to make");
+        assert_eq!(capacity, 1000);
+        assert_eq!(take().reallocations, 2);
     }
 
     #[test]

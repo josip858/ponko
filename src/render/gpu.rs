@@ -66,6 +66,9 @@ pub(crate) struct Renderer {
     instance_buffer: wgpu::Buffer,
     /// Capacity of `instance_buffer`, in sprites.
     instance_capacity: usize,
+    /// The last frame had more sprites than the device's largest buffer
+    /// holds (reported once): none were drawn.
+    too_many_sprites: bool,
     /// What `instance_buffer` holds: sprites that didn't change aren't
     /// uploaded again. Forgotten with the buffer it mirrors.
     sprite_mirror: traffic::Mirror,
@@ -593,6 +596,7 @@ impl Renderer {
             freed_textures: Default::default(),
             instance_buffer,
             instance_capacity: INITIAL_INSTANCE_CAPACITY,
+            too_many_sprites: false,
             sprite_mirror: traffic::Mirror::default(),
             timer,
             capabilities,
@@ -1391,10 +1395,24 @@ impl Renderer {
             self.stats.collect_ms = self.collect_ms;
         }
 
-        if traffic::outgrown(&mut self.instance_capacity, total) {
+        let size = size_of::<SpriteInstance>();
+        let most = traffic::most_bytes(&self.device, wgpu::BufferUsages::VERTEX) / size;
+        if traffic::outgrown(&mut self.instance_capacity, total, most) {
             self.instance_buffer = Self::create_instance_buffer(&self.device, self.instance_capacity);
             self.sprite_mirror.forget();
         }
+        // More sprites than the device's largest buffer holds: reported,
+        // and none drawn.
+        let too_many = total > self.instance_capacity;
+        if too_many && !self.too_many_sprites {
+            traffic::too_big("sprites", total * size, most * size, "no sprites are drawn");
+        }
+        self.too_many_sprites = too_many;
+        let (world, world_batches, ui, ui_batches, panels) = if too_many {
+            (&[][..], &[][..], &[][..], &[][..], Vec::new())
+        } else {
+            (world, world_batches, ui, ui_batches, panels)
+        };
         // Only the sprites that changed since the last frame are uploaded,
         // with the few unchanged ones between two of them, in at most
         // `MAX_WRITES` writes a list.

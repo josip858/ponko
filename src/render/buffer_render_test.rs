@@ -31,6 +31,11 @@ impl Rig {
         Self::with_compute(true)
     }
     fn with_compute(compute: bool) -> Option<Self> {
+        Self::with_limits(compute, |_| {})
+    }
+    /// A rig whose device has the limits `shrink` leaves (below what the
+    /// adapter has).
+    pub fn with_limits(compute: bool, shrink: impl FnOnce(&mut wgpu::Limits)) -> Option<Self> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
         let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default())) else {
             crate::render::render_test_support::no_gpu("no GPU adapter");
@@ -42,12 +47,12 @@ impl Rig {
         } else {
             wgpu::Limits::downlevel_webgl2_defaults()
         };
-        let Ok((device, queue)) = pollster::block_on(adapter.request_device(
-            &crate::render::render_test_support::forced(&wgpu::DeviceDescriptor {
-                required_limits: limits,
-                ..Default::default()
-            }),
-        )) else {
+        let mut descriptor = crate::render::render_test_support::forced(&wgpu::DeviceDescriptor {
+            required_limits: limits,
+            ..Default::default()
+        });
+        shrink(&mut descriptor.required_limits);
+        let Ok((device, queue)) = pollster::block_on(adapter.request_device(&descriptor)) else {
             crate::render::render_test_support::no_gpu("no GPU device");
             return None;
         };

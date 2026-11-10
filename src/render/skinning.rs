@@ -284,6 +284,11 @@ impl Skinning {
                 slot.group = None;
             }
         }
+        // Past the most the device holds (reported), skins stay at rest.
+        let fit = self.params.fits() / self.stride as usize;
+        for d in self.draws.iter_mut().skip(fit) {
+            d.1 = false;
+        }
         if self.slots.len() < skins.draws.len() {
             self.slots.resize_with(skins.draws.len(), || None);
         }

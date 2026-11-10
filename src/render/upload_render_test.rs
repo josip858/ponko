@@ -786,3 +786,64 @@ fn scattered_changes_take_a_bounded_number_of_writes() {
     // And the buffers hold what was meant.
     rig.check_mirrors();
 }
+
+#[test]
+fn buffers_stop_at_the_device_limit_and_report_what_does_not_fit() {
+    // A device whose buffers hold at most 256 KB: about 3,000 models'
+    // instances, or 5,000 particles.
+    let Some(mut rig) = Rig::with_limits(true, |l| {
+        l.max_buffer_size = 256 << 10;
+        l.max_storage_buffer_binding_size = 256 << 10;
+    }) else {
+        return;
+    };
+    let mesh = rig.mesh(
+        &MeshData::cube(0.4),
+        MaterialDesc {
+            color: Color::WHITE,
+            ..Default::default()
+        },
+    );
+    for x in 0..4 {
+        rig.ctx
+            .world
+            .spawn((Transform3D::at(vec3(x as f32 - 2.0, 0.0, 0.0)), Model::new(mesh)));
+    }
+    rig.ctx.camera3d.position = vec3(0.0, 4.0, 6.0);
+    rig.ctx.camera3d.look_at(Vec3::ZERO);
+    let few = rig.draw();
+    traffic::take_too_big();
+    // Far more models than fit, behind the camera's near ones: reported
+    // once, never past the device's limit, and the frame isn't drawn.
+    let crowd: Vec<Entity> = (0..80 * 80)
+        .map(|k| {
+            let at = vec3((k % 80) as f32 * 0.5 - 20.0, 0.0, -(k / 80) as f32 * 0.5 - 4.0);
+            rig.ctx.world.spawn((Transform3D::at(at), Model::new(mesh)))
+        })
+        .collect();
+    for _ in 0..3 {
+        rig.draw();
+    }
+    assert_eq!(traffic::take_too_big(), 1, "reported once");
+    for e in crowd {
+        rig.ctx.world.despawn(e);
+    }
+    // Back under the limit: drawn as before.
+    assert_eq!(rig.draw(), few);
+    // And particles past the limit: the ones that fit are drawn.
+    let at = Transform3D::at(vec3(0.0, 1.0, 0.0));
+    let mut e = ParticleEmitter3D::new(ParticleSettings3D {
+        rate: 0.0,
+        burst: 8000,
+        max_particles: 8000,
+        lifetime: (1e4, 1e4),
+        ..Default::default()
+    });
+    e.update(1.0 / 60.0, &at);
+    rig.ctx.world.spawn((at, e));
+    for _ in 0..3 {
+        rig.draw();
+    }
+    assert_eq!(traffic::take_too_big(), 1, "reported once");
+    rig.check_mirrors();
+}

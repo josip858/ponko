@@ -998,6 +998,9 @@ pub(crate) struct Renderer3D {
     instance_mirror: Mirror,
     /// Capacity of `instances`, in instances.
     capacity: usize,
+    /// This frame has more instances than the device's largest buffer
+    /// holds (reported once): it isn't drawn.
+    too_many: bool,
     targets: Option<Targets>,
     /// A 1x1 white texture, for materials without one.
     white: u32,
@@ -1848,6 +1851,7 @@ impl Renderer3D {
             meshes: Vec::new(),
             materials: Vec::new(),
             instances: Self::instance_buffer(device, capacity),
+            too_many: false,
             instance_mirror: Default::default(),
             frame_mirror: Mirror::default(),
             capacity,
@@ -3221,11 +3225,28 @@ impl Renderer3D {
             && frame.particles.instances.is_empty()
             && frame.particles.strips.runs.is_empty()
         {
+            self.too_many = false;
             return;
         }
-        if traffic::outgrown(&mut self.capacity, total) {
+        let record = size_of::<Instance3D>();
+        let most = traffic::most_bytes(device, wgpu::BufferUsages::VERTEX) / record;
+        if traffic::outgrown(&mut self.capacity, total, most) {
             self.instances = Self::instance_buffer(device, self.capacity);
             self.instance_mirror.forget();
+        }
+        let too_many = total > self.capacity;
+        if too_many && !self.too_many {
+            let then = "the 3D scene isn't drawn";
+            traffic::too_big(
+                "3d instances (models, every view's)",
+                total * record,
+                most * record,
+                then,
+            );
+        }
+        self.too_many = too_many;
+        if too_many {
+            return;
         }
         // Only the pages that changed since the last frame are uploaded:
         // models that stand still (and keep their place in the lists) cost
@@ -3254,8 +3275,11 @@ impl Renderer3D {
             // Bound when drawn: a new buffer needs no rebinding.
             let moved = bytemuck::cast_slice(moved);
             self.moved.reserve(device, moved.len());
-            self.moved.write(queue, 0, moved);
-            self.moved_runs.extend_from_slice(&frame.motion.runs);
+            // Past the most the device holds (reported), no motion is drawn.
+            if moved.len() <= self.moved.fits() {
+                self.moved.write(queue, 0, moved);
+                self.moved_runs.extend_from_slice(&frame.motion.runs);
+            }
         }
         let scaled = |c, k: f32| {
             let [r, g, b, _] = linear(c);
@@ -4099,7 +4123,7 @@ impl Renderer3D {
         textures: &[GpuTexture],
         timer: Option<&GpuTimer>,
     ) -> Vec<wgpu::CommandBuffer> {
-        let Some(targets) = &self.targets else {
+        let Some(targets) = self.targets.as_ref().filter(|_| !self.too_many) else {
             return Vec::new();
         };
         let time = |name| timer.and_then(|t| t.pass(name));
