@@ -1377,8 +1377,11 @@ impl Game {
     /// let y = world.query::<&Pos>().iter().next().unwrap().0;
     /// assert!((y - 90.0).abs() < 1e-3);
     /// ```
-    /// For larger programs, prefer [`setup`](Self::setup) and the returned
-    /// [`ConfiguredGame::run_headless`] without a closure.
+    ///
+    /// For a game with systems, put the startup code on the builder with
+    /// [`setup`](Self::setup) and call [`ConfiguredGame::run_headless`],
+    /// which takes no closure. This form remains for short tests, and for a
+    /// setup that borrows a local variable, which a stored callback can't.
     pub fn run_headless<S, U>(self, ticks: u64, setup: S) -> World
     where
         S: FnOnce(&mut Ctx) -> U,
@@ -1524,8 +1527,9 @@ impl Game {
     /// are your game state; no structs or traits required.
     ///
     /// Each frame runs: simulation systems (`ctx.fixed_steps()` times), then
-    /// frame systems, then the closure from `setup`, then the built-in
-    /// [`draw_sprites`], then rendering.
+    /// frame systems, then the closure from `setup`, then the
+    /// [`Phase::Animate`], [`Phase::Late`] and [`Phase::Draw`] systems (the
+    /// built-in [`draw_sprites`] is one of the last), then rendering.
     ///
     /// ```no_run
     /// # use ponko::*;
@@ -1540,12 +1544,15 @@ impl Game {
     /// });
     /// ```
     ///
+    /// This form is for small programs. For a game with systems, put the
+    /// startup code on the builder with [`setup`](Self::setup) and call
+    /// [`ConfiguredGame::run`], which takes no closure: setup callbacks can
+    /// be chosen at run time and are ordered with [`Plugin`] setups.
+    ///
     /// # Panics
     /// If the operating system refuses to create the event loop or window,
     /// or no usable GPU is found, and always when the `window` feature is
     /// off.
-    /// For larger programs, prefer [`setup`](Self::setup) followed by
-    /// [`ConfiguredGame::run`] with no closure.
     pub fn run<S, U>(self, setup: S)
     where
         S: FnOnce(&mut Ctx) -> U,

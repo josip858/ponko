@@ -53,6 +53,10 @@ rebuild against the matching header when you update the engine.
   nothing it captures.
 - `run(setup)` opens the window; `run_headless(ticks, setup)` runs the
   simulation alone and returns the world (see [Headless runs](headless.md)).
+  Startup code can also go on the builder with `setup(fn)`, followed by
+  `run()` or `run_headless(ticks)` (see
+  [Setup on the builder](getting-started.md#setup-on-the-builder)); in C,
+  `ponko_game_setup`.
 - Errors become exceptions. An exception thrown by your system stops the game
   and comes out of `run()`; it never crosses into the engine.
 

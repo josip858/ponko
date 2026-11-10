@@ -185,6 +185,38 @@ ponko::game("Modules", 1280, 720)
 // ANCHOR_END: plugin_use
 }
 
+// ANCHOR: builder_setup
+[[maybe_unused]] static void builder_setup(bool with_enemies) {
+    ponko::game game("My Game", 800, 600);
+    game.sim_system([](ponko::ctx& ctx) {
+            ctx.world().each([&](ponko::transform2d& t) { t.position.x += 60 * ctx.dt(); });
+        }, "movement")
+        .setup([](ponko::ctx& ctx) {
+            auto crab = ctx.load_texture("crab.png");
+            ctx.world().spawn(ponko::transform_at({400, 300}), ponko::sprite_of(crab, ponko::colors::white, 0));
+        });
+    // Startup chosen at run time: each call adds one more callback.
+    if (with_enemies)
+        game.setup([](ponko::ctx& ctx) { ctx.world().spawn(ponko::transform_at({100, 100})); });
+    game.run();   // or run_headless(ticks)
+}
+// ANCHOR_END: builder_setup
+
+// The same shape without a window: setup callbacks run in the order added.
+static void builder_setup_runs_headless() {
+    std::string order;
+    ponko::game game("My Game", 1, 1);
+    game.sim_system([](ponko::ctx& ctx) {
+            ctx.world().each([&](ponko::transform2d& t) { t.position.x += 60 * ctx.dt(); });
+        }, "movement")
+        .setup([&](ponko::ctx& ctx) { order += 'a'; ctx.world().spawn(ponko::transform_at({400, 300})); });
+    game.setup([&](ponko::ctx& ctx) { order += 'b'; ctx.world().spawn(ponko::transform_at({100, 100})); });
+    auto world = game.fixed_hz(60).run_headless(60);
+    float sum = 0;
+    world.each([&](const ponko::transform2d& t) { sum += t.position.x; });
+    if (order != "ab" || world.size() != 2 || std::fabs(sum - 620.0f) > 1e-2f) { std::fprintf(stderr, "setup guide\n"); std::abort(); }
+}
+
 // The plugin above, run without a window: both entities walk.
 static void plugins_run_headless() {
     auto world = ponko::game("Modules", 1, 1).fixed_hz(60)
@@ -2358,6 +2390,7 @@ void stream_out(ponko::ctx& ctx) {
 // ANCHOR_END: handles
 
 int main() {
+    builder_setup_runs_headless();
     plugins_run_headless();
     steering_stays_within_budget();
     navigation_guide();

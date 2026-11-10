@@ -43,5 +43,5 @@ fn terminal(ctx: &mut Ctx) {
 // ANCHOR_END: panel_events
 
 fn main() {
-    Game::new("UI panel", 960, 640).system(terminal).run(setup);
+    Game::new("UI panel", 960, 640).system(terminal).setup(setup).run();
 }

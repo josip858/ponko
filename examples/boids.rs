@@ -120,6 +120,7 @@ fn main() {
         let mut start = Instant::now();
         let world = Game::new("boids", 1, 1)
             .sim_system(flocking(bounds))
+            // The two-argument form may borrow a local, here the timer.
             .run_headless(ticks, |ctx| {
                 spawn_boids(ctx, n, bounds);
                 start = Instant::now();
@@ -138,21 +139,25 @@ fn main() {
     Game::new("Ponko: boids", 1280, 720)
         .sim_system(flocking(bounds))
         .system(controls)
-        .run(move |ctx| {
-            spawn_boids(ctx, n, bounds);
-            let mut next = 1.0;
-            move |ctx: &mut Ctx| {
-                if ctx.time() >= next {
-                    next += 1.0;
-                    let sim_ms: f32 = ctx.system_timings().iter().filter(|t| t.sim).map(|t| t.avg_ms).sum();
-                    println!(
-                        "boids: {}  fps: {:.0}  sim: {:.2} ms/frame  tick: {}",
-                        ctx.world.len(),
-                        ctx.fps(),
-                        sim_ms,
-                        ctx.sim_tick()
-                    );
-                }
-            }
-        });
+        .system(report())
+        .setup(move |ctx| spawn_boids(ctx, n, bounds))
+        .run();
+}
+
+/// Frame system with its own state: prints the numbers once a second.
+fn report() -> impl FnMut(&mut Ctx) {
+    let mut next = 1.0;
+    move |ctx: &mut Ctx| {
+        if ctx.time() >= next {
+            next += 1.0;
+            let sim_ms: f32 = ctx.system_timings().iter().filter(|t| t.sim).map(|t| t.avg_ms).sum();
+            println!(
+                "boids: {}  fps: {:.0}  sim: {:.2} ms/frame  tick: {}",
+                ctx.world.len(),
+                ctx.fps(),
+                sim_ms,
+                ctx.sim_tick()
+            );
+        }
+    }
 }

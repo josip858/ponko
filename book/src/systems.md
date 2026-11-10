@@ -24,7 +24,8 @@ Game::new("Sim", 1280, 720)
     .sim_system(steer)      // fixed rate: game logic
     .sim_system(movement)
     .system(camera)         // once per frame: input, camera, UI
-    .run(|ctx| { /* spawn things */ });
+    .setup(|ctx| { /* spawn things */ })
+    .run();
 ```
 
 </div>
@@ -81,7 +82,8 @@ Game::new("Drive", 1280, 720)
     .add(Phase::BeforePhysics, steer) // the step below sees this tick's input
     .physics3d(vec3(0.0, -9.81, 0.0))
     .sim_system(score)                // sees the result of the step
-    .run(|ctx| { /* spawn things */ });
+    .setup(|ctx| { /* spawn things */ })
+    .run();
 ```
 
 Code written when the step ran where `.physics()` was called, with
@@ -255,7 +257,7 @@ What to rely on:
   two systems in the same phase.
 - **`setup` runs once**, when the game starts and the window and the
   renderer exist (headless: before the first tick). Plugin setups and
-  [`Game::setup`](getting-started.md) callbacks run in the order they were
+  [`Game::setup`](getting-started.md#setup-on-the-builder) callbacks run in the order they were
   added; the setup passed to `run` comes last.
 - **Commands recorded in any setup** are applied before the first system
   runs, so one plugin's systems can count on what another's setup spawned.

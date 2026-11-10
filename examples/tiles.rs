@@ -158,5 +158,6 @@ fn main() {
         .system(wander)
         .system(paint)
         .system(hud)
-        .run(move |ctx| setup(ctx, side));
+        .setup(move |ctx| setup(ctx, side))
+        .run();
 }

@@ -114,7 +114,7 @@ fn main() {
     } else {
         game.sim_system(spin)
     };
-    game.run(move |ctx| {
+    game.setup(move |ctx| {
         ctx.clear(Color::hex(0x9CC4E4)); // sky
         ctx.camera3d.far = 2000.0;
         ctx.lighting.sun_direction = vec3(-0.8, -0.6, -0.4); // late afternoon: long shadows
@@ -178,5 +178,6 @@ fn main() {
                 Spin(rng.range(-2.0, 2.0)),
             ));
         }
-    });
+    })
+    .run();
 }

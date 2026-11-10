@@ -1,6 +1,8 @@
 # Headless runs and testing
 
-`Game::run_headless(ticks, setup)` (C++: `ponko::game::run_headless`) runs the simulation with no window and no
+`run_headless(ticks)` after [`Game::setup`](getting-started.md#setup-on-the-builder),
+or `Game::run_headless(ticks, setup)` in one call (C++: `ponko::game::run_headless`,
+both forms), runs the simulation with no window and no
 GPU, as fast as the CPU allows, then hands you the `World`.
 
 Use it for:
@@ -27,9 +29,10 @@ fn fall(ctx: &mut Ctx) {
 fn things_fall_ten_units_per_second() {
     let mut world = Game::new("test", 800, 600)
         .sim_system(fall)
-        .run_headless(60, |ctx| {
+        .setup(|ctx| {
             ctx.world.spawn((Pos(100.0),));
-        });
+        })
+        .run_headless(60);
     let y = world.query::<&Pos>().iter().next().unwrap().0;
     assert!((y - 90.0).abs() < 1e-3);
 }
@@ -47,7 +50,9 @@ fn things_fall_ten_units_per_second() {
 
 ## What runs
 
-- `setup` runs once. If it returns a frame closure, that closure is dropped.
+- The setup callbacks run once, in the order they were added, also when
+  `ticks` is 0. If the `setup` passed to `run_headless(ticks, setup)`
+  returns a frame closure, that closure is dropped.
 - Each tick runs every **sim system** once. Frame systems and drawing don't
   run, because there are no frames.
 - Pause and sim speed are ignored; `ctx.quit()` stops early.

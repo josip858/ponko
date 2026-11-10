@@ -30,55 +30,67 @@ fn main() {
     Game::new("Ponko: web smoke", 800, 600)
         .fixed_hz(60)
         .sim_system(move |_ctx| sim_ticks.set(sim_ticks.get() + 1))
-        .run(move |ctx| {
-            let case = smoke_case();
-            if case == "panic" {
+        .system(frame(ticks))
+        .setup(|ctx| {
+            if smoke_case() == "panic" {
                 panic!("web_smoke: panicking during setup, as ?smoke_case=panic asked");
             }
             // The one fetched asset; a missing file panics with its name.
             let crab = ctx.load_texture("crab.png");
-            let mut clicks = 0u32;
-            let mut frames = 0u64;
-            move |ctx: &mut Ctx| {
-                frames += 1;
-                if case == "stall" && ticks.get() >= STALL_AFTER && !ctx.is_paused() {
-                    ctx.pause();
-                }
-                if ctx.mouse_pressed(MouseButton::Left) {
-                    clicks += 1;
-                }
-                // The background changes with each click, so a click shows.
-                ctx.clear(if clicks.is_multiple_of(2) {
-                    Color::hex(0x1E2A38)
-                } else {
-                    Color::hex(0x2E4A28)
-                });
-                let size = ctx.window_size();
-                let t = ticks.get() as f32 / 60.0;
-                for i in 0..8 {
-                    let angle = t + i as f32 * std::f32::consts::TAU / 8.0;
-                    ctx.draw_ex(
-                        &crab,
-                        size / 2.0 + Vec2::from_angle(angle) * size.min_element() * 0.3,
-                        DrawParams {
-                            scale: Vec2::splat(3.0),
-                            ..Default::default()
-                        },
-                    );
-                }
-                let state = format!(
-                    r#"{{"ticks":{},"frames":{},"asset":[{},{}],"clicks":{},"size":[{},{}]}}"#,
-                    ticks.get(),
-                    frames,
-                    crab.width(),
-                    crab.height(),
-                    clicks,
-                    size.x,
-                    size.y
-                );
-                report(&state, frames);
-            }
+            ctx.world.insert_resource(Crab(crab));
+        })
+        .run();
+}
+
+/// The texture loaded at startup.
+struct Crab(Texture);
+
+/// The frame system, with its own state: draws, counts clicks and frames,
+/// and publishes the state.
+fn frame(ticks: Rc<Cell<u64>>) -> impl FnMut(&mut Ctx) {
+    let case = smoke_case();
+    let mut clicks = 0u32;
+    let mut frames = 0u64;
+    move |ctx: &mut Ctx| {
+        let crab = ctx.world.resource::<Crab>().0;
+        frames += 1;
+        if case == "stall" && ticks.get() >= STALL_AFTER && !ctx.is_paused() {
+            ctx.pause();
+        }
+        if ctx.mouse_pressed(MouseButton::Left) {
+            clicks += 1;
+        }
+        // The background changes with each click, so a click shows.
+        ctx.clear(if clicks.is_multiple_of(2) {
+            Color::hex(0x1E2A38)
+        } else {
+            Color::hex(0x2E4A28)
         });
+        let size = ctx.window_size();
+        let t = ticks.get() as f32 / 60.0;
+        for i in 0..8 {
+            let angle = t + i as f32 * std::f32::consts::TAU / 8.0;
+            ctx.draw_ex(
+                &crab,
+                size / 2.0 + Vec2::from_angle(angle) * size.min_element() * 0.3,
+                DrawParams {
+                    scale: Vec2::splat(3.0),
+                    ..Default::default()
+                },
+            );
+        }
+        let state = format!(
+            r#"{{"ticks":{},"frames":{},"asset":[{},{}],"clicks":{},"size":[{},{}]}}"#,
+            ticks.get(),
+            frames,
+            crab.width(),
+            crab.height(),
+            clicks,
+            size.x,
+            size.y
+        );
+        report(&state, frames);
+    }
 }
 
 /// The page's `smoke_case` query parameter (web), or `""`.
