@@ -258,6 +258,15 @@ const MAX_OR: usize = 4;
 const MAX_OR_TERMS: usize = 16;
 
 impl Filters {
+    /// Whether an `Added` or `Changed` filter here reads the stamps of
+    /// component `id`.
+    pub(crate) fn reads_stamps_of(&self, id: ComponentId) -> bool {
+        let ticks = self.with_added | self.with_changed;
+        let any_ticks = self.any_added | self.any_changed;
+        (0..self.n_with as usize).any(|i| ticks >> i & 1 != 0 && self.with[i] == id)
+            || (0..self.n_terms as usize).any(|i| any_ticks >> i & 1 != 0 && self.any[i] == id)
+    }
+
     /// Always inlined: the query loops rely on it to specialize their
     /// archetype loop for the filters in use.
     #[inline(always)]
@@ -599,8 +608,8 @@ filter_tuple!(A, B, C, D, E, F, G, H);
 /// ```
 #[must_use = "a query does nothing until iterated"]
 pub struct Query<'w, Q: QueryData> {
-    world: &'w mut World,
-    ids: Q::Ids,
+    pub(crate) world: &'w mut World,
+    pub(crate) ids: Q::Ids,
     filters: Filters,
     cached: bool,
     /// What `Added`/`Changed` filters compare against, if not the world's
@@ -622,6 +631,11 @@ impl<'w, Q: QueryData> Query<'w, Q> {
             cached: false,
             since: None,
         }
+    }
+
+    /// The query's filters.
+    pub(crate) fn filters(&self) -> Filters {
+        self.filters
     }
 
     /// The world's current tick and this query's `since`, for change stamps.

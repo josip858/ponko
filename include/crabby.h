@@ -56,6 +56,30 @@
 
 #define CRABBY_NAV_WALL 0
 
+#define CRABBY_SYSTEM_PHYSICS 1
+
+#define CRABBY_SYSTEM_PHYSICS3D 2
+
+#define CRABBY_SYSTEM_INTERPOLATE_PHYSICS3D 3
+
+#define CRABBY_SYSTEM_REBUILD_SPATIAL_GRID 4
+
+#define CRABBY_SYSTEM_ANIMATE_SPRITES 5
+
+#define CRABBY_SYSTEM_DRAW_TILEMAPS 6
+
+#define CRABBY_SYSTEM_DRAW_SPRITES 7
+
+#define CRABBY_SYSTEM_FOLLOW_ATTACHMENTS 8
+
+#define CRABBY_SYSTEM_STEP_NAVMESH3D 9
+
+#define CRABBY_SYSTEM_UPDATE_ANIMATORS 10
+
+#define CRABBY_SYSTEM_UPDATE_PARTICLES 11
+
+#define CRABBY_SYSTEM_UPDATE_AUDIO3D 12
+
 #define CRABBY_HANDLE_NONE UINT32_MAX
 
 #define CRABBY_MAX_GAMEPADS 8
@@ -794,6 +818,8 @@ typedef struct CrabbyFlowView {
   struct CrabbyVec2 origin;
   float cell_size;
 } CrabbyFlowView;
+
+typedef void (*CrabbyPluginBuildFn)(struct CrabbyGame *game, void *user);
 
 typedef struct CrabbyGridItem {
   struct CrabbyEntity entity;
@@ -1662,6 +1688,21 @@ typedef struct CrabbyUiEvent {
   uint64_t id;
 } CrabbyUiEvent;
 
+typedef struct CrabbyUiTheme {
+  struct CrabbyColor panel;
+  struct CrabbyColor control;
+  struct CrabbyColor hover;
+  struct CrabbyColor pressed;
+  struct CrabbyColor disabled;
+  struct CrabbyColor accent;
+  struct CrabbyColor text;
+  struct CrabbyColor title;
+  struct CrabbyFont font;
+  float text_size;
+  float title_size;
+  float border_width;
+} CrabbyUiTheme;
+
 typedef struct CrabbyFrictionCurve {
   float extremum_slip;
   float extremum_value;
@@ -2441,6 +2482,23 @@ enum CrabbyStatus crabby_game_add_system(struct CrabbyGame *game,
                                          uint32_t every,
                                          CrabbySystemFn system_fn,
                                          void *user);
+
+enum CrabbyStatus crabby_game_add_system_id(struct CrabbyGame *game,
+                                            uint32_t phase,
+                                            const char *name,
+                                            uint32_t every,
+                                            CrabbySystemFn system_fn,
+                                            void *user,
+                                            uint32_t *out_id);
+
+enum CrabbyStatus crabby_game_remove(struct CrabbyGame *game, uint32_t system_id);
+
+enum CrabbyStatus crabby_game_setup(struct CrabbyGame *game, CrabbySystemFn setup, void *user);
+
+enum CrabbyStatus crabby_game_plugin(struct CrabbyGame *game,
+                                     CrabbyPluginBuildFn build_fn,
+                                     CrabbySystemFn setup,
+                                     void *user);
 
 enum CrabbyStatus crabby_game_late_system(struct CrabbyGame *game,
                                           const char *name,
@@ -3730,6 +3788,10 @@ enum CrabbyStatus crabby_ctx_create_mesh(struct CrabbyCtx *ctx,
                                          struct CrabbyMaterial material,
                                          struct CrabbyMesh *out_mesh);
 
+enum CrabbyStatus crabby_ctx_create_plain_mesh(struct CrabbyCtx *ctx,
+                                               const struct CrabbyMeshData *data,
+                                               struct CrabbyMesh *out_mesh);
+
 enum CrabbyStatus crabby_ctx_create_terrain_tile(struct CrabbyCtx *ctx,
                                                  const float *heights,
                                                  size_t count,
@@ -3821,6 +3883,29 @@ enum CrabbyStatus crabby_ctx_set_shadow_mesh(struct CrabbyCtx *ctx,
                                              uint64_t entity,
                                              struct CrabbyMesh mesh,
                                              bool casts);
+
+enum CrabbyStatus crabby_ctx_set_model_material(struct CrabbyCtx *ctx,
+                                                uint64_t entity,
+                                                struct CrabbyMaterial material,
+                                                bool enabled);
+
+enum CrabbyStatus crabby_ctx_model_material(struct CrabbyCtx *ctx,
+                                            uint64_t entity,
+                                            struct CrabbyMaterial *out_material,
+                                            bool *out_has);
+
+enum CrabbyStatus crabby_ctx_set_model_part_materials(struct CrabbyCtx *ctx,
+                                                      uint64_t entity,
+                                                      const uint32_t *parts,
+                                                      const struct CrabbyMaterial *materials,
+                                                      size_t count);
+
+enum CrabbyStatus crabby_ctx_model_part_materials(struct CrabbyCtx *ctx,
+                                                  uint64_t entity,
+                                                  uint32_t *out_parts,
+                                                  struct CrabbyMaterial *out_materials,
+                                                  size_t capacity,
+                                                  size_t *out_count);
 
 enum CrabbyStatus crabby_ctx_set_mesh_shadows(struct CrabbyCtx *ctx,
                                               struct CrabbyMesh mesh,
@@ -4202,6 +4287,61 @@ enum CrabbyStatus crabby_ctx_ui_frame(struct CrabbyCtx *ctx,
                                       const struct CrabbyUiInput *input);
 
 enum CrabbyStatus crabby_ctx_ui_insert_text(struct CrabbyCtx *ctx, const char *text);
+
+struct CrabbyUiLayout crabby_ui_layout_row(float height);
+
+struct CrabbyUiLayout crabby_ui_layout_column(float width);
+
+struct CrabbyUiLayout crabby_ui_layout_fill(void);
+
+struct CrabbyUiLayout crabby_ui_layout_fixed(float width, float height);
+
+struct CrabbyUiLayout crabby_ui_layout_anchored(float x, float y, float width, float height);
+
+struct CrabbyUiLayout crabby_ui_layout_centered(float width, float height);
+
+struct CrabbyUiTheme crabby_ui_theme_default(void);
+
+enum CrabbyStatus crabby_ctx_ui_theme(struct CrabbyCtx *ctx,
+                                      uint64_t target,
+                                      struct CrabbyUiTheme *out_theme);
+
+enum CrabbyStatus crabby_ctx_ui_set_theme(struct CrabbyCtx *ctx,
+                                          uint64_t target,
+                                          const struct CrabbyUiTheme *theme);
+
+enum CrabbyStatus crabby_ctx_ui_paint(struct CrabbyCtx *ctx,
+                                      uint64_t target,
+                                      uint64_t id,
+                                      struct CrabbyUiPaint *out_paint);
+
+enum CrabbyStatus crabby_ctx_ui_add_title(struct CrabbyCtx *ctx,
+                                          uint64_t target,
+                                          uint64_t parent,
+                                          const char *text,
+                                          const struct CrabbyUiLayout *layout,
+                                          uint64_t *out_id);
+
+enum CrabbyStatus crabby_ctx_ui_set_name(struct CrabbyCtx *ctx,
+                                         uint64_t target,
+                                         uint64_t id,
+                                         const char *name);
+
+enum CrabbyStatus crabby_ctx_ui_find(struct CrabbyCtx *ctx,
+                                     uint64_t target,
+                                     const char *name,
+                                     uint64_t *out_id);
+
+enum CrabbyStatus crabby_ctx_ui_name(struct CrabbyCtx *ctx,
+                                     uint64_t target,
+                                     uint64_t id,
+                                     char *buffer,
+                                     size_t capacity,
+                                     size_t *out_len);
+
+enum CrabbyStatus crabby_ctx_ui_take_click(struct CrabbyCtx *ctx,
+                                           uint64_t target,
+                                           uint64_t *out_id);
 
 struct CrabbyFrictionCurve crabby_friction_curve_forward(void);
 

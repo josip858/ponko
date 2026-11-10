@@ -115,7 +115,7 @@ pub(crate) struct Renderer {
 }
 
 /// The sprite pipeline, drawing into `format`.
-fn sprite_pipeline(
+pub(super) fn sprite_pipeline(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
@@ -161,14 +161,14 @@ fn sprite_pipeline(
 }
 
 /// What one sprite pass draws with.
-struct SpritePass<'a> {
-    viewport: [u32; 2],
-    scale: f32,
-    pipeline: &'a wgpu::RenderPipeline,
-    instances: &'a wgpu::Buffer,
-    textures: &'a [GpuTexture],
+pub(super) struct SpritePass<'a> {
+    pub(super) viewport: [u32; 2],
+    pub(super) scale: f32,
+    pub(super) pipeline: &'a wgpu::RenderPipeline,
+    pub(super) instances: &'a wgpu::Buffer,
+    pub(super) textures: &'a [GpuTexture],
     /// Camera, batches, and where the layer's instances start in `instances`.
-    layers: &'a [(&'a wgpu::BindGroup, &'a [batch::Batch], u32)],
+    pub(super) layers: &'a [(&'a wgpu::BindGroup, &'a [batch::Batch], u32)],
 }
 
 /// An offscreen copy of one frame on its way back to the CPU.
@@ -1677,7 +1677,7 @@ impl Renderer {
         (buffer, bind_group)
     }
 
-    fn sprite_pass(
+    pub(super) fn sprite_pass(
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         clear: Option<Color>,

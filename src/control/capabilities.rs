@@ -117,11 +117,19 @@ fn subsystems(ctx: &Ctx) -> Value {
         }
     };
     #[cfg(feature = "physics")]
-    let physics = stepped(ctx, "physics", std::any::type_name_of_val(&crate::step_physics));
+    let physics = stepped(
+        ctx,
+        "physics",
+        std::any::type_name_of_val(&crate::systems::step_physics),
+    );
     #[cfg(not(feature = "physics"))]
     let physics = compiled_out("physics");
     #[cfg(feature = "physics3d")]
-    let physics3d = stepped(ctx, "physics3d", std::any::type_name_of_val(&crate::step_physics3d));
+    let physics3d = stepped(
+        ctx,
+        "physics3d",
+        std::any::type_name_of_val(&crate::systems::step_physics3d),
+    );
     #[cfg(not(feature = "physics3d"))]
     let physics3d = compiled_out("physics3d");
     let audio = if cfg!(feature = "audio") {
@@ -333,7 +341,7 @@ mod tests {
         assert_eq!(report(&ctx)["subsystems"]["physics"]["active"], false);
         ctx.perf
             .timings
-            .push(timing(std::any::type_name_of_val(&crate::step_physics)));
+            .push(timing(std::any::type_name_of_val(&crate::systems::step_physics)));
         assert_eq!(report(&ctx)["subsystems"]["physics"]["active"], true);
     }
 
