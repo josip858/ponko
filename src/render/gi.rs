@@ -363,7 +363,8 @@ impl Gi {
                 tile: [column as f32, row as f32, u.keep, 0.0],
             };
         }
-        self.uniform_mirror.upload(queue, Upload::Uniforms, &self.uniform, 0, bytemuck::bytes_of(&updates));
+        self.uniform_mirror
+            .upload(queue, Upload::Uniforms, &self.uniform, 0, bytemuck::bytes_of(&updates));
         remade
     }
 

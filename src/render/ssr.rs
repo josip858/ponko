@@ -256,7 +256,12 @@ impl Ssr {
     pub fn prepare(&mut self, queue: &wgpu::Queue, view_proj: Mat4, camera: Vec3, strength: f32, longest: f32) {
         let previous = self.previous.replace(view_proj);
         self.frame = self.frame.wrapping_add(1);
-        self.uniform_mirror.upload(queue, Upload::Uniforms, &self.uniform, 0, bytemuck::bytes_of(&Settings {
+        self.uniform_mirror.upload(
+            queue,
+            Upload::Uniforms,
+            &self.uniform,
+            0,
+            bytemuck::bytes_of(&Settings {
                 inverse: view_proj.inverse().to_cols_array_2d(),
                 projection: view_proj.to_cols_array_2d(),
                 previous: previous.unwrap_or(view_proj).to_cols_array_2d(),
@@ -267,7 +272,8 @@ impl Ssr {
                     (self.frame % 64) as f32,
                     0.0,
                 ],
-            }));
+            }),
+        );
     }
 
     /// Targets for frames of `size`: `depth` the prepass's, `lit` the image

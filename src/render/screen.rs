@@ -175,7 +175,12 @@ impl Ao {
         );
         let valid = self.signature == Some(signature);
         self.signature = Some(signature);
-        self.uniform_mirror.upload(queue, Upload::Uniforms, &self.uniform, 0, bytemuck::bytes_of(&Settings {
+        self.uniform_mirror.upload(
+            queue,
+            Upload::Uniforms,
+            &self.uniform,
+            0,
+            bytemuck::bytes_of(&Settings {
                 inverse: view_proj.inverse().to_cols_array_2d(),
                 projection: view_proj.to_cols_array_2d(),
                 previous: self.previous.unwrap_or(view_proj).to_cols_array_2d(),
@@ -193,7 +198,8 @@ impl Ao {
                     ao.steps.clamp(1, 16) as f32,
                 ],
                 sun: sun.0.normalize_or_zero().extend(sun.1).to_array(),
-            }));
+            }),
+        );
         self.previous = Some(view_proj);
         self.frame = self.frame.wrapping_add(1);
     }

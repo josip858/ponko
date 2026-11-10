@@ -318,7 +318,12 @@ impl Taa {
             let (w, h) = (w.max(1) as f32, h.max(1) as f32);
             [w, h, 1.0 / w, 1.0 / h]
         };
-        self.uniform_mirror.upload(queue, Upload::Uniforms, &self.uniform, 0, bytemuck::bytes_of(&TaaUniform {
+        self.uniform_mirror.upload(
+            queue,
+            Upload::Uniforms,
+            &self.uniform,
+            0,
+            bytemuck::bytes_of(&TaaUniform {
                 inv_view_proj: resolve.jittered.inverse().to_cols_array_2d(),
                 view_proj: resolve.current.to_cols_array_2d(),
                 previous_view_proj: resolve.previous.to_cols_array_2d(),
@@ -330,7 +335,8 @@ impl Taa {
                     f32::from(resolve.reset),
                     0.0,
                 ],
-            }));
+            }),
+        );
     }
 
     /// Resolves the input and `read` history into history `1 - read` and
