@@ -2237,37 +2237,26 @@ static void navigation_guide() {
 }
 
 // ---- Retained UI --------------------------------------------------------------
-struct Shop {
-    ui::id title = ui::none, buy = ui::none, dialog = ui::none, message = ui::none;
-    ui::id confirm = ui::none, cancel = ui::none;
-    std::vector<ui::id> items;
-    int selected = -1;
-};
-
-static Shop build_shop(ponko::ctx& ctx) {
-    Shop shop;
+static void build_shop(ponko::ctx& ctx) {
     // ANCHOR: shop_tree
     auto tree = ctx.ui_retained();
-    auto fixed = [](float width, float height) { return ui::layout().size(width, height).shrink(0); };
-    auto root = tree.add_panel(ui::none, ui::layout()
-        .column().size(ui::percent(1), ui::percent(1)).padding(24).gap(12));
-    shop.title = tree.add_label(root, "General store — choose an item", fixed(400, 32));
-    tree.add_text_input(root, "Your order note", fixed(360, 36));
-    auto scroll = tree.add_scroll(root, ui::layout()
-        .size(ui::percent(1), ui::points(360)).min_size(ui::points(0), ui::points(0)));
-    auto grid = tree.add_panel(scroll, ui::layout()
-        .grid({ui::fr(1), ui::fr(1), ui::fr(1)}).auto_rows({ui::track_points(76)})
-        .size(ui::percent(0.95f), ui::automatic()).gap(8).shrink(0));
-    for (int i = 0; i < 36; ++i) {
-        auto label = "Item " + std::to_string(i + 1) + "\n" + std::to_string((i + 1) * 3) + " coins";
-        auto item = tree.add_button(grid, label.c_str(),
-                                    ui::layout().min_size(ui::points(0), ui::points(0)).padding(8));
+    auto root = tree.add_panel(ui::none, ui::fill().padding(24).gap(12));
+    tree.set_name(tree.add_label(root, "General store — choose an item", ui::fixed(400, 32)), "title");
+    tree.add_text_input(root, "Your order note", ui::fixed(360, 36));
+    auto scroll = tree.add_scroll(root, ui::fill().height(ui::points(360)));
+    // 95% wide, so the scrollbar doesn't cover the last column.
+    auto grid = tree.add_panel(scroll, ui::layout().grid({ui::fr(1), ui::fr(1), ui::fr(1)})
+        .auto_rows({ui::track_points(76)}).size(ui::percent(0.95f), ui::automatic()).gap(8).shrink(0));
+    for (int i = 1; i <= 36; ++i) {
+        auto label = "Item " + std::to_string(i) + "\n" + std::to_string(i * 3) + " coins";
+        auto item = tree.add_button(grid, label.c_str(), ui::layout().padding(8));
         tree.set_paint(item, ui::paint().wrap().border_width(1));
-        shop.items.push_back(item);
+        tree.set_name(item, ("item." + std::to_string(i)).c_str());
     }
-    tree.add_toggle(root, "Gift wrap", false, fixed(220, 28));
-    shop.buy = tree.add_button(root, "Buy selected item", fixed(220, 40));
-    tree.set_enabled(shop.buy, false);
+    tree.add_toggle(root, "Gift wrap", false, ui::fixed(220, 28));
+    auto buy = tree.add_button(root, "Buy selected item", ui::fixed(220, 40));
+    tree.set_enabled(buy, false);
+    tree.set_name(buy, "buy");
     tree.push_screen(root);
     // ANCHOR_END: shop_tree
 
@@ -2283,35 +2272,33 @@ static Shop build_shop(ponko::ctx& ctx) {
     tree.remove(dashboard);
 
     // ANCHOR: shop_dialog
-    // A detached screen can be reused after it is popped.
-    shop.dialog = tree.add_panel(ui::none, ui::layout()
-        .size(360, 180).column().padding(20).gap(12)
-        .margin(ui::points(180), ui::automatic(), ui::automatic(), ui::automatic()));
-    shop.message = tree.add_label(shop.dialog, "", fixed(320, 40));
-    shop.confirm = tree.add_button(shop.dialog, "Confirm purchase", fixed(240, 36));
-    shop.cancel = tree.add_button(shop.dialog, "Back", fixed(240, 30));
+    // A detached screen can be reused after it is popped: 180 points from the
+    // top here (without `top`, in the middle of the window).
+    auto dialog = tree.add_panel(ui::none, ui::centered(360, 180).top(180).padding(20).gap(12));
+    tree.set_name(dialog, "dialog");
+    tree.set_name(tree.add_label(dialog, "", ui::fixed(320, 40)), "message");
+    tree.set_name(tree.add_button(dialog, "Confirm purchase", ui::fixed(240, 36)), "confirm");
+    tree.set_name(tree.add_button(dialog, "Back", ui::fixed(240, 30)), "cancel");
     // ANCHOR_END: shop_dialog
-    return shop;
 }
 
 // ANCHOR: shop_events
-static void shop_events(ponko::ctx& ctx, Shop& shop) {
+static void shop_events(ponko::ctx& ctx) {
+    // The UI ran before this system. Nodes are found by name.
     auto tree = ctx.ui_retained();
-    // The UI ran before this system. Take the events first, then change the tree.
-    for (const ui::event& e : tree.events()) {
-        if (e.kind != ui::event_kind::clicked) continue;
-        auto item = std::find(shop.items.begin(), shop.items.end(), e.node);
-        if (item != shop.items.end()) {
-            shop.selected = int(item - shop.items.begin());
-            tree.set_enabled(shop.buy, true);
-            tree.set_text(shop.buy, ("Buy item " + std::to_string(shop.selected + 1)).c_str());
-        } else if (e.node == shop.buy) {
-            tree.set_text(shop.message, ("Buy item " + std::to_string(shop.selected + 1) + "?").c_str());
-            tree.push_screen(shop.dialog, true);
-        } else if (e.node == shop.confirm || e.node == shop.cancel) {
-            tree.pop_screen();
-            if (e.node == shop.confirm) tree.set_text(shop.title, "Purchase complete!");
-        }
+    auto clicked = tree.take_click();
+    const std::string name = clicked ? tree.name(*clicked) : "";
+    const ui::id buy = *tree.find("buy");
+    if (name.rfind("item.", 0) == 0) {
+        const std::string item = name.substr(5);
+        tree.set_enabled(buy, true);
+        tree.set_text(buy, ("Buy item " + item).c_str());
+        tree.set_text(*tree.find("message"), ("Buy item " + item + "?").c_str());
+    } else if (name == "buy") {
+        tree.push_screen(*tree.find("dialog"), true);
+    } else if (name == "confirm" || name == "cancel") {
+        tree.pop_screen();
+        if (name == "confirm") tree.set_text(*tree.find("title"), "Purchase complete!");
     }
     // Tab/arrows or d-pad navigate; Enter/South confirms; Escape/East pops the
     // top screen. A modal screen also owns the pointer outside it.
@@ -2320,12 +2307,12 @@ static void shop_events(ponko::ctx& ctx, Shop& shop) {
 }
 // ANCHOR_END: shop_events
 
-/// Clicks the middle of a node, the way a mouse would.
-static void click_node(ponko::ctx& ctx, ui::id node) {
+/// Clicks the middle of the node named `name`, the way a mouse would.
+static void click_node(ponko::ctx& ctx, const char* name) {
     auto tree = ctx.ui_retained();
     const ponko::vec2 window{900, 700};
     tree.layout_for(window);
-    const auto r = tree.rect(node);
+    const auto r = tree.rect(*tree.find(name));
     const ponko::vec2 at = (r.min + r.max) * 0.5f;
     auto input = ui::default_input();
     input.pointer = at;
@@ -2337,16 +2324,18 @@ static void click_node(ponko::ctx& ctx, ui::id node) {
 }
 
 static void shop_guide(ponko::ctx& ctx) {
-    auto shop = build_shop(ctx);
+    build_shop(ctx);
     auto tree = ctx.ui_retained();
-    click_node(ctx, shop.items[2]);
-    shop_events(ctx, shop);
-    click_node(ctx, shop.buy);
-    shop_events(ctx, shop);
-    if (shop.selected != 2 || tree.top_screen() != shop.dialog || tree.text(shop.message) != "Buy item 3?") std::abort();
-    click_node(ctx, shop.confirm);
-    shop_events(ctx, shop);
-    if (tree.text(shop.title) != "Purchase complete!" || tree.top_screen() == shop.dialog) std::abort();
+    click_node(ctx, "item.3");
+    shop_events(ctx);
+    click_node(ctx, "buy");
+    shop_events(ctx);
+    if (tree.top_screen() != tree.find("dialog") || tree.text(*tree.find("message")) != "Buy item 3?") std::abort();
+    const auto dialog = tree.rect(*tree.find("dialog"));
+    if (dialog.min.x != 270 || dialog.min.y != 180) std::abort();
+    click_node(ctx, "confirm");
+    shop_events(ctx);
+    if (tree.text(*tree.find("title")) != "Purchase complete!" || tree.top_screen() == tree.find("dialog")) std::abort();
 }
 
 // ---- UI on a surface in the world ---------------------------------------------
@@ -2356,9 +2345,8 @@ static void panel_guide(ponko::ctx& ctx) {
     auto terminal = ctx.world().spawn(ponko::transform3d_at({0, 1.5f, -2}));
     ctx.create_ui_panel(terminal, 600, 400, {1.2f, 0.8f});
     auto panel = ctx.panel_ui(terminal);
-    auto root = panel.add_panel(ui::none, ui::layout()
-        .column().size(ui::percent(1), ui::percent(1)).padding(20).gap(12));
-    auto buy = panel.add_button(root, "Buy", ui::layout().size(200, 60).shrink(0));
+    auto root = panel.add_panel(ui::none, ui::fill().padding(20).gap(12));
+    panel.set_name(panel.add_button(root, "Buy", ui::fixed(200, 60)), "buy");
     panel.push_screen(root);
     // ANCHOR_END: panel_create
 
@@ -2377,14 +2365,14 @@ static void panel_guide(ponko::ctx& ctx) {
     // cursor, or a controller in VR).
     auto eye = ctx.camera3d();
     ctx.set_ui_pointer_ray(eye.position, ponko::forward(ponko::transform3d_at(eye.position, eye.rotation)));
-    for (const ui::event& e : panel.events())
-        if (e.kind == ui::event_kind::clicked && e.node == buy) panel.set_text(buy, "Bought!");
+    if (auto clicked = panel.take_click(); clicked && panel.name(*clicked) == "buy")
+        panel.set_text(*clicked, "Bought!");
     if (auto pixel = ctx.ui_panel_pointer(terminal)) {
         // The aim is over the panel, at this pixel of its 600 x 400.
         (void)pixel;
     }
     // ANCHOR_END: panel_events
-    if (panel.text(buy) != "Bought!") std::abort();
+    if (panel.text(*panel.find("buy")) != "Bought!") std::abort();
     ctx.clear_ui_pointer_ray();
 }
 
