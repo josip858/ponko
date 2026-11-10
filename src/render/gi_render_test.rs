@@ -317,7 +317,7 @@ impl Rig {
             enabled: gi,
             extent: vec3(12.0, 4.0, 8.0),
             spacing: 1.0,
-            probes_per_frame: crate::render::MAX_GI_PROBES_PER_FRAME,
+            probes_per_frame: crate::render::GlobalIllumination::MAX_PROBES_PER_FRAME,
             intensity: 1.0,
         };
         rig.ctx.camera3d.position = vec3(2.0, 1.3, 0.3);
@@ -425,7 +425,10 @@ fn gi_cost() {
             "defaults (4 probes a frame)",
             Some(GlobalIllumination::default().probes_per_frame),
         ),
-        ("16 probes a frame", Some(crate::render::MAX_GI_PROBES_PER_FRAME)),
+        (
+            "16 probes a frame",
+            Some(crate::render::GlobalIllumination::MAX_PROBES_PER_FRAME),
+        ),
     ];
     let mut best = vec![(f32::MAX, f64::MAX, f64::MAX, String::new()); settings.len()];
     for _ in 0..5 {

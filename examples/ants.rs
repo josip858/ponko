@@ -516,11 +516,11 @@ fn main() {
 
     if env_number("HEADLESS", 0.0) != 0.0 {
         let ticks = env_number("TICKS", 600.0) as u64;
-        let mut start = ponko::Instant::now();
+        let mut start = ponko::time::Instant::now();
         // The two-argument form may borrow a local, here the timer.
         let mut world = colonies(Game::new("ants", 1, 1).seed(seed), bounds).run_headless(ticks, |ctx| {
             setup(ctx, bounds, ants, None);
-            start = ponko::Instant::now();
+            start = ponko::time::Instant::now();
         });
         let secs = start.elapsed().as_secs_f64();
         println!(

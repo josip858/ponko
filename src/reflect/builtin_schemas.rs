@@ -184,7 +184,7 @@ pub(super) fn builtin<T: 'static>() -> Option<ValueSchema> {
     if id == std::any::TypeId::of::<crate::d2::Transform>() {
         return Some(transform2d());
     }
-    if id == std::any::TypeId::of::<crate::Attached>() {
+    if id == std::any::TypeId::of::<crate::d2::Attached>() {
         return Some(attached());
     }
     #[cfg(feature = "3d")]
@@ -408,7 +408,10 @@ mod tests {
             );
         }
         check!(crate::d2::Transform, crate::d2::Transform::default());
-        check!(crate::Attached, crate::Attached::to(crate::Entity::from_bits(0)));
+        check!(
+            crate::d2::Attached,
+            crate::d2::Attached::to(crate::Entity::from_bits(0))
+        );
         #[cfg(feature = "3d")]
         {
             check!(crate::d3::Transform, crate::d3::Transform::default());

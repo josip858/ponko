@@ -1090,3 +1090,58 @@ pub type UiPanel3D = crate::d3::UiPanel;
 #[deprecated(note = "use ponko::net::NetPose")]
 #[cfg(feature = "3d")]
 pub type NetPose = crate::net::NetPose;
+
+macro_rules! moved_consts {
+    ($($(#[$cfg:meta])? $name:ident: $ty:ty = $path:path, $note:literal;)*) => {$(
+        $(#[$cfg])?
+        #[doc(hidden)]
+        #[deprecated(note = $note)]
+        pub const $name: $ty = $path;
+    )*};
+}
+
+moved_consts! {
+    ECS_DIAGNOSTICS_VERSION: u32 = crate::diagnostics::ECS_DIAGNOSTICS_VERSION, "use ponko::diagnostics::ECS_DIAGNOSTICS_VERSION";
+    MAX_GAMEPADS: usize = crate::input::MAX_GAMEPADS, "use ponko::input::MAX_GAMEPADS";
+    MAX_INTEREST_TIERS: usize = crate::net::MAX_INTEREST_TIERS, "use ponko::net::MAX_INTEREST_TIERS";
+    MAX_INPUT_BYTES: usize = crate::net::MAX_INPUT_BYTES, "use ponko::net::MAX_INPUT_BYTES";
+    MAX_MESSAGE_BYTES: usize = crate::net::MAX_MESSAGE_BYTES, "use ponko::net::MAX_MESSAGE_BYTES";
+    MAX_PLAYERS: usize = crate::net::MAX_PLAYERS, "use ponko::net::MAX_PLAYERS";
+    #[cfg(feature = "physics")]
+    MAX_POLYGON_POINTS: usize = crate::physics::MAX_POLYGON_POINTS, "use ponko::physics::MAX_POLYGON_POINTS";
+    #[cfg(feature = "physics3d")]
+    PHYSICS3D_HZ: u32 = crate::physics3d::PHYSICS3D_HZ, "use ponko::physics3d::PHYSICS3D_HZ";
+    DEFAULT_SEED: u64 = crate::random::DEFAULT_SEED, "use ponko::random::DEFAULT_SEED";
+    MAX_SCENARIO_STEPS: usize = crate::scenario::MAX_SCENARIO_STEPS, "use ponko::scenario::MAX_SCENARIO_STEPS";
+    MAX_SCENARIO_TICKS: u64 = crate::scenario::MAX_SCENARIO_TICKS, "use ponko::scenario::MAX_SCENARIO_TICKS";
+    SCENARIO_VERSION: u32 = crate::scenario::SCENARIO_VERSION, "use ponko::scenario::SCENARIO_VERSION";
+    DEFAULT_UPLOAD_BUDGET: u64 = crate::streaming::DEFAULT_UPLOAD_BUDGET, "use ponko::streaming::DEFAULT_UPLOAD_BUDGET";
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::d2::Attached")]
+pub type Attached = crate::attach::Attached;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::gfx::Graphics")]
+pub type Graphics = crate::gfx::Graphics;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::reflect::Field")]
+pub type Field = crate::reflect::Field;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::d2::TileMap")]
+pub type TileMap = crate::tilemap::TileMap;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::ecs_core::ComponentId")]
+pub type ComponentId = ponko_ecs::ComponentId;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::ecs_core::WorldView")]
+pub type WorldView<'w> = ponko_ecs::WorldView<'w>;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::time::Instant")]
+pub type Instant = web_time::Instant;

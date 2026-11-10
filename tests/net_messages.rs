@@ -1,5 +1,5 @@
-use ponko::MAX_MESSAGE_BYTES;
 use ponko::net::Lane;
+use ponko::net::MAX_MESSAGE_BYTES;
 use ponko::net::MessageEvent;
 use ponko::net::NetMessages;
 use ponko::net::PeerId;

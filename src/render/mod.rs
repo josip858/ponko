@@ -305,11 +305,9 @@ mod residency_render_test;
 #[cfg(feature = "3d")]
 pub use crate::three::{
     AmbientOcclusion, AntiAliasing, Compute, ComputePass, Effect, ExtractionBench, ExtractionSample,
-    GlobalIllumination, GpuBuffer, GraphicsQuality, InstanceBatch, InstanceBatchOptions, InstanceLevel,
-    LIGHT_SHADOW_ATLAS_SIZE, LIGHT_SHADOW_SIZE, Lighting, LodGroup, LodHysteresis, LodLevel, LodPick, LodRenderer,
-    LodSettings, LodShadow, MAX_DECALS, MAX_DECALS_PER_CLUSTER, MAX_GI_PROBES, MAX_GI_PROBES_PER_FRAME,
-    MAX_LIGHT_SHADOW_VIEWS, MAX_RENDER_SCALE, MIN_RENDER_SCALE, Material, MaterialDesc, Mesh, MeshCost, MeshData,
-    Model, ModelMaterial, ModelMaterials, ParticleCurve, ParticleGradient, Post, QualityLevel, ReceivesDecals,
-    ScreenEffect, Shader, ShaderDiagnostic, ShaderKind, ShaderOutcome, ShaderStatus, ShadowMesh, Sky, TargetCamera,
-    TargetEffect, Tonemap, look_at_joint, two_bone_ik,
+    GlobalIllumination, GpuBuffer, GraphicsQuality, InstanceBatch, InstanceBatchOptions, InstanceLevel, Lighting,
+    LodGroup, LodHysteresis, LodLevel, LodPick, LodRenderer, LodSettings, LodShadow, Material, MaterialDesc, Mesh,
+    MeshCost, MeshData, Model, ModelMaterial, ModelMaterials, ParticleCurve, ParticleGradient, Post, QualityLevel,
+    ReceivesDecals, ScreenEffect, Shader, ShaderDiagnostic, ShaderKind, ShaderOutcome, ShaderStatus, ShadowMesh, Sky,
+    TargetCamera, TargetEffect, Tonemap, look_at_joint, two_bone_ik,
 };

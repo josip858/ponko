@@ -627,7 +627,8 @@ mod tests {
 
     #[test]
     fn feeds_collect_reflected_rust_and_c_events() {
-        use crate::{Field, FieldType, World, WorldReflect};
+        use crate::World;
+        use crate::reflect::{Field, FieldType, WorldReflect};
         #[derive(serde::Serialize)]
         struct Ping(u32);
         struct Hidden;

@@ -131,10 +131,6 @@ pub use crate::three::JointAnimation;
 #[doc(inline)]
 pub use crate::three::JointMask;
 #[doc(inline)]
-pub use crate::three::LIGHT_SHADOW_ATLAS_SIZE;
-#[doc(inline)]
-pub use crate::three::LIGHT_SHADOW_SIZE;
-#[doc(inline)]
 pub use crate::three::LayerBlend;
 #[doc(inline)]
 pub use crate::three::Lighting;
@@ -154,20 +150,6 @@ pub use crate::three::LodRenderer;
 pub use crate::three::LodSettings;
 #[doc(inline)]
 pub use crate::three::LodShadow;
-#[doc(inline)]
-pub use crate::three::MAX_DECALS;
-#[doc(inline)]
-pub use crate::three::MAX_DECALS_PER_CLUSTER;
-#[doc(inline)]
-pub use crate::three::MAX_GI_PROBES;
-#[doc(inline)]
-pub use crate::three::MAX_GI_PROBES_PER_FRAME;
-#[doc(inline)]
-pub use crate::three::MAX_LIGHT_SHADOW_VIEWS;
-#[doc(inline)]
-pub use crate::three::MAX_RENDER_SCALE;
-#[doc(inline)]
-pub use crate::three::MIN_RENDER_SCALE;
 #[doc(inline)]
 pub use crate::three::Material;
 #[doc(inline)]
@@ -246,10 +228,6 @@ pub use crate::three::SkinOf;
 pub use crate::three::Sky;
 #[doc(inline)]
 pub use crate::three::SpotLight3D as SpotLight;
-#[doc(inline)]
-pub use crate::three::TERRAIN_LAYERS;
-#[doc(inline)]
-pub use crate::three::TERRAIN_LODS;
 #[doc(inline)]
 pub use crate::three::TargetCamera;
 #[doc(inline)]

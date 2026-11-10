@@ -57,11 +57,11 @@ fn main() {
         let mut report_at = 1.0;
         let mut frames_since = 0u32;
         let mut worst_ms = 0.0f32;
-        let mut frame_start = ponko::Instant::now();
+        let mut frame_start = ponko::time::Instant::now();
         let mut update_ms_sum = 0.0f64;
 
         move |ctx: &mut Ctx| {
-            let now = ponko::Instant::now();
+            let now = ponko::time::Instant::now();
             let frame_ms = now.duration_since(frame_start).as_secs_f32() * 1000.0;
             frame_start = now;
             worst_ms = worst_ms.max(frame_ms);
@@ -71,7 +71,7 @@ fn main() {
                 spawn(&mut crabs, 1000, ctx.mouse_pos());
             }
 
-            let update_start = ponko::Instant::now();
+            let update_start = ponko::time::Instant::now();
             let dt = ctx.dt();
             let bounds = ctx.window_size();
             let gravity = 600.0;

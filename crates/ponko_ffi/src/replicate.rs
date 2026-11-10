@@ -22,7 +22,7 @@ use ponko::net::SnapshotStream;
 use ponko::net::UpdateStamp;
 use ponko::net::seq_diff;
 use ponko::net::seq_newer;
-use ponko::{MAX_INTEREST_TIERS, Vec3};
+use ponko::{Vec3, net::MAX_INTEREST_TIERS};
 
 use crate::ctx::{collect, out};
 use crate::three::{CrabbyQuat, CrabbyVec3, quat_from_c, quat_to_c};

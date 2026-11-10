@@ -1101,7 +1101,7 @@ impl Game {
     /// [`CollisionStarted`](crate::CollisionStarted) events; `ctx.physics3d`
     /// casts rays and shapes and finds overlaps.
     ///
-    /// The simulation runs at [`PHYSICS3D_HZ`](crate::PHYSICS3D_HZ) (50)
+    /// The simulation runs at [`PHYSICS3D_HZ`](crate::physics3d::PHYSICS3D_HZ) (50)
     /// ticks per second unless [`fixed_hz`](Self::fixed_hz) chose a rate;
     /// in a window, moving bodies are drawn blended between ticks
     /// ([`interpolate_physics3d`](crate::systems::interpolate_physics3d), a
@@ -1125,7 +1125,7 @@ impl Game {
     pub fn physics3d(mut self, gravity: crate::Vec3) -> Self {
         self.gravity3d = Some(gravity);
         if !self.fixed_hz_set {
-            self.fixed_hz = crate::PHYSICS3D_HZ;
+            self.fixed_hz = crate::physics3d::PHYSICS3D_HZ;
         }
         if !self.sim_systems.iter().any(|s| s.builtin == Some(Systems::PHYSICS3D)) {
             self = self.add(Phase::Physics, crate::systems::step_physics3d);
@@ -1439,7 +1439,7 @@ impl Game {
     }
 
     /// Sets the seed for [`Ctx::random`]. Same seed, same simulation: runs
-    /// are reproducible by default ([`DEFAULT_SEED`](crate::DEFAULT_SEED)).
+    /// are reproducible by default ([`DEFAULT_SEED`](crate::random::DEFAULT_SEED)).
     /// For a different world each run, seed from the clock.
     ///
     /// ```no_run

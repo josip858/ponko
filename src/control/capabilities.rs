@@ -392,7 +392,7 @@ mod tests {
         // SAFETY: as above.
         unsafe {
             ctx.world
-                .reflect_fields(id, &[crate::Field::new("hp", crate::FieldType::F32, 0)]);
+                .reflect_fields(id, &[crate::reflect::Field::new("hp", crate::FieldType::F32, 0)]);
         }
         let r = crate::control::handle(&mut ctx, "capabilities", &json!({})).unwrap();
         let comp = |name: &str| {

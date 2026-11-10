@@ -535,7 +535,7 @@ fn lod_groups_and_terrain_tiles_draw_with_the_override() {
     world.spawn((at(1.3), group(), ModelMaterial(red)));
     world.spawn((at(-1.3), group(), crate::render::ModelMaterials::new(&[(1, blue)])));
     let tile = TerrainTile {
-        lods: [pair; crate::terrain::TERRAIN_LODS],
+        lods: [pair; crate::terrain::TerrainTile::LODS],
         lod_distance: 100.0,
     };
     world.spawn((

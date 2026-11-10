@@ -3,7 +3,7 @@
 //! A fast 2D engine for games with huge numbers of things on screen.
 //!
 //! ```no_run
-//! use ponko::*;
+//! use ponko::prelude::*;
 //!
 //! fn main() {
 //!     Game::new("My Game", 800, 600).run(|ctx| {
@@ -139,8 +139,6 @@ mod web;
 #[doc(hidden)]
 pub use assets::{AssetSource, Assets, MemorySource};
 #[doc(hidden)]
-pub use attach::Attached;
-#[doc(hidden)]
 pub use audio::{AudioBus, Playing, Sound, SoundParams};
 
 #[doc(hidden)]
@@ -152,8 +150,6 @@ pub use collision::{BodyKind, CollisionStarted, CollisionStopped};
 pub use color::Color;
 #[doc(hidden)]
 pub use ctx::Ctx;
-#[doc(hidden)]
-pub use diagnostics::ECS_DIAGNOSTICS_VERSION;
 
 #[doc(hidden)]
 pub use error::{Error, ErrorKind};
@@ -165,31 +161,16 @@ pub use flow::RawFlowView;
 #[doc(hidden)]
 pub use game::{ConfiguredGame, Game, Phase, Plugin, SetupResult, SystemId, Systems};
 #[doc(hidden)]
-pub use gfx::Graphics;
-#[doc(hidden)]
 pub use handle::Handle;
 #[doc(hidden)]
-pub use input::{Key, MAX_GAMEPADS, MouseButton};
+pub use input::{Key, MouseButton};
+#[doc(hidden)]
+pub use net::Interpolate;
+#[doc(hidden)]
+pub use random::{Random, Rng};
+#[doc(hidden)]
+pub use reflect::{FieldType, WorldReflect};
 
-#[doc(hidden)]
-pub use net::{Interpolate, MAX_INTEREST_TIERS};
-#[doc(hidden)]
-pub use net::{MAX_INPUT_BYTES, MAX_MESSAGE_BYTES, MAX_PLAYERS};
-
-#[cfg(feature = "physics")]
-#[doc(hidden)]
-pub use physics::MAX_POLYGON_POINTS;
-#[cfg(feature = "physics3d")]
-#[doc(hidden)]
-pub use physics3d::PHYSICS3D_HZ;
-
-#[doc(hidden)]
-pub use random::{DEFAULT_SEED, Random, Rng};
-#[doc(hidden)]
-pub use reflect::{Field, FieldType, WorldReflect};
-
-#[doc(hidden)]
-pub use scenario::{MAX_SCENARIO_STEPS, MAX_SCENARIO_TICKS, SCENARIO_VERSION};
 #[doc(hidden)]
 pub use schema::ValueSchema;
 #[doc(hidden)]
@@ -202,8 +183,6 @@ pub use spatial::RawGridView;
 #[cfg(feature = "steam")]
 #[doc(hidden)]
 pub use steamworks;
-#[doc(hidden)]
-pub use streaming::DEFAULT_UPLOAD_BUDGET;
 #[allow(deprecated)]
 #[doc(hidden)]
 pub use systems::at_root::*;
@@ -220,15 +199,12 @@ pub use text::{Font, TextParams};
 pub use texture::{DrawParams, Texture, TextureFilter};
 
 #[doc(hidden)]
-pub use tilemap::TileMap;
-#[doc(hidden)]
 pub use time::{Time, Turns};
 
 /// The ECS: entities, components, queries, resources, commands.
 #[doc(hidden)]
 pub use ponko_ecs::{
-    Added, Changed, Commands, Component, ComponentId, Entity, Or, Query, QueryFilter, Tick, ViewQuery, With, Without,
-    World, WorldView,
+    Added, Changed, Commands, Component, Entity, Or, Query, QueryFilter, Tick, ViewQuery, With, Without, World,
 };
 
 /// The full ECS crate, for advanced use (C path, chunks, archetypes).
@@ -253,22 +229,6 @@ pub use glam::{Vec2, vec2};
 /// JSON values used by reflection (re-exported from `serde_json`).
 #[doc(hidden)]
 pub use serde_json::{self, Value, json};
-
-/// A point in time for measuring how long something took, like
-/// `std::time::Instant` (which it is, on desktop), but also working in web
-/// builds, where `std::time::Instant::now()` panics. Re-exported from
-/// `web-time`.
-///
-/// ```
-/// # use ponko::*;
-/// let nav = ponko::flow::NavGrid::new(256, 256, 8.0);
-/// let mut field = ponko::flow::FlowField::new();
-/// let start = ponko::Instant::now();
-/// field.compute(&nav, &[vec2(40.0, 40.0)]);
-/// println!("flow field in {:.2} ms", start.elapsed().as_secs_f64() * 1000.0);
-/// ```
-#[doc(hidden)]
-pub use web_time::Instant;
 
 mod environment;
 

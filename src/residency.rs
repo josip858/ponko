@@ -54,7 +54,7 @@ impl ResidencyKind {
 }
 
 /// The budget, usage and eviction counters of one [`ResidencyKind`]
-/// ([`Graphics::residency`](crate::Graphics::residency)). Bytes are the engine's
+/// ([`Graphics::residency`](crate::gfx::Graphics::residency)). Bytes are the engine's
 /// estimates of GPU memory.
 ///
 /// ```
@@ -416,7 +416,7 @@ impl crate::Ctx {
     }
 }
 
-impl crate::Graphics {
+impl crate::gfx::Graphics {
     /// The budget, usage and eviction counters of `kind`.
     #[must_use]
     pub fn residency(&self, kind: ResidencyKind) -> ResidencyStats {

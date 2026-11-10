@@ -1901,7 +1901,7 @@ impl Renderer3D {
         name: &str,
         user: &str,
     ) -> Result<u32, Box<ShaderDiagnostic>> {
-        let start = crate::Instant::now();
+        let start = crate::time::Instant::now();
         let made = self.compile_effect(device, name, user);
         self.cache.counters.compiled(start.elapsed());
         made
@@ -1952,7 +1952,7 @@ impl Renderer3D {
         name: &str,
         user: &str,
     ) -> Result<(), Box<ShaderDiagnostic>> {
-        let start = crate::Instant::now();
+        let start = crate::time::Instant::now();
         let made = self.recompile_effect(device, id, name, user);
         self.cache.counters.compiled(start.elapsed());
         made
@@ -2225,7 +2225,7 @@ impl Renderer3D {
         name: &str,
         user: &str,
     ) -> Result<u32, Box<ShaderDiagnostic>> {
-        let start = crate::Instant::now();
+        let start = crate::time::Instant::now();
         let made = self.compile_compute(device, name, user);
         self.cache.counters.compiled(start.elapsed());
         made
@@ -2293,7 +2293,7 @@ impl Renderer3D {
         name: &str,
         user: &str,
     ) -> Result<(), Box<ShaderDiagnostic>> {
-        let start = crate::Instant::now();
+        let start = crate::time::Instant::now();
         let made = self.recompile_compute(device, id, name, user);
         self.cache.counters.compiled(start.elapsed());
         made
@@ -2430,7 +2430,7 @@ impl Renderer3D {
             }
             return Ok((shared, None));
         }
-        let start = crate::Instant::now();
+        let start = crate::time::Instant::now();
         let built = self.compile_material(device, name, user);
         self.cache.counters.compiled(start.elapsed());
         let (mut built, verdict) = built?;
@@ -5661,7 +5661,7 @@ struct SideBuilder {
 impl SideBuilder {
     /// [`SideBuilder::build`], timed into `counters`.
     fn timed_build(&self, variant: ShaderVariant, counters: &pipeline_cache::Counters) -> Pipelines {
-        let start = crate::Instant::now();
+        let start = crate::time::Instant::now();
         let pipelines = self.build(variant);
         counters.built(start.elapsed());
         pipelines

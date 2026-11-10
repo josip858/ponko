@@ -47,7 +47,7 @@ pub(crate) fn screen_projection(size: Vec2) -> Mat4 {
 /// | [`world`](Self::world), [`commands`](Self::commands), [`events`](Self::events) | Entities, components and resources; deferred changes; messages between systems. |
 /// | [`time`](Self::time) | [`Time`]: frame and simulation clocks, pause, speed. |
 /// | [`input`](Self::input) | [`Input`]: keyboard, mouse, gamepads, named actions, typed text. |
-/// | [`gfx`](Self::gfx) | [`Graphics`](crate::Graphics): drawing, textures, fonts, screenshots and, with `3d`, everything on the GPU. |
+/// | [`gfx`](Self::gfx) | [`Graphics`](crate::gfx::Graphics): drawing, textures, fonts, screenshots and, with `3d`, everything on the GPU. |
 /// | [`audio`](Self::audio) | [`Audio`](crate::audio::Audio): sounds, music, buses, the 3D listener. |
 /// | [`ui`](Self::ui) | [`Ui`](crate::ui::Ui): the retained widget tree and the immediate debug widgets. |
 /// | [`assets`](Self::assets) | [`Assets`](crate::Assets): asset sources, data files, saving scenes and prefabs, hot reload. |
@@ -208,7 +208,7 @@ pub struct Ctx {
     /// ctx.camera.look_at(vec2(1000.0, 1000.0));
     /// # }
     /// ```
-    pub camera: Camera2D,
+    pub camera: crate::d2::Camera,
     /// The 3D camera (feature `3d`): position, rotation, field of view.
     ///
     /// ```no_run
@@ -338,7 +338,7 @@ pub struct Ctx {
     pub ui: crate::ui::Ui,
     /// Drawing and everything on the GPU: sprites, text, shapes, textures,
     /// fonts, and with the `3d` feature meshes, materials, shaders and the
-    /// rest. See [`Graphics`](crate::Graphics).
+    /// rest. See [`Graphics`](crate::gfx::Graphics).
     ///
     /// ```
     /// # use ponko::prelude::*;
@@ -347,7 +347,7 @@ pub struct Ctx {
     /// ctx.gfx.draw(&crab, vec2(400.0, 300.0));
     /// # }
     /// ```
-    pub gfx: crate::Graphics,
+    pub gfx: crate::gfx::Graphics,
     /// Asset files: where they are read from, data files, saving scenes and
     /// prefabs, and what hot reload changed. See [`Assets`](crate::Assets).
     ///
@@ -393,7 +393,7 @@ impl Ctx {
         let mut world = World::new();
         crate::reflect::WorldReflect::reflect::<crate::d2::Transform>(&mut world);
         crate::reflect::describe_transform2d(&mut world);
-        crate::reflect::WorldReflect::reflect::<crate::Attached>(&mut world);
+        crate::reflect::WorldReflect::reflect::<crate::d2::Attached>(&mut world);
         #[cfg(feature = "3d")]
         crate::reflect::WorldReflect::reflect::<crate::d3::Transform>(&mut world);
         #[cfg(feature = "3d")]
@@ -409,7 +409,7 @@ impl Ctx {
         crate::reflect::reflect_sprite(&mut world);
         // The file names behind sprites and models: the world saves by them,
         // the graphics service fills them in as files load.
-        let gfx = crate::Graphics::new(
+        let gfx = crate::gfx::Graphics::new(
             asset_sources.clone(),
             watcher.clone(),
             world.resource::<crate::reflect::TextureNames>().clone(),
@@ -877,8 +877,8 @@ impl Ctx {
 
     /// Draws `texture` centered at `pos`, in world units (window pixels until
     /// you move or zoom [`camera`](Self::camera)). A shortcut for
-    /// [`ctx.gfx.draw`](crate::Graphics::draw), which has the details;
-    /// [`draw_ex`](crate::Graphics::draw_ex) scales, rotates and tints.
+    /// [`ctx.gfx.draw`](crate::gfx::Graphics::draw), which has the details;
+    /// [`draw_ex`](crate::gfx::Graphics::draw_ex) scales, rotates and tints.
     ///
     /// ```
     /// # use ponko::prelude::*;
@@ -892,7 +892,7 @@ impl Ctx {
 
     /// Draws `text` with its top-left corner at `pos`, in window pixels (on
     /// top of the world, ignoring the camera). `size` is the line height in
-    /// pixels. A shortcut for [`ctx.gfx.draw_text`](crate::Graphics::draw_text).
+    /// pixels. A shortcut for [`ctx.gfx.draw_text`](crate::gfx::Graphics::draw_text).
     ///
     /// ```
     /// # use ponko::prelude::*;
@@ -908,7 +908,7 @@ impl Ctx {
     /// Loads an image from an [added asset source](crate::Assets::add_source)
     /// or the `assets/` folder. Do this once in setup and keep the
     /// [`Texture`]; it's a cheap handle. A shortcut for
-    /// [`ctx.gfx.load_texture`](crate::Graphics::load_texture), which has
+    /// [`ctx.gfx.load_texture`](crate::gfx::Graphics::load_texture), which has
     /// the details.
     ///
     /// # Panics

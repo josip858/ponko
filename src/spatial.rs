@@ -488,15 +488,11 @@ impl Buckets {
     }
 }
 
-/// How often (in ticks) the built-in grid also reorders entities in memory
-/// by [`spatial_key`]. Positions drift slowly, so occasional sorting keeps
-/// neighbors close in memory at a small amortized cost (1M entities:
-/// ~18 ms per sort, ~0.5 ms per tick).
-pub const SPATIAL_SORT_EVERY: u64 = 32;
+pub(crate) const SPATIAL_SORT_EVERY: u64 = 32;
 
 /// Built-in system added by [`Game::spatial_grid`](crate::Game::spatial_grid):
 /// re-indexes every [`Transform2D`] entity into `ctx.spatial`. It runs first
-/// in every simulation tick, and every [`SPATIAL_SORT_EVERY`] ticks it also
+/// in every simulation tick, and every [`SpatialGrid::SORT_EVERY`] ticks it also
 /// sorts entities by cell so neighbor queries stay cache-friendly.
 pub fn rebuild_spatial_grid(ctx: &mut Ctx) {
     if ctx.time.sim_tick().is_multiple_of(SPATIAL_SORT_EVERY) {
@@ -507,7 +503,10 @@ pub fn rebuild_spatial_grid(ctx: &mut Ctx) {
 }
 
 impl<T> SpatialGrid<T> {
-    /// Simulation ticks between spatial reordering.
+    /// How often (in ticks) the built-in grid also reorders entities in memory
+    /// by [`spatial_key`]. Positions drift slowly, so occasional sorting keeps
+    /// neighbors close in memory at a small amortized cost (1M entities:
+    /// ~18 ms per sort, ~0.5 ms per tick).
     pub const SORT_EVERY: u64 = SPATIAL_SORT_EVERY;
 }
 

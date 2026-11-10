@@ -25,7 +25,8 @@ pub(crate) mod instances;
 pub use instances::{InstanceBatch, InstanceBatchOptions, InstanceLevel};
 mod lod;
 pub(crate) mod occlusion;
-pub use gi::{GlobalIllumination, MAX_GI_PROBES, MAX_GI_PROBES_PER_FRAME};
+pub use gi::GlobalIllumination;
+pub(crate) use gi::MAX_GI_PROBES_PER_FRAME;
 pub use ik::{look_at_joint, two_bone_ik};
 pub use lod::{LodGroup, LodHysteresis, LodLevel, LodPick, LodRenderer, LodSettings, LodShadow};
 pub(crate) mod lights;
@@ -42,7 +43,7 @@ pub use particles::{
 mod decal;
 mod post;
 pub(crate) mod projected;
-pub use projected::{Decal3D, MAX_DECALS, MAX_DECALS_PER_CLUSTER, ReceivesDecals};
+pub use projected::{Decal3D, ReceivesDecals};
 pub(crate) mod probe;
 pub use probe::ReflectionProbe3D;
 #[cfg(test)]
@@ -98,7 +99,7 @@ pub(crate) use skin::{SkinDraw, normalized as normalized_weights};
 pub use sky::Sky;
 pub(crate) use sky::SkyLight;
 pub use target::TargetCamera;
-pub use terrain::{Heightfield, TERRAIN_LAYERS, TERRAIN_LODS, TerrainMaterialDesc, TerrainTile, TerrainTileData};
+pub use terrain::{Heightfield, TERRAIN_LODS, TerrainMaterialDesc, TerrainTile, TerrainTileData};
 pub use texture_array::{TextureArray, TextureKind};
 
 use glam::{Mat3, Mat4, Quat, Vec2, Vec3, Vec4};
@@ -226,8 +227,8 @@ fn look_rotation(direction: Vec3) -> Quat {
 }
 
 /// A mesh on the GPU: triangles, split into parts that each have a
-/// [`Material`]. Made with [`Graphics::create_mesh`](crate::Graphics::create_mesh) or
-/// loaded with [`Graphics::load_mesh`](crate::Graphics::load_mesh); a cheap handle.
+/// [`Material`]. Made with [`Graphics::create_mesh`](crate::gfx::Graphics::create_mesh) or
+/// loaded with [`Graphics::load_mesh`](crate::gfx::Graphics::load_mesh); a cheap handle.
 ///
 /// ```no_run
 /// # use ponko::prelude::*;
@@ -262,7 +263,7 @@ impl Mesh {
 }
 
 /// What one mesh cost to draw in the last frame, from
-/// [`Graphics::mesh_costs`](crate::Graphics::mesh_costs).
+/// [`Graphics::mesh_costs`](crate::gfx::Graphics::mesh_costs).
 #[derive(Debug, Clone, PartialEq)]
 pub struct MeshCost {
     /// The mesh.
@@ -282,7 +283,7 @@ pub struct MeshCost {
 
 /// How a surface looks: its color (and texture), how rough and how metallic
 /// it is, and light it gives off. Made with
-/// [`Graphics::create_material`](crate::Graphics::create_material); a cheap handle.
+/// [`Graphics::create_material`](crate::gfx::Graphics::create_material); a cheap handle.
 ///
 /// ```no_run
 /// # use ponko::prelude::*;
@@ -297,8 +298,8 @@ pub struct Material {
 }
 
 /// A material shader written in WGSL: made with
-/// [`Graphics::load_shader`](crate::Graphics::load_shader) or
-/// [`Graphics::create_shader`](crate::Graphics::create_shader); a cheap handle. See
+/// [`Graphics::load_shader`](crate::gfx::Graphics::load_shader) or
+/// [`Graphics::create_shader`](crate::gfx::Graphics::create_shader); a cheap handle. See
 /// the 3D chapter of the guide for what a shader can do ("Custom shaders"
 /// and "The shader contract").
 ///
@@ -319,7 +320,7 @@ pub struct Material {
 ///   detail) or shared-instance (GPU buffer) draws. There are no defines;
 ///   skinned meshes use the same pipelines.
 /// - Culling uses the mesh's bounds before `vertex` moves anything: grow
-///   them with [`Graphics::set_mesh_gpu_bounds`](crate::Graphics::set_mesh_gpu_bounds)
+///   them with [`Graphics::set_mesh_gpu_bounds`](crate::gfx::Graphics::set_mesh_gpu_bounds)
 ///   for shaders that move vertices far.
 ///
 /// ```no_run
@@ -483,7 +484,7 @@ pub struct Model {
 /// shows: a cheap stand-in for a detailed model's shadow (a simplified copy,
 /// a billboard), or `None` for no shadow from this entity. Without it, the
 /// model's own mesh casts the shadow (unless
-/// [`Graphics::set_mesh_shadows`](crate::Graphics::set_mesh_shadows) turned that
+/// [`Graphics::set_mesh_shadows`](crate::gfx::Graphics::set_mesh_shadows) turned that
 /// mesh's shadows off).
 ///
 /// Far from the camera, a shadow is a few texels of the shadow map, so a

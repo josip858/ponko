@@ -127,7 +127,7 @@ struct Score {
 
 impl Battle {
     fn set_rally(&mut self, team: Team, at: Vec2) {
-        let start = ponko::Instant::now();
+        let start = ponko::time::Instant::now();
         self.rally[team.index()] = at;
         self.fields[team.index()].compute(&self.nav, &[at]);
         self.field_ms = start.elapsed().as_secs_f32() * 1000.0;
@@ -667,7 +667,7 @@ fn main() {
     let seed = env_number("SEED", 1.0) as u64;
     if env_number("HEADLESS", 0.0) != 0.0 {
         let ticks = env_number("TICKS", 600.0) as u64;
-        let mut start = ponko::Instant::now();
+        let mut start = ponko::time::Instant::now();
         let world = battle_systems(Game::new("battle", 1, 1).seed(seed))
             .sim_system(|ctx: &mut Ctx| {
                 // Headless rounds restart on their own.
@@ -697,7 +697,7 @@ fn main() {
             // The two-argument form may borrow a local, here the timer.
             .run_headless(ticks, |ctx| {
                 setup(ctx, units, seed, None);
-                start = ponko::Instant::now();
+                start = ponko::time::Instant::now();
             });
         let secs = start.elapsed().as_secs_f64();
         let b = world.resource::<Battle>();

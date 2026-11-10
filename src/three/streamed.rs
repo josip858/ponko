@@ -72,7 +72,7 @@ impl StreamedLod {
 impl Ctx {
     /// Mesh file `path`, streamed in without waiting: `None` the first time
     /// (it starts reading and decoding on a worker thread) and until it is
-    /// uploaded, within the [upload budget](crate::Graphics::set_upload_budget), at
+    /// uploaded, within the [upload budget](crate::gfx::Graphics::set_upload_budget), at
     /// the start of a later frame; then the same [`Mesh`] as
     /// [`resident_mesh`](Self::resident_mesh) gives, under the same
     /// [mesh budget](Self::set_residency_budget). Ask for it each tick or
@@ -289,7 +289,7 @@ impl Ctx {
     }
 }
 
-impl crate::Graphics {
+impl crate::gfx::Graphics {
     /// Where mesh `name` is (`asset_state`).
     pub(crate) fn mesh_state(&self, name: &str) -> AssetState {
         if self.live_resident_mesh(name).is_some() {

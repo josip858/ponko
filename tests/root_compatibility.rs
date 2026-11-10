@@ -100,3 +100,39 @@ fn old_root_service_types_do_not_require_an_optional_subsystem() {
     const DIFFERENCE: i16 = seq_diff(1, 0);
     assert_eq!(DIFFERENCE, 1);
 }
+
+#[test]
+fn old_root_constants_and_moved_types_still_resolve_to_their_module_items() {
+    assert_eq!(MAX_GAMEPADS, ponko::input::MAX_GAMEPADS);
+    assert_eq!(MAX_PLAYERS, ponko::net::MAX_PLAYERS);
+    assert_eq!(MAX_INPUT_BYTES, ponko::net::MAX_INPUT_BYTES);
+    assert_eq!(MAX_MESSAGE_BYTES, ponko::net::MAX_MESSAGE_BYTES);
+    assert_eq!(MAX_INTEREST_TIERS, ponko::net::MAX_INTEREST_TIERS);
+    assert_eq!(DEFAULT_SEED, ponko::random::DEFAULT_SEED);
+    assert_eq!(SCENARIO_VERSION, ponko::scenario::SCENARIO_VERSION);
+    assert_eq!(MAX_SCENARIO_STEPS, ponko::scenario::MAX_SCENARIO_STEPS);
+    assert_eq!(MAX_SCENARIO_TICKS, ponko::scenario::MAX_SCENARIO_TICKS);
+    assert_eq!(DEFAULT_UPLOAD_BUDGET, ponko::streaming::DEFAULT_UPLOAD_BUDGET);
+    assert_eq!(ECS_DIAGNOSTICS_VERSION, ponko::diagnostics::ECS_DIAGNOSTICS_VERSION);
+    assert_eq!(SPATIAL_SORT_EVERY, ponko::spatial::SpatialGrid::<()>::SORT_EVERY);
+    #[cfg(feature = "physics")]
+    assert_eq!(MAX_POLYGON_POINTS, ponko::physics::MAX_POLYGON_POINTS);
+    #[cfg(feature = "physics3d")]
+    assert_eq!(PHYSICS3D_HZ, ponko::physics3d::PHYSICS3D_HZ);
+    #[cfg(feature = "3d")]
+    {
+        assert_eq!(MAX_DECALS, d3::Decal::MAX);
+        assert_eq!(TERRAIN_LODS, terrain::TerrainTile::LODS);
+        assert_eq!(MIN_RENDER_SCALE, render::GraphicsQuality::MIN_RENDER_SCALE);
+    }
+    // Moved types keep their identity behind the old spellings.
+    let attached: d2::Attached = Attached::to(Entity::from_bits(1));
+    assert_eq!(attached.to, Entity::from_bits(1));
+    let _: Option<&d2::TileMap> = None::<&TileMap>;
+    let _: Option<&ponko::gfx::Graphics> = None::<&Graphics>;
+    let _: Option<ponko::reflect::Field> = None::<Field>;
+    let _: Option<ponko::ecs_core::ComponentId> = None::<ComponentId>;
+    let _: Option<ponko::ecs_core::WorldView<'static>> = None::<WorldView<'static>>;
+    let start: ponko::time::Instant = Instant::now();
+    assert!(start.elapsed().as_secs() < 60);
+}

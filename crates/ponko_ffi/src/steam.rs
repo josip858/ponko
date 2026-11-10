@@ -63,7 +63,7 @@ pub unsafe extern "C" fn crabby_game_lockstep_steam_host(
         if game.is_null() {
             return Err(invalid("game is null"));
         }
-        if !(2..=ponko::MAX_PLAYERS as u32).contains(&players) {
+        if !(2..=ponko::net::MAX_PLAYERS as u32).contains(&players) {
             return Err(invalid("2 to 8 players"));
         }
         if input_delay > 64 {

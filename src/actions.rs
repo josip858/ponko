@@ -4,7 +4,7 @@ use crate::input::GamepadAxis;
 use crate::input::GamepadButton;
 use crate::input::GamepadStick;
 use crate::input::{ButtonStates, PadState};
-use crate::{Key, MAX_GAMEPADS, MouseButton};
+use crate::input::{Key, MAX_GAMEPADS, MouseButton};
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;

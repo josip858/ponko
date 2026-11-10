@@ -429,10 +429,10 @@ pub enum CrabbyGamepadAxis {
 
 /// How many gamepads the engine tracks: slots run `0..CRABBY_MAX_GAMEPADS`.
 /// ```
-/// assert_eq!(ponko_ffi::CRABBY_MAX_GAMEPADS as usize, ponko::MAX_GAMEPADS);
+/// assert_eq!(ponko_ffi::CRABBY_MAX_GAMEPADS as usize, ponko::input::MAX_GAMEPADS);
 /// ```
 pub const CRABBY_MAX_GAMEPADS: u32 = 8;
-const _: () = assert!(CRABBY_MAX_GAMEPADS as usize == ponko::MAX_GAMEPADS);
+const _: () = assert!(CRABBY_MAX_GAMEPADS as usize == ponko::input::MAX_GAMEPADS);
 
 /// The Rust buttons in `CrabbyGamepadButton` order.
 const GAMEPAD_BUTTONS: [GamepadButton; 16] = {

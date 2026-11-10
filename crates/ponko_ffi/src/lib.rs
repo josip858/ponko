@@ -393,7 +393,7 @@ pub(crate) fn component(world: &World, id: u32) -> Result<(ComponentId, Kind), F
         None if !info.needs_drop() => Kind::Plain,
         Some(t) if t == TypeId::of::<Transform2D>() => Kind::Plain,
         // repr(C), layout checked against CrabbyAttached; any bits are a valid value.
-        Some(t) if t == TypeId::of::<ponko::Attached>() => Kind::Plain,
+        Some(t) if t == TypeId::of::<ponko::d2::Attached>() => Kind::Plain,
         // repr(C), layout checked against CrabbyAnimation; `looping` must be 0 or 1.
         Some(t) if t == TypeId::of::<ponko::Animation>() => Kind::Plain,
         Some(t) if t == TypeId::of::<Sprite>() => Kind::Mirror(&SPRITE),

@@ -642,7 +642,7 @@ fn perf_json(ctx: &Ctx, meshes: usize) -> Value {
 
 /// `Graphics::shader_status` as JSON.
 #[cfg(feature = "3d")]
-pub(crate) fn shader_status_json(gfx: &crate::Graphics) -> Value {
+pub(crate) fn shader_status_json(gfx: &crate::gfx::Graphics) -> Value {
     use crate::render::ShaderKind;
     use crate::render::ShaderOutcome;
     let shaders: Vec<Value> = gfx
@@ -693,7 +693,7 @@ pub(crate) fn shader_status_json(gfx: &crate::Graphics) -> Value {
 
 /// Without the `3d` feature a game has no custom shaders.
 #[cfg(not(feature = "3d"))]
-fn shader_status_json(_gfx: &crate::Graphics) -> Value {
+fn shader_status_json(_gfx: &crate::gfx::Graphics) -> Value {
     json!({ "shaders": [], "note": "built without the `3d` feature: no custom shaders" })
 }
 
@@ -1456,7 +1456,7 @@ mod tests {
         ctx.world.spawn((Transform2D::at(vec2(1.0, 2.0)),));
         ctx.world.spawn((Transform2D::default(), 5u32));
         let d = handle(&mut ctx, "ecs.diagnostics", &json!({ "with": ["Transform2D"] })).unwrap();
-        assert_eq!(d["version"], crate::ECS_DIAGNOSTICS_VERSION);
+        assert_eq!(d["version"], crate::diagnostics::ECS_DIAGNOSTICS_VERSION);
         assert_eq!(d["entities"], 2);
         assert_eq!(
             d["matching"],

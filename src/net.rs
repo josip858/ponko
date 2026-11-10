@@ -22,7 +22,8 @@ use std::time::Duration;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-use crate::{Instant, World, WorldReflect};
+use crate::time::Instant;
+use crate::{World, WorldReflect};
 
 #[cfg(test)]
 mod message_conformance;

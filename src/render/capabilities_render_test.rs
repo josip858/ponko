@@ -255,7 +255,7 @@ fn draw_with(profile: &Profile, size: (u32, u32), setup: impl Fn(&mut Ctx)) -> O
         enabled: true,
         extent: vec3(8.0, 4.0, 8.0),
         spacing: 1.0,
-        probes_per_frame: crate::render::MAX_GI_PROBES_PER_FRAME,
+        probes_per_frame: crate::render::GlobalIllumination::MAX_PROBES_PER_FRAME,
         intensity: 1.0,
     };
     ctx.post.anti_aliasing = AntiAliasing::Taa;

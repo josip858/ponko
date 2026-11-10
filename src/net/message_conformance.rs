@@ -63,8 +63,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use super::messages::PacketTransport;
-use crate::MAX_MESSAGE_BYTES;
 use crate::net::Lane;
+use crate::net::MAX_MESSAGE_BYTES;
 use crate::net::MessageEvent;
 use crate::net::NetMessages;
 use crate::net::PeerId;

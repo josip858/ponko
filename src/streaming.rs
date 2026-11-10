@@ -6,7 +6,7 @@
 //! [`Ctx::stream_mesh`]) never wait: the first call starts decoding the file
 //! on a [`Job`] thread and returns `None`; once decoded, the
 //! asset is uploaded at the start of a frame, within the
-//! [upload budget](crate::Graphics::set_upload_budget). A texture appears first as a
+//! [upload budget](crate::gfx::Graphics::set_upload_budget). A texture appears first as a
 //! stand-in at most 32 pixels a side and doubles in resolution each upload
 //! until it is full size or its [residency budget](Ctx::set_residency_budget)
 //! is reached. Evicted textures drop back to that stand-in; evicted meshes
@@ -14,7 +14,7 @@
 //!
 //! Each asset's [`AssetState`] changes only in that upload step, and
 //! uploads run in the order the assets were asked for. With
-//! [`Graphics::set_deterministic_uploads`](crate::Graphics::set_deterministic_uploads) the step waits for decoding instead of
+//! [`Graphics::set_deterministic_uploads`](crate::gfx::Graphics::set_deterministic_uploads) the step waits for decoding instead of
 //! moving on, so which frame each state changes in depends only on the
 //! order of requests and the budget: the same run gives the same frames.
 //! States are fixed per frame, not per simulation tick (a frame may run
@@ -31,10 +31,10 @@ use crate::{Ctx, Texture, stream::Job};
 /// The longest side of a streamed texture's stand-in.
 pub(crate) const STAND_IN: u32 = 32;
 
-/// The default [upload budget](crate::Graphics::set_upload_budget): 16 MiB a frame.
+/// The default [upload budget](crate::gfx::Graphics::set_upload_budget): 16 MiB a frame.
 pub const DEFAULT_UPLOAD_BUDGET: u64 = 16 << 20;
 
-/// Where a streamed asset is ([`Graphics::asset_state`](crate::Graphics::asset_state)). States change only
+/// Where a streamed asset is ([`Graphics::asset_state`](crate::gfx::Graphics::asset_state)). States change only
 /// in the upload step at the start of a frame, in the order assets were
 /// asked for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -55,7 +55,7 @@ pub enum AssetState {
     /// stand-in, a mesh draws nothing. Asking for it again brings it back
     /// under the same handle.
     Evicted,
-    /// Loading failed; [`Graphics::asset_error`](crate::Graphics::asset_error) says why. Streaming doesn't
+    /// Loading failed; [`Graphics::asset_error`](crate::gfx::Graphics::asset_error) says why. Streaming doesn't
     /// retry it by itself; loading it with `resident_*` does.
     Failed,
 }
@@ -76,7 +76,7 @@ impl AssetState {
     }
 }
 
-/// The upload queue's budget and counters ([`Graphics::upload_stats`](crate::Graphics::upload_stats)).
+/// The upload queue's budget and counters ([`Graphics::upload_stats`](crate::gfx::Graphics::upload_stats)).
 ///
 /// ```
 /// # use ponko::prelude::*;
@@ -105,7 +105,7 @@ pub struct UploadStats {
     /// Steps that went over the budget because a single upload was larger.
     pub oversized: u64,
     /// Times the game thread waited for a decode: only with
-    /// [deterministic uploads](crate::Graphics::set_deterministic_uploads) or in
+    /// [deterministic uploads](crate::gfx::Graphics::set_deterministic_uploads) or in
     /// [`Ctx::finish_uploads`].
     pub decode_waits: u64,
     /// Texture uploads held back because the texture budget was full.
@@ -118,7 +118,7 @@ pub struct UploadStats {
     pub max_step_ms: f32,
 }
 
-/// One streamed asset, for diagnostics ([`Graphics::streamed_assets`](crate::Graphics::streamed_assets)).
+/// One streamed asset, for diagnostics ([`Graphics::streamed_assets`](crate::gfx::Graphics::streamed_assets)).
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub struct StreamedAsset {
@@ -341,7 +341,7 @@ impl Ctx {
     ///
     /// A missing or broken file gives `None` (or, coming back from
     /// eviction, keeps the stand-in), with [`AssetState::Failed`] and the
-    /// error in [`asset_error`](crate::Graphics::asset_error). Asking again doesn't
+    /// error in [`asset_error`](crate::gfx::Graphics::asset_error). Asking again doesn't
     /// retry, so a missing file costs nothing each frame;
     /// [`resident_texture`](Self::resident_texture) loads it again. Files from added [asset sources](crate::Assets::add_source)
     /// are read on the game thread (their trait runs there) and decoded on
@@ -525,7 +525,7 @@ impl Ctx {
 
     /// Uploads queued assets in order, within the budget.
     fn upload_step(&mut self) {
-        let start = crate::Instant::now();
+        let start = crate::time::Instant::now();
         let budget = self.gfx.streaming.budget.unwrap_or(u64::MAX);
         let (mut spent, mut uploads) = (0u64, 0u32);
         let mut later = Vec::new();
@@ -928,7 +928,7 @@ impl Ctx {
     }
 }
 
-impl crate::Graphics {
+impl crate::gfx::Graphics {
     /// Texture `id` was freed (`Ctx::free`): forget its stream and its
     /// bytes in the texture budget now, not when its name is next asked for.
     pub(crate) fn forget_streamed_texture_id(&mut self, id: u32) {
