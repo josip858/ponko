@@ -15,12 +15,14 @@ use crate::world::World;
 ///
 /// # Safety
 /// `state`/`fetch` may only create references into columns listed by `access`,
-/// with the mutability listed there.
+/// with the mutability listed there. `state` returns `Some` exactly when the
+/// archetype has every component that `access` reports as required.
 pub unsafe trait QueryData {
     /// What the loop body receives.
     type Item<'a>;
+    /// Parallel queries read the ids from every worker thread.
     #[doc(hidden)]
-    type Ids: Copy;
+    type Ids: Copy + Send + Sync;
     #[doc(hidden)]
     type State: Copy;
     #[doc(hidden)]
@@ -476,9 +478,58 @@ pub(crate) struct ParTask {
 /// every parallel query, so a steady-state parallel query doesn't allocate.
 /// Holds only archetype indices and row ranges between queries, never
 /// component pointers.
+///
+/// It shrinks after a burst (a `Changed` query with many short runs, say):
+/// every `PAR_PLAN_SHRINK_WINDOW` plans, storage over `PAR_PLAN_RETAIN`
+/// entries that is more than four times the largest plan of that window is
+/// cut to twice that plan (at least `PAR_PLAN_RETAIN`). Plans of a steady
+/// size never reallocate.
 #[cfg(feature = "parallel")]
 #[derive(Default)]
-pub(crate) struct ParPlan(pub(crate) Vec<ParTask>);
+pub(crate) struct ParPlan {
+    tasks: Vec<ParTask>,
+    /// The largest plan, and the number of plans, since the last check.
+    peak: usize,
+    plans: usize,
+}
+
+/// Plans between checks whether the plan storage can shrink.
+#[cfg(feature = "parallel")]
+const PAR_PLAN_SHRINK_WINDOW: usize = 64;
+/// Plan entries kept whatever the recent plans used (32 bytes each).
+#[cfg(feature = "parallel")]
+const PAR_PLAN_RETAIN: usize = 4096;
+
+#[cfg(feature = "parallel")]
+impl ParPlan {
+    /// The storage for a new plan, empty.
+    fn take(&mut self) -> Vec<ParTask> {
+        let mut tasks = std::mem::take(&mut self.tasks);
+        tasks.clear();
+        tasks
+    }
+
+    /// Takes the storage back after a plan ran.
+    fn give_back(&mut self, mut tasks: Vec<ParTask>) {
+        self.peak = self.peak.max(tasks.len());
+        self.plans += 1;
+        if self.plans >= PAR_PLAN_SHRINK_WINDOW {
+            if tasks.capacity() > PAR_PLAN_RETAIN && tasks.capacity() / 4 > self.peak {
+                tasks.clear();
+                tasks.shrink_to((2 * self.peak).max(PAR_PLAN_RETAIN));
+            }
+            self.peak = 0;
+            self.plans = 0;
+        }
+        self.tasks = tasks;
+    }
+
+    /// Entries the storage holds room for.
+    #[cfg(test)]
+    pub(crate) fn capacity(&self) -> usize {
+        self.tasks.capacity()
+    }
+}
 
 /// Fewest rows per parallel chunk: cheap loops stay vectorized and
 /// scheduling stays negligible. Tiny under Miri, so tests reach the
@@ -549,9 +600,11 @@ struct ParWork<'a, Q: QueryData> {
     ids: Q::Ids,
 }
 
-// SAFETY: archetypes (whose components are `Send + Sync`) and tasks are
-// `Sync`; `Q::Ids` is `Copy`, so it has no interior mutability, and it is only
-// read. Fetching rows through it is what `ParWork::visit`'s contract covers.
+// SAFETY: every field is `Sync`: archetypes (whose components are
+// `Send + Sync`), tasks, and `Q::Ids` (bounded `Send + Sync` by
+// `QueryData`). Only the `Q` parameter keeps this from being automatic, and
+// no `Q` value is stored. Fetching rows through the shared archetypes is what
+// `ParWork::visit`'s contract covers.
 #[cfg(feature = "parallel")]
 unsafe impl<Q: QueryData> Sync for ParWork<'_, Q> {}
 
@@ -1049,8 +1102,7 @@ impl<'w, Q: QueryData> Query<'w, Q> {
     /// Takes the world's plan storage; [`par_run`](Self::par_run) returns it.
     #[cfg(feature = "parallel")]
     fn par_plan(&mut self) -> Plan {
-        let mut tasks = std::mem::take(&mut self.world.par_plan.0);
-        tasks.clear();
+        let mut tasks = self.world.par_plan.take();
         let ids = self.ids;
         let filters = self.filters;
         let clock = self.clock();
@@ -1059,7 +1111,15 @@ impl<'w, Q: QueryData> Query<'w, Q> {
         let mut archetypes = self.archetypes();
         while let Some((arch_index, arch)) = archetypes.next_indexed() {
             let len = arch.len();
-            if len == 0 || !filters.matches(arch) || Q::state(arch, &ids).is_none() {
+            if len == 0 || !filters.matches(arch) {
+                continue;
+            }
+            // `Q::state` is `Some` exactly when every required component is
+            // here (`QueryData`'s contract): check that without resolving
+            // columns, which `ParWork::visit` does once per chunk.
+            let mut has_required = true;
+            Q::access(&ids, &mut |id, _, required| has_required &= !required || arch.has(id));
+            if !has_required {
                 continue;
             }
             let mut push = |start: usize, end: usize| {
@@ -1128,7 +1188,7 @@ impl<'w, Q: QueryData> Query<'w, Q> {
                 unsafe { work.visit(lo, (lo + chunk).min(total), |i, item| f(i, item)) };
             });
         }
-        self.world.par_plan.0 = plan.tasks;
+        self.world.par_plan.give_back(plan.tasks);
     }
 
     /// Replaces the contents of `out` with `f` of every matching entity,
@@ -1263,7 +1323,7 @@ impl<'w, Q: QueryData> Query<'w, Q> {
             debug_assert_eq!(initialized.len, n);
             // All results now belong to `out`; disarm before setting its length.
             initialized.len = 0;
-            self.world.par_plan.0 = plan.tasks;
+            self.world.par_plan.give_back(plan.tasks);
         }
         // SAFETY: both paths wrote all n slots; unwinding never reaches here.
         unsafe { out.set_len(n) };
@@ -1438,5 +1498,68 @@ mod cache_tests {
         assert!(q.archetypes().indices.is_none());
         assert_eq!(q.count(), 0);
         assert_eq!(world.query_matches.0.len(), CACHE_MAX_SIGNATURES);
+    }
+}
+
+#[cfg(all(test, feature = "parallel"))]
+mod par_plan_tests {
+    use super::*;
+    use crate::Changed;
+
+    struct Value(u32);
+
+    /// A tracked world where every other row changed since the returned
+    /// tick: a `Changed` query plans one entry per changed row.
+    fn many_runs(rows: u32) -> (World, Tick) {
+        let mut w = World::new();
+        w.track_changes::<Value>();
+        let entities: Vec<Entity> = (0..rows).map(|i| w.spawn((Value(i),))).collect();
+        let seen = w.advance_change_tick();
+        for e in entities.iter().step_by(2) {
+            w.get_mut::<Value>(*e).unwrap().0 += 1;
+        }
+        w.advance_change_tick();
+        (w, seen)
+    }
+
+    #[test]
+    fn plan_storage_shrinks_after_a_burst_of_many_runs() {
+        let runs = 4 * PAR_PLAN_RETAIN;
+        let (mut w, seen) = many_runs(2 * runs as u32);
+        w.query::<&Value>()
+            .filter::<Changed<Value>>()
+            .since(seen)
+            .par_for_each(|v| assert!(v.0 % 2 == 1));
+        let big = w.par_plan.capacity();
+        assert!(big >= runs, "one entry per run: {big}");
+        // A whole window of small plans (the burst's own window ends first)
+        // gives the storage back.
+        for _ in 0..2 * PAR_PLAN_SHRINK_WINDOW {
+            w.query::<&Value>().par_for_each(|v| {
+                std::hint::black_box(v.0);
+            });
+        }
+        let small = w.par_plan.capacity();
+        assert!(small <= PAR_PLAN_RETAIN, "{big} entries shrank to {small}");
+        assert!(small >= 1, "the storage stays usable");
+    }
+
+    #[test]
+    fn plan_storage_of_a_steady_size_is_kept() {
+        let (mut w, seen) = many_runs(2 * 4 * PAR_PLAN_RETAIN as u32);
+        let mut q = |w: &mut World| {
+            w.query::<&Value>()
+                .filter::<Changed<Value>>()
+                .since(seen)
+                .par_for_each(|v| assert!(v.0 % 2 == 1));
+        };
+        q(&mut w);
+        let capacity = w.par_plan.capacity();
+        let buffer = w.par_plan.tasks.as_ptr();
+        for _ in 0..3 * PAR_PLAN_SHRINK_WINDOW {
+            q(&mut w);
+        }
+        assert_eq!(w.par_plan.capacity(), capacity);
+        assert_eq!(w.par_plan.tasks.as_ptr(), buffer);
     }
 }

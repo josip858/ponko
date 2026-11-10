@@ -256,6 +256,14 @@ fn cached_parallel_chunks_follow_growth_and_preserve_order() {
 /// runs the rest in parallel unless the whole query would take under 50 µs.
 const MIN_CHUNK: usize = if cfg!(miri) { 64 } else { 512 };
 
+/// Asserts that a query over `n` rows reaches worker threads: more than four
+/// chunks, so at least three parallel chunks remain after the timed first
+/// one (chunks are `MIN_CHUNK` rows on a 4-thread pool at these sizes).
+#[track_caller]
+fn assert_reaches_workers(n: usize) {
+    assert!(n > 4 * MIN_CHUNK, "{n} rows are too few to reach the workers");
+}
+
 /// Per-entity work that makes any query over more than one chunk of rows
 /// slow enough to run in parallel: at least 200 ns per entity, so the timed
 /// first chunk alone takes over 100 µs. Not needed under Miri, which always
@@ -371,10 +379,10 @@ fn many_tiny_archetypes_keep_the_sequential_order() {
     spawn_layouts(
         &mut w,
         layouts,
-        |bits| if cfg!(miri) { 3 + bits % 3 } else { 8 + bits % 8 },
+        |bits| if cfg!(miri) { 6 + bits % 3 } else { 8 + bits % 8 },
     );
     let n = assert_parallel_order(&mut w, all_ids);
-    assert!(n > 2 * MIN_CHUNK, "{n} rows reach the parallel plan");
+    assert_reaches_workers(n);
 }
 
 #[test]
@@ -437,14 +445,15 @@ fn empty_archetypes_take_no_positions() {
     // Every odd layout has no rows of its own: an empty archetype between
     // filled ones.
     let layouts = if cfg!(miri) { 64 } else { 512 };
-    spawn_layouts(&mut w, layouts, |bits| if bits % 2 == 1 { 0 } else { 2 + bits % 4 });
+    spawn_layouts(&mut w, layouts, |bits| if bits % 2 == 1 { 0 } else { 10 + bits % 4 });
     // Empty some filled archetypes too, by despawning their rows.
     let gone: Vec<Entity> = w.query::<Entity>().with::<M<2>>().without::<M<1>>().iter().collect();
     for e in gone {
         w.despawn(e);
     }
     assert!(w.query::<&Id>().with::<M<2>>().without::<M<1>>().count() == 0);
-    assert_parallel_order(&mut w, all_ids);
+    let n = assert_parallel_order(&mut w, all_ids);
+    assert_reaches_workers(n);
     // A query that matches only empty archetypes runs nothing.
     on_four_threads(|| {
         w.query::<&Id>()
@@ -464,7 +473,7 @@ fn empty_archetypes_take_no_positions() {
 fn filters_apply_to_the_plan_across_many_tiny_archetypes() {
     let layouts = if cfg!(miri) { 64 } else { 512 };
     let mut w = World::new();
-    spawn_layouts(&mut w, layouts, |bits| 1 + bits % 4);
+    spawn_layouts(&mut w, layouts, |bits| 17 + bits % 4);
     fn with_without(w: &mut World) -> Query<'_, &Id> {
         w.query::<&Id>().with::<M<0>>().without::<M<3>>()
     }
@@ -474,7 +483,9 @@ fn filters_apply_to_the_plan_across_many_tiny_archetypes() {
     }
     let a = assert_parallel_order(&mut w, with_without);
     let b = assert_parallel_order(&mut w, either);
-    assert!(a > 0 && b > 0 && a < w.query::<&Id>().count());
+    assert_reaches_workers(a);
+    assert_reaches_workers(b);
+    assert!(a < w.query::<&Id>().count());
 }
 
 #[test]
@@ -482,17 +493,19 @@ fn queried_components_narrow_the_plan_and_optional_ones_do_not() {
     use std::sync::atomic::{AtomicU64, Ordering};
     let layouts = if cfg!(miri) { 64 } else { 512 };
     let mut w = World::new();
-    spawn_layouts(&mut w, layouts, |bits| 1 + bits % 3);
+    spawn_layouts(&mut w, layouts, |bits| 9 + bits % 3);
     let expected: Vec<(u64, bool)> = w
         .query::<(&Id, Option<&M<1>>, &M<5>)>()
         .iter()
         .map(|(id, m, _)| (id.0, m.is_some()))
         .collect();
     assert!(expected.iter().any(|e| e.1) && expected.iter().any(|e| !e.1));
+    assert_reaches_workers(expected.len());
     on_four_threads(|| {
         let slots: Vec<AtomicU64> = expected.iter().map(|_| AtomicU64::new(u64::MAX)).collect();
         w.query::<(&Id, Option<&M<1>>, &M<5>)>()
             .par_for_each_indexed(|i, (id, m, _)| {
+                slow(true);
                 assert_eq!(
                     slots[i].swap(id.0 * 2 + u64::from(m.is_some()), Ordering::Relaxed),
                     u64::MAX
@@ -512,7 +525,7 @@ fn cached_queries_plan_many_tiny_archetypes_in_order() {
     // Enough layouts for the matching cache to engage (128 and up).
     let layouts = if cfg!(miri) { 160 } else { 512 };
     let mut w = World::new();
-    spawn_layouts(&mut w, layouts, |bits| if cfg!(miri) { 2 } else { 12 + bits % 16 });
+    spawn_layouts(&mut w, layouts, |bits| if cfg!(miri) { 3 } else { 12 + bits % 16 });
     fn cached(w: &mut World) -> Query<'_, &Id> {
         w.query::<&Id>().cached().without::<M<6>>()
     }
@@ -520,7 +533,7 @@ fn cached_queries_plan_many_tiny_archetypes_in_order() {
         w.query::<&Id>().without::<M<6>>()
     }
     let n = assert_parallel_order(&mut w, cached);
-    assert!(n > 2 * MIN_CHUNK, "{n} rows reach the parallel plan");
+    assert_reaches_workers(n);
     let want: Vec<u64> = scanned(&mut w).iter().map(|id| id.0).collect();
     let mut got = Vec::new();
     cached(&mut w).par_collect_into(&mut got, |id| id.0);
@@ -535,12 +548,18 @@ fn cached_queries_plan_many_tiny_archetypes_in_order() {
 fn a_mutable_loop_over_many_tiny_archetypes_updates_each_row_once() {
     let layouts = if cfg!(miri) { 64 } else { 512 };
     let mut w = World::new();
-    spawn_layouts(&mut w, layouts, |bits| 1 + bits % 5);
+    spawn_layouts(&mut w, layouts, |bits| 5 + bits % 5);
     let before: Vec<u64> = w.query::<&Id>().iter().map(|id| id.0).collect();
+    assert_reaches_workers(before.len());
     on_four_threads(|| {
-        w.query::<&mut Id>().par_for_each(|id| id.0 += 1_000_000);
-        w.query::<&mut Id>()
-            .par_for_each_indexed(|i, id| id.0 = id.0 * 10_000_000 + i as u64);
+        w.query::<&mut Id>().par_for_each(|id| {
+            slow(true);
+            id.0 += 1_000_000;
+        });
+        w.query::<&mut Id>().par_for_each_indexed(|i, id| {
+            slow(true);
+            id.0 = id.0 * 10_000_000 + i as u64;
+        });
     });
     let after: Vec<u64> = w.query::<&Id>().iter().map(|id| id.0).collect();
     let want: Vec<u64> = before
@@ -556,7 +575,7 @@ fn changed_filters_split_many_tiny_archetypes_into_runs_in_order() {
     let layouts = if cfg!(miri) { 64 } else { 512 };
     let mut w = World::new();
     w.track_changes::<Id>();
-    spawn_layouts(&mut w, layouts, |bits| 3 + bits % 6);
+    spawn_layouts(&mut w, layouts, |bits| 5 + bits % 6);
     let seen = w.advance_change_tick();
     // Change every third entity: each archetype yields several runs.
     let all: Vec<Entity> = w.query::<Entity>().iter().collect();
@@ -572,12 +591,16 @@ fn changed_filters_split_many_tiny_archetypes_into_runs_in_order() {
     w.set_changes_since(seen);
     let n = assert_parallel_order(&mut w, changed);
     assert_eq!(n, (0..all.len()).filter(|i| i % 3 != 1).count());
+    assert_reaches_workers(n);
     // A mutable parallel loop marks exactly the rows it visits.
     on_four_threads(|| {
         w.query::<&mut Id>()
             .filter::<Changed<Id>>()
             .since(seen)
-            .par_for_each(|id| id.0 += 1);
+            .par_for_each(|id| {
+                slow(true);
+                id.0 += 1;
+            });
     });
     let marked = w.query::<&Id>().filter::<Changed<Id>>().since(later).count();
     assert_eq!(marked, n);
@@ -597,7 +620,7 @@ fn a_mapper_panic_across_many_tiny_archetypes_drops_each_written_value_once() {
     }
     let layouts = if cfg!(miri) { 64 } else { 512 };
     let mut w = World::new();
-    spawn_layouts(&mut w, layouts, |bits| 1 + bits % 4);
+    spawn_layouts(&mut w, layouts, |bits| 3 + bits % 4);
     let n = w.query::<&Id>().count();
     // A panic in the timed first chunk, and one in the part after it.
     for (heavy, at) in [(false, MIN_CHUNK / 2), (true, n * 2 / 3)] {
@@ -637,4 +660,30 @@ fn a_panicking_parallel_loop_leaves_the_query_usable() {
     });
     assert!(result.is_err());
     assert_parallel_order(&mut w, all_ids);
+}
+
+#[test]
+#[cfg(not(miri))]
+fn a_slow_query_over_tiny_archetypes_runs_on_more_than_one_thread() {
+    use std::collections::HashSet;
+    use std::sync::Mutex;
+    if rayon::current_num_threads() < 2 {
+        return; // One thread: nothing to spread over.
+    }
+    let mut w = World::new();
+    spawn_layouts(&mut w, 512, |bits| 8 + bits % 8);
+    let n = w.query::<&Id>().count();
+    assert_reaches_workers(n);
+    let threads = Mutex::new(HashSet::new());
+    // About 2 µs per entity, over 10 ms in all: far over the serial budget,
+    // and long enough for idle workers to pick up chunks.
+    w.query::<&Id>().par_for_each(|_| {
+        let start = std::time::Instant::now();
+        while start.elapsed() < std::time::Duration::from_micros(2) {
+            std::hint::spin_loop();
+        }
+        threads.lock().unwrap().insert(std::thread::current().id());
+    });
+    let threads = threads.into_inner().unwrap().len();
+    assert!(threads > 1, "{threads} thread ran {n} rows of slow work");
 }
