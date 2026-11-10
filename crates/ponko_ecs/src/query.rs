@@ -438,9 +438,10 @@ pub(crate) struct Archetypes<'a> {
     pub(crate) next: usize,
 }
 
-impl<'a> Iterator for Archetypes<'a> {
-    type Item = &'a Archetype;
-    fn next(&mut self) -> Option<Self::Item> {
+impl<'a> Archetypes<'a> {
+    /// The next archetype and its index in the world's archetype list.
+    #[inline]
+    pub(crate) fn next_indexed(&mut self) -> Option<(usize, &'a Archetype)> {
         let index = if let Some(indices) = &mut self.indices {
             *indices.next()?
         } else {
@@ -448,7 +449,103 @@ impl<'a> Iterator for Archetypes<'a> {
             self.next += 1;
             index
         };
-        self.all.get(index)
+        Some((index, self.all.get(index)?))
+    }
+}
+
+impl<'a> Iterator for Archetypes<'a> {
+    type Item = &'a Archetype;
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next_indexed().map(|(_, arch)| arch)
+    }
+}
+
+/// One entry of a parallel query's work plan: rows `start..end` of archetype
+/// `arch`, which are the query's positions `base..base + (end - start)`.
+#[cfg(feature = "parallel")]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ParTask {
+    arch: usize,
+    start: usize,
+    end: usize,
+    base: usize,
+}
+
+/// The storage of the parallel work plan, owned by the world and reused by
+/// every parallel query, so a steady-state parallel query doesn't allocate.
+/// Holds only archetype indices and row ranges between queries, never
+/// component pointers.
+#[cfg(feature = "parallel")]
+#[derive(Default)]
+pub(crate) struct ParPlan(pub(crate) Vec<ParTask>);
+
+/// Fewest rows per parallel chunk: cheap loops stay vectorized and
+/// scheduling stays negligible. Tiny under Miri, so tests reach the
+/// multi-chunk path with few rows.
+#[cfg(feature = "parallel")]
+const PAR_MIN_CHUNK: usize = if cfg!(miri) { 64 } else { 512 };
+/// Most rows per parallel chunk, so big queries split into enough chunks to
+/// balance uneven per-entity work.
+#[cfg(feature = "parallel")]
+const PAR_MAX_CHUNK: usize = if cfg!(miri) { 64 } else { 8192 };
+/// Up to this many rows, a query whose archetypes are all small (none bigger
+/// than `PAR_MIN_CHUNK`) runs on the calling thread, as it did before small
+/// archetypes were batched. Measured crossover: `crates/ponko_bench/PAR_ARCHETYPES.md`.
+#[cfg(feature = "parallel")]
+const PAR_SERIAL_ROWS: usize = if cfg!(miri) { 128 } else { 4096 };
+
+/// A parallel query's work plan: its rows in query order, how many there
+/// are, and the chunk size to split them into (`None`: run on this thread).
+#[cfg(feature = "parallel")]
+struct Plan {
+    tasks: Vec<ParTask>,
+    total: usize,
+    chunk: Option<usize>,
+}
+
+/// What every thread of a parallel query reads: the archetypes, the plan
+/// and the query's component ids.
+#[cfg(feature = "parallel")]
+struct ParWork<'a, Q: QueryData> {
+    archetypes: &'a [Archetype],
+    tasks: &'a [ParTask],
+    ids: Q::Ids,
+}
+
+// SAFETY: archetypes (whose components are `Send + Sync`) and tasks are
+// `Sync`; `Q::Ids` is `Copy`, so it has no interior mutability, and it is only
+// read. Fetching rows through it is what `ParWork::visit`'s contract covers.
+#[cfg(feature = "parallel")]
+unsafe impl<Q: QueryData> Sync for ParWork<'_, Q> {}
+
+#[cfg(feature = "parallel")]
+impl<Q: QueryData> ParWork<'_, Q> {
+    /// Calls `f(i, item)` for the query positions `lo..hi`, in order.
+    ///
+    /// # Safety
+    /// The plan was built under the query's (still held) world borrow, whose
+    /// access was validated, and no other thread visits any of these
+    /// positions at the same time.
+    #[inline(always)]
+    unsafe fn visit(&self, lo: usize, hi: usize, mut f: impl FnMut(usize, Q::Item<'_>)) {
+        // The task holding position `lo`: tasks are in position order.
+        let mut t = self.tasks.partition_point(|t| t.base + (t.end - t.start) <= lo);
+        let mut pos = lo;
+        while pos < hi {
+            let task = self.tasks[t];
+            let state = Q::state(&self.archetypes[task.arch], &self.ids)
+                .expect("a planned archetype matches the query while it runs");
+            let first = task.start + (pos - task.base);
+            let last = task.end.min(task.start + (hi - task.base));
+            for row in first..last {
+                // SAFETY: `row` is below the archetype's length (planned under
+                // the same borrow) and only this thread visits it now.
+                f(task.base + row - task.start, unsafe { Q::fetch(state, row) });
+            }
+            pos = task.base + (last - task.start);
+            t += 1;
+        }
     }
 }
 
@@ -857,9 +954,13 @@ impl<'w, Q: QueryData> Query<'w, Q> {
 
     /// Like [`for_each`](Self::for_each), but spread over all CPU cores.
     ///
-    /// Each archetype is cut into chunks of rows, and the chunks run in
-    /// parallel. Use it for heavy per-entity work over many entities; for a
-    /// few thousand cheap updates, `for_each` is just as fast.
+    /// The matching rows of every archetype are lined up in query order and
+    /// cut into chunks of rows, and the chunks run in parallel: one chunk can
+    /// hold many small archetypes or part of a big one, so many small
+    /// archetypes use every core too. Use it for heavy per-entity work over
+    /// many entities; for a few thousand cheap updates, `for_each` is just as
+    /// fast (queries over at most 4096 rows of small archetypes run on the
+    /// calling thread).
     ///
     /// `f` can't capture `&mut` state (it runs on many threads at once). To
     /// spawn or despawn, collect what you need and use commands afterwards.
@@ -900,76 +1001,95 @@ impl<'w, Q: QueryData> Query<'w, Q> {
     /// ```
     #[cfg(feature = "parallel")]
     pub fn par_for_each_indexed(&mut self, f: impl Fn(usize, Q::Item<'_>) + Send + Sync) {
-        use rayon::prelude::*;
+        let plan = self.par_plan();
+        self.par_run(plan, f);
+    }
 
-        /// Rows per parallel task, chosen per archetype: about 4 tasks per
-        /// thread so heavy per-entity work (neighbor search) uses every core
-        /// even for a few thousand entities, but at least `MIN_CHUNK` rows so
-        /// cheap loops stay vectorized and scheduling stays negligible.
-        /// Tiny under Miri, so tests reach the multi-chunk path with few rows.
-        const MIN_CHUNK: usize = if cfg!(miri) { 64 } else { 512 };
-        const MAX_CHUNK: usize = if cfg!(miri) { 64 } else { 8192 };
-        let threads = rayon::current_num_threads().max(1);
-
-        /// Archetype column pointers, shared with worker threads.
-        #[derive(Clone, Copy)]
-        struct Shared<S>(S);
-        // SAFETY: the pointers refer to component columns (`Send + Sync`
-        // components); each task touches a disjoint row range.
-        unsafe impl<S> Send for Shared<S> {}
-        unsafe impl<S> Sync for Shared<S> {}
-
-        // Position of the next run's first row in the whole query.
-        let mut base = 0;
+    /// Lines up the matching rows of every archetype for a parallel loop, in
+    /// the order of [`for_each`](Self::for_each), and decides how to split
+    /// them. As in `for_each`, stamps are written and row filters are read
+    /// here, on the calling thread, before any row is shared.
+    ///
+    /// Takes the world's plan storage; [`par_run`](Self::par_run) returns it.
+    #[cfg(feature = "parallel")]
+    fn par_plan(&mut self) -> Plan {
+        let mut tasks = std::mem::take(&mut self.world.par_plan.0);
+        tasks.clear();
         let ids = self.ids;
         let filters = self.filters;
         let clock = self.clock();
         let tracking = self.tracking();
-        for arch in self.archetypes() {
+        let (mut total, mut longest) = (0, 0);
+        let mut archetypes = self.archetypes();
+        while let Some((arch_index, arch)) = archetypes.next_indexed() {
             let len = arch.len();
-            if len == 0 || !filters.matches(arch) {
+            if len == 0 || !filters.matches(arch) || Q::state(arch, &ids).is_none() {
                 continue;
             }
-            let Some(state) = Q::state(arch, &ids) else {
-                continue;
+            let mut push = |start: usize, end: usize| {
+                tasks.push(ParTask {
+                    arch: arch_index,
+                    start,
+                    end,
+                    base: total,
+                });
+                total += end - start;
+                longest = longest.max(end - start);
             };
-            // As in `for_each`: stamps are written and row filters are read
-            // here, on the calling thread, before a run's rows are shared.
-            let mut runs = if tracking && arch.tracked() {
+            let runs = if tracking && arch.tracked() {
                 change::visit::<Q>(arch, &ids, &filters, clock)
             } else {
                 None
             };
-            let (mut start, mut end) = (0, len);
-            loop {
-                if let Some(runs) = &mut runs {
-                    match runs.next::<Q>(&ids) {
-                        Some(run) => (start, end) = run,
-                        None => break,
+            match runs {
+                None => push(0, len),
+                Some(mut runs) => {
+                    while let Some((start, end)) = runs.next::<Q>(&ids) {
+                        push(start, end);
                     }
-                }
-                let len = end - start;
-                let chunk = (len / (threads * 4)).clamp(MIN_CHUNK, MAX_CHUNK);
-                if len <= chunk {
-                    for row in start..end {
-                        f(base + row - start, unsafe { Q::fetch(state, row) });
-                    }
-                } else {
-                    let shared = Shared(state);
-                    (0..len.div_ceil(chunk)).into_par_iter().for_each(|c| {
-                        let state = shared;
-                        let last = (start + (c + 1) * chunk).min(end);
-                        for row in start + c * chunk..last {
-                            f(base + row - start, unsafe { Q::fetch(state.0, row) });
-                        }
-                    });
-                }
-                base += len;
-                if runs.is_none() {
-                    break;
                 }
             }
         }
+        // About 4 chunks per thread, so heavy per-entity work (neighbor
+        // search) uses every core even for a few thousand entities, but at
+        // least `PAR_MIN_CHUNK` rows so cheap loops stay vectorized and
+        // scheduling stays negligible.
+        let threads = rayon::current_num_threads().max(1);
+        let chunk = (total / (threads * 4)).clamp(PAR_MIN_CHUNK, PAR_MAX_CHUNK);
+        // Rows of small archetypes only (none bigger than a chunk) used to
+        // run on the calling thread; up to `PAR_SERIAL_ROWS` of them still do,
+        // where waking other threads costs more than cheap work would gain.
+        let serial = total <= chunk || (longest <= PAR_MIN_CHUNK && total <= PAR_SERIAL_ROWS);
+        Plan {
+            tasks,
+            total,
+            chunk: (!serial).then_some(chunk),
+        }
+    }
+
+    /// Calls `f(i, item)` for every position `i` of `plan`, on all cores if
+    /// the plan has a chunk size, then gives the plan storage back to the world.
+    #[cfg(feature = "parallel")]
+    fn par_run(&mut self, plan: Plan, f: impl Fn(usize, Q::Item<'_>) + Send + Sync) {
+        use rayon::prelude::*;
+        let work = ParWork::<Q> {
+            archetypes: &self.world.archetypes,
+            tasks: &plan.tasks,
+            ids: self.ids,
+        };
+        let total = plan.total;
+        match plan.chunk {
+            // SAFETY: the plan was built under this query's world borrow,
+            // whose access was validated, and only this thread runs it.
+            None => unsafe { work.visit(0, total, |i, item| f(i, item)) },
+            Some(chunk) => (0..total.div_ceil(chunk)).into_par_iter().for_each(|c| {
+                let lo = c * chunk;
+                // SAFETY: as above; chunks are disjoint ranges of positions,
+                // and every position is one row of one archetype.
+                unsafe { work.visit(lo, (lo + chunk).min(total), |i, item| f(i, item)) };
+            }),
+        }
+        self.world.par_plan.0 = plan.tasks;
     }
 
     /// Replaces the contents of `out` with `f` of every matching entity,
@@ -1011,11 +1131,12 @@ impl<'w, Q: QueryData> Query<'w, Q> {
         unsafe impl<R: Send> Sync for Slots<R> {}
 
         out.clear();
-        let n = self.count();
+        let plan = self.par_plan();
+        let n = plan.total;
         out.reserve(n);
         let slots = Slots(out.as_mut_ptr());
         if !std::mem::needs_drop::<R>() {
-            self.par_for_each_indexed(|i, item| {
+            self.par_run(plan, |i, item| {
                 debug_assert!(i < n);
                 // SAFETY: every index in the reserved buffer is written once.
                 // On panic these values need no cleanup and `out.len()` stays 0.
@@ -1038,12 +1159,14 @@ impl<'w, Q: QueryData> Query<'w, Q> {
             // Return ownership of completed ranges through `join`: if either
             // branch panics, rayon waits for its sibling and drops its result.
             // No shared counter, bitmap, or per-call allocation is needed.
+            // `fill` covers positions `start..start + len`; `leaf` fills a
+            // range that is at most one chunk long, recording each write.
             fn fill<R: Send>(
                 mut initialized: Initialized<R>,
                 start: usize,
                 len: usize,
                 chunk: usize,
-                f: &(impl Fn(usize) -> R + Sync),
+                leaf: &(impl Fn(usize, usize, &mut Initialized<R>) + Sync),
             ) -> Initialized<R> {
                 if len > chunk {
                     let mid = (len.div_ceil(chunk) / 2) * chunk;
@@ -1052,86 +1175,43 @@ impl<'w, Q: QueryData> Query<'w, Q> {
                         len: 0,
                     };
                     let (mut left, mut right) = rayon::join(
-                        || fill(initialized, start, mid, chunk, f),
-                        || fill(right, start + mid, len - mid, chunk, f),
+                        || fill(initialized, start, mid, chunk, leaf),
+                        || fill(right, start + mid, len - mid, chunk, leaf),
                     );
                     // Both adjacent ranges are complete; transfer ownership.
                     left.len += right.len;
                     right.len = 0;
                     left
                 } else {
-                    for row in 0..len {
-                        // SAFETY: this task exclusively owns these reserved
-                        // slots. Record each write before calling `f` again.
-                        unsafe { initialized.slots.at(row).write(f(start + row)) };
-                        initialized.len += 1;
-                    }
+                    leaf(start, start + len, &mut initialized);
                     initialized
                 }
             }
 
-            struct SharedState<S>(S);
-            impl<S: Copy> SharedState<S> {
-                fn get(&self) -> S {
-                    self.0
+            let chunk = plan.chunk.unwrap_or(n);
+            let work = ParWork::<Q> {
+                archetypes: &self.world.archetypes,
+                tasks: &plan.tasks,
+                ids: self.ids,
+            };
+            let mut initialized = fill(Initialized { slots, len: 0 }, 0, n, chunk, &|lo, hi, initialized| {
+                // SAFETY: the plan was built under this query's world borrow,
+                // whose access was validated; `fill` hands out disjoint
+                // ranges, and every position is one row of one archetype.
+                unsafe {
+                    work.visit(lo, hi, |_, item| {
+                        let value = f(item);
+                        // SAFETY: this task exclusively owns these reserved
+                        // slots. Record each write before calling `f` again.
+                        initialized.slots.at(initialized.len).write(value);
+                        initialized.len += 1;
+                    })
                 }
-            }
-            // SAFETY: as in par_for_each_indexed, query access is validated and
-            // workers fetch disjoint rows of Send + Sync component columns.
-            unsafe impl<S> Send for SharedState<S> {}
-            unsafe impl<S> Sync for SharedState<S> {}
-
-            let threads = rayon::current_num_threads().max(1);
-            let min_chunk = if cfg!(miri) { 64 } else { 512 };
-            let max_chunk = if cfg!(miri) { 64 } else { 8192 };
-            let mut initialized = Initialized { slots, len: 0 };
-            let clock = self.clock();
-            let tracking = self.tracking();
-            for arch in self.world.archetypes.iter() {
-                let len = arch.len();
-                if len == 0 || !self.filters.matches(arch) {
-                    continue;
-                }
-                let Some(state) = Q::state(arch, &self.ids) else {
-                    continue;
-                };
-                let state = SharedState(state);
-                // As in `for_each`: tracked archetypes are stamped, and may
-                // yield runs of rows instead of every row.
-                let mut runs = if tracking && arch.tracked() {
-                    change::visit::<Q>(arch, &self.ids, &self.filters, clock)
-                } else {
-                    None
-                };
-                let (mut start, mut end) = (0, len);
-                loop {
-                    if let Some(runs) = &mut runs {
-                        match runs.next::<Q>(&self.ids) {
-                            Some(run) => (start, end) = run,
-                            None => break,
-                        }
-                    }
-                    let len = end - start;
-                    let chunk = (len / (threads * 4)).clamp(min_chunk, max_chunk);
-                    let mut completed = fill(
-                        Initialized {
-                            slots: Slots(initialized.slots.at(initialized.len)),
-                            len: 0,
-                        },
-                        0,
-                        len,
-                        chunk,
-                        &|row| f(unsafe { Q::fetch(state.get(), start + row) }),
-                    );
-                    initialized.len += completed.len;
-                    completed.len = 0;
-                    if runs.is_none() {
-                        break;
-                    }
-                }
-            }
+            });
+            debug_assert_eq!(initialized.len, n);
             // All results now belong to `out`; disarm before setting its length.
             initialized.len = 0;
+            self.world.par_plan.0 = plan.tasks;
         }
         // SAFETY: both paths wrote all n slots; unwinding never reaches here.
         unsafe { out.set_len(n) };
