@@ -265,6 +265,23 @@ pub(super) fn model() -> ValueSchema {
 pub(super) fn shadow() -> ValueSchema {
     ValueSchema::object([("mesh", ValueSchema::optional(String))])
 }
+/// A material of a loaded mesh file, by its name in the file or its number.
+fn file_material() -> ValueSchema {
+    OneOf(vec![String, Unsigned])
+}
+pub(super) fn model_material() -> ValueSchema {
+    ValueSchema::object([("mesh", String), ("material", file_material())])
+}
+pub(super) fn model_materials() -> ValueSchema {
+    ValueSchema::object([(
+        "parts",
+        ValueSchema::array(ValueSchema::object([
+            ("part", Unsigned),
+            ("mesh", String),
+            ("material", file_material()),
+        ])),
+    )])
+}
 pub(super) fn lod() -> ValueSchema {
     ValueSchema::object([
         ("size", Number),
@@ -377,6 +394,8 @@ mod tests {
                             .as_object()
                             .is_some_and(|o| fields.iter().all(|(n, _)| o.contains_key(n))),
                         Enum(names) => names.iter().any(|n| value == n),
+                        String => value.is_string(),
+                        Unsigned => value.is_u64(),
                         _ => false,
                     })
                     .expect("known tagged variant");
@@ -406,6 +425,30 @@ mod tests {
                 &shadow(),
                 &serde_json::to_value(super::super::ShadowMeshJson::default()).unwrap(),
             );
+            use super::super::{MaterialJson, MaterialRef, ModelMaterialsJson, PartMaterialJson};
+            let by_name = || MaterialRef::Name("Wet".into());
+            for material in [by_name(), MaterialRef::Index(2)] {
+                let json = MaterialJson {
+                    mesh: "rocks.glb".into(),
+                    material,
+                };
+                validate(&model_material(), &serde_json::to_value(json).unwrap());
+            }
+            let parts = ModelMaterialsJson {
+                parts: vec![
+                    PartMaterialJson {
+                        part: 0,
+                        mesh: "door.glb".into(),
+                        material: by_name(),
+                    },
+                    PartMaterialJson {
+                        part: 1,
+                        mesh: "door.glb".into(),
+                        material: MaterialRef::Index(0),
+                    },
+                ],
+            };
+            validate(&model_materials(), &serde_json::to_value(parts).unwrap());
         }
         check!(crate::Transform2D, crate::Transform2D::default());
         check!(crate::Attached, crate::Attached::to(crate::Entity::from_bits(0)));
