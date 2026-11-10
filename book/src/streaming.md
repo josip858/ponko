@@ -32,7 +32,7 @@ decodes. For that, ask for assets **by name, every frame you need them**:
 ## Streaming: never waiting
 
 The first `stream_texture` or `stream_mesh` call starts reading and decoding
-the file on a [job](https://docs.rs/ponko/latest/ponko/struct.Job.html)
+the file on a [job](api/ponko/stream/struct.Job.html)
 thread and returns nothing. At the start of a later frame, before your
 systems run, the engine's **upload step** puts decoded assets on the GPU,
 in the order they were asked for, until the frame's **upload budget**
