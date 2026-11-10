@@ -314,7 +314,10 @@ fn on_four_threads<T: Send>(f: impl FnOnce() -> T + Send) -> T {
 /// with cheap per-entity work and with [`slow`] work, which always reaches
 /// the parallel path.
 fn assert_parallel_order(w: &mut World, query: fn(&mut World) -> Query<'_, &Id>) -> usize {
-    assert_parallel_order_with(w, query, false);
+    // Under Miri both kinds of work take the same path: check once.
+    if !cfg!(miri) {
+        assert_parallel_order_with(w, query, false);
+    }
     assert_parallel_order_with(w, query, true)
 }
 
