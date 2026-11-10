@@ -17,6 +17,9 @@ pub(super) struct Rig {
     pub ctx: Ctx,
     /// What the last draw collected: kept between draws, as a game's is.
     frame: Frame3D,
+    /// The clock the next draw is drawn at: (seconds since the start,
+    /// seconds since the last frame).
+    pub time: (f32, f32),
 }
 
 impl Rig {
@@ -138,7 +141,14 @@ impl Rig {
             renderer,
             ctx,
             frame: Frame3D::default(),
+            time: (0.0, 1.0 / 60.0),
         })
+    }
+
+    /// Panics unless the renderer's buffers that are written a change at a
+    /// time hold what was written (see `Renderer3D::check_mirrors`).
+    pub fn check_mirrors(&self) {
+        self.renderer.check_mirrors(&self.device, &self.queue);
     }
 
     /// A mesh of `data` with `desc`, on the CPU and the GPU.
@@ -167,6 +177,9 @@ impl Rig {
         let mut frame = std::mem::take(&mut self.frame);
         frame.lod = ctx.lod;
         frame.occlusion = grid;
+        // Motion vectors, as a game's frame lists them.
+        frame.motion.enabled =
+            ctx.post.anti_aliasing == AntiAliasing::Taa || (ctx.post.ao_temporal && ctx.post.ambient_occlusion.enabled);
         frame.collect(
             &mut ctx.world,
             &ctx.gfx.assets3d,
@@ -197,7 +210,7 @@ impl Rig {
             },
             camera: ctx.camera3d.position,
             post: &ctx.post,
-            time: (0.0, 1.0 / 60.0),
+            time: self.time,
             occlusion: ctx.camera3d.occlusion_culling,
         };
         self.renderer.prepare(

@@ -237,6 +237,10 @@ struct FrameUniform {
 /// The most writes a frame's motion records take (see `Mirror::sync_capped`).
 const MOVED_WRITES: usize = 32;
 
+/// Buffers written through a `Mirror` can be read back, so tests can check
+/// that they hold what the mirror says.
+const MIRRORED: wgpu::BufferUsages = wgpu::BufferUsages::COPY_SRC;
+
 /// Writes a frame uniform at `at` in `buffer`, whose contents there
 /// `mirror` knows: only the vec4s that changed since the last frame (the
 /// time, the camera when it moved), not the whole uniform for every view.
@@ -1413,7 +1417,7 @@ impl Renderer3D {
         let post_buffer = device.new_buffer(&wgpu::BufferDescriptor {
             label: Some("3d post"),
             size: size_of::<PostUniform>() as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST | MIRRORED,
             mapped_at_creation: false,
         });
         let linear_clamp = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -1441,7 +1445,7 @@ impl Renderer3D {
         let frame_buffer = device.new_buffer(&wgpu::BufferDescriptor {
             label: Some("3d frame"),
             size: size_of::<FrameUniform>() as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST | MIRRORED,
             mapped_at_creation: false,
         });
         let shadow_map = device.create_texture(&wgpu::TextureDescriptor {
@@ -1480,7 +1484,7 @@ impl Renderer3D {
             label: Some("3d shadow frames"),
             // And one for global illumination's shadow map (see `gi.rs`).
             size: shadow_stride * (MAX_SHADOW_VIEWS as u64 + 1),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST | MIRRORED,
             mapped_at_creation: false,
         });
         let shadow_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -2006,7 +2010,7 @@ impl Renderer3D {
         let frame_buffer = device.new_buffer(&wgpu::BufferDescriptor {
             label: Some("3d target camera frame"),
             size: size_of::<FrameUniform>() as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST | MIRRORED,
             mapped_at_creation: false,
         });
         let lights = LightTextures::new(device);
@@ -2336,7 +2340,7 @@ impl Renderer3D {
         device.new_buffer(&wgpu::BufferDescriptor {
             label: Some("3d instances"),
             size: (capacity * size_of::<Instance3D>()) as u64,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST | MIRRORED,
             mapped_at_creation: false,
         })
     }
@@ -2750,6 +2754,32 @@ impl Renderer3D {
     /// The pipeline cache's counters and what it holds now.
     pub fn pipeline_stats(&self) -> crate::PipelineStats {
         self.cache.stats()
+    }
+
+    /// Panics unless every buffer the renderer writes only the changes of
+    /// holds what its mirror says: the frame uniforms (every view's copy),
+    /// the post settings, the instances, the motion records and the
+    /// particles. Call after a frame was submitted.
+    #[cfg(test)]
+    pub(crate) fn check_mirrors(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.frame_mirror
+            .check(device, queue, &self.frame_buffer, 0, "frame uniform");
+        for (i, mirror) in self.shadow_mirrors.iter().enumerate() {
+            let at = self.shadow_stride * i as u64;
+            mirror.check(device, queue, &self.shadow_frames, at, "shadow view frame uniform");
+        }
+        for (_, target) in &self.view_targets {
+            let buffer = &target.frame_buffer;
+            target
+                .frame_mirror
+                .check(device, queue, buffer, 0, "target camera frame uniform");
+        }
+        self.post_mirror
+            .check(device, queue, &self.post_buffer, 0, "post uniform");
+        self.instance_mirror
+            .check(device, queue, &self.instances, 0, "instances");
+        self.moved.check(device, queue);
+        self.particles.check_mirrors(device, queue);
     }
 
     /// Every material pipeline key built so far (tests).

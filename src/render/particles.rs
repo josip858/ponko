@@ -201,6 +201,14 @@ impl Particles {
         };
         self.camera.write(queue, 0, bytemuck::bytes_of(&camera));
     }
+    /// See `Renderer3D::check_mirrors`.
+    #[cfg(test)]
+    pub fn check_mirrors(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        for buffer in [&self.camera, &self.instances, &self.strip_vertices, &self.text_vertices] {
+            buffer.check(device, queue);
+        }
+    }
+
     /// Whether there are particles, ribbons, lines or text to draw.
     pub fn has_draws(&self) -> bool {
         !self.runs.is_empty() || !self.strip_runs.is_empty() || self.text_count > 0

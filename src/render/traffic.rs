@@ -366,7 +366,8 @@ impl Synced {
         device.new_buffer(&wgpu::BufferDescriptor {
             label: Some(label),
             size: bytes as u64,
-            usage: usage | wgpu::BufferUsages::COPY_DST,
+            // Readable, so tests can check what it holds.
+            usage: usage | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         })
     }
@@ -410,6 +411,58 @@ impl Synced {
                 uploads.write_buffer(buffer, at as u64, bytes);
             });
     }
+}
+
+#[cfg(test)]
+impl Mirror {
+    /// Panics unless `buffer` holds, from `at`, what this mirror says it
+    /// does: no write was skipped against contents it doesn't have.
+    pub fn check(&self, device: &wgpu::Device, queue: &wgpu::Queue, buffer: &wgpu::Buffer, at: u64, what: &str) {
+        if self.bytes.is_empty() {
+            return;
+        }
+        let held = read_back(device, queue, buffer, at, self.bytes.len() as u64);
+        let differ = held.iter().zip(&self.bytes).filter(|(a, b)| a != b).count();
+        assert_eq!(
+            differ,
+            0,
+            "{what}: {differ} of {} bytes differ from what was written",
+            held.len()
+        );
+    }
+}
+
+#[cfg(test)]
+impl Synced {
+    /// See [`Mirror::check`].
+    pub fn check(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.mirror.check(device, queue, &self.buffer, 0, self.label);
+    }
+}
+
+/// Reads `len` bytes of `buffer` from `at` back from the GPU.
+#[cfg(test)]
+pub(crate) fn read_back(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    buffer: &wgpu::Buffer,
+    at: u64,
+    len: u64,
+) -> Vec<u8> {
+    let size = len.next_multiple_of(4);
+    let readback = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("read back"),
+        size,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    let mut encoder = device.create_command_encoder(&Default::default());
+    encoder.copy_buffer_to_buffer(buffer, at, &readback, 0, size);
+    queue.submit([encoder.finish()]);
+    readback.map_async(wgpu::MapMode::Read, .., |r| r.unwrap());
+    device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
+    let bytes = readback.get_mapped_range(..).unwrap().to_vec();
+    bytes[..len as usize].to_vec()
 }
 
 /// The counts since the last call on this thread, which are then reset.
