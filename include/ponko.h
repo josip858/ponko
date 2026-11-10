@@ -413,6 +413,7 @@
 #define PonkoGpuBuffer CrabbyGpuBuffer
 #define PonkoGpuFeature CrabbyGpuFeature
 #define PonkoGpuTier CrabbyGpuTier
+#define PonkoGpuUploads CrabbyGpuUploads
 #define PonkoGraphicsQuality CrabbyGraphicsQuality
 #define PonkoGrid CrabbyGrid
 #define PonkoGridHit CrabbyGridHit
@@ -743,6 +744,7 @@
 #define ponko_ctx_gpu_capabilities crabby_ctx_gpu_capabilities
 #define ponko_ctx_gpu_feature crabby_ctx_gpu_feature
 #define ponko_ctx_gpu_tier crabby_ctx_gpu_tier
+#define ponko_ctx_gpu_uploads crabby_ctx_gpu_uploads
 #define ponko_ctx_graphics_quality crabby_ctx_graphics_quality
 #define ponko_ctx_handle_free crabby_ctx_handle_free
 #define ponko_ctx_handle_is_live crabby_ctx_handle_is_live

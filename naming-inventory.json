@@ -290,7 +290,7 @@
       "reason": "Stable native ABI implementation, generated aliases or compatibility coverage."
     },
     "crates/ponko_ffi/src/perf.rs": {
-      "occurrences": 77,
+      "occurrences": 87,
       "path_occurrences": 0,
       "category": "public compatibility",
       "reason": "Stable native ABI implementation, generated aliases or compatibility coverage."
@@ -716,19 +716,19 @@
       "reason": "Retained public format, ABI type, environment fallback, embedding or external output identifier."
     },
     "include/crabby.h": {
-      "occurrences": 3376,
+      "occurrences": 3382,
       "path_occurrences": 1,
       "category": "public compatibility",
       "reason": "Stable native ABI implementation, generated aliases or compatibility coverage."
     },
     "include/crabby.hpp": {
-      "occurrences": 1480,
+      "occurrences": 1484,
       "path_occurrences": 1,
       "category": "public compatibility",
       "reason": "Stable native ABI implementation, generated aliases or compatibility coverage."
     },
     "include/ponko.h": {
-      "occurrences": 1257,
+      "occurrences": 1259,
       "path_occurrences": 0,
       "category": "public compatibility",
       "reason": "Stable native ABI implementation, generated aliases or compatibility coverage."
@@ -1034,7 +1034,7 @@
       "reason": "Stable native ABI implementation, generated aliases or compatibility coverage."
     },
     "crates/ponko_ffi/tests/perf.rs": {
-      "occurrences": 45,
+      "occurrences": 52,
       "path_occurrences": 0,
       "category": "public compatibility",
       "reason": "Stable native ABI implementation, generated aliases or compatibility coverage."
