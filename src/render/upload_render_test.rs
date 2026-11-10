@@ -517,7 +517,8 @@ fn moving_models_upload_only_the_changed_parts_of_their_motion() {
     let uploads = |taa: bool| -> Option<GpuUploads> {
         let (mut rig, cubes) = scene(16)?;
         if taa {
-            if !crate::render::render_test_support::needs(&rig.device, crate::GpuFeature::TemporalAntialiasing) {
+            if !crate::render::render_test_support::needs(&rig.device, crate::render::GpuFeature::TemporalAntialiasing)
+            {
                 return None;
             }
             rig.ctx.post.anti_aliasing = AntiAliasing::Taa;
