@@ -3,10 +3,9 @@
   were outgrown (they grow to the next power of two, so a growing world
   replaces them a logarithmic number of times and a steady one none). In
   benchmark reports, `perf_report` and `perf.get`'s `render.uploads`.
-- C and C++: `crabby_ctx_gpu_uploads` / `ponko_ctx_gpu_uploads` with
-  `CrabbyGpuUploads` / `PonkoGpuUploads`, and `ctx.gpu_uploads()` in C++,
-  the bytes the renderer uploaded last frame by kind and the buffers it
-  made.
+- C and C++: `ponko_ctx_gpu_uploads` with `PonkoGpuUploads`, and
+  `ctx.gpu_uploads()` in C++: the bytes the renderer uploaded last frame
+  by kind and the buffers it made.
 
 ### Changed
 - The renderer uploads only the parts of its per-frame buffers that
