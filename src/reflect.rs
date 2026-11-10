@@ -2002,6 +2002,10 @@ pub(crate) fn reflect_model(world: &mut World) {
         check: Arc::new(check::<ShadowMeshJson>),
         remove: Arc::new(remove::<crate::render::ShadowMesh>),
     });
+    reg.schemas.insert(
+        "ModelMaterial".into(),
+        (builtin_schemas::model_material(), SchemaSource::Described),
+    );
     reg.by_name.insert("ModelMaterial".into(), reg.list.len());
     reg.list.push(Reflected {
         name: "ModelMaterial".into(),
@@ -2026,6 +2030,10 @@ pub(crate) fn reflect_model(world: &mut World) {
         check: Arc::new(check::<MaterialJson>),
         remove: Arc::new(remove::<crate::render::ModelMaterial>),
     });
+    reg.schemas.insert(
+        "ModelMaterials".into(),
+        (builtin_schemas::model_materials(), SchemaSource::Described),
+    );
     reg.by_name.insert("ModelMaterials".into(), reg.list.len());
     reg.list.push(Reflected {
         name: "ModelMaterials".into(),
