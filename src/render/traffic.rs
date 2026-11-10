@@ -413,7 +413,7 @@ impl Synced {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "3d"))]
 impl Mirror {
     /// Panics unless `buffer` holds, from `at`, what this mirror says it
     /// does: no write was skipped against contents it doesn't have.
@@ -432,7 +432,7 @@ impl Mirror {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "3d"))]
 impl Synced {
     /// See [`Mirror::check`].
     pub fn check(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -441,7 +441,7 @@ impl Synced {
 }
 
 /// Reads `len` bytes of `buffer` from `at` back from the GPU.
-#[cfg(test)]
+#[cfg(all(test, feature = "3d"))]
 pub(crate) fn read_back(
     device: &wgpu::Device,
     queue: &wgpu::Queue,

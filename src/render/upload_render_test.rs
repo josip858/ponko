@@ -492,7 +492,8 @@ fn still_particles_and_lines_are_not_uploaded_again() {
 /// Moves `count` of the cubes along x (no turning), to `step`'s place.
 fn slide(rig: &mut Rig, cubes: &[Entity], count: usize, step: usize) {
     for &e in cubes.iter().step_by(cubes.len() / count).take(count) {
-        rig.ctx.world.get_mut::<Transform3D>(e).unwrap().position.x += if step % 2 == 0 { 0.05 } else { -0.04 };
+        rig.ctx.world.get_mut::<Transform3D>(e).unwrap().position.x +=
+            if step.is_multiple_of(2) { 0.05 } else { -0.04 };
     }
 }
 
