@@ -13,6 +13,7 @@ mod nav3d;
 mod net;
 #[allow(dead_code)] // spike: API surface kept for the M3 port
 mod own;
+mod par_archetypes;
 mod physics;
 mod physics3d;
 mod query_cache;
@@ -175,6 +176,7 @@ fn main() {
     net::run(&mut b);
     actions::run(&mut b);
     query_cache::run(&mut b);
+    par_archetypes::run(&mut b);
     streaming::run(&mut b);
 
     // Resource scoping versus the previous public take/put workaround.
