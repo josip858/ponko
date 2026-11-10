@@ -1931,4 +1931,6 @@ mod tests {
 #[cfg(test)]
 mod barrier_tests;
 #[cfg(test)]
+mod phase_order_tests;
+#[cfg(test)]
 mod scenario_tests;
