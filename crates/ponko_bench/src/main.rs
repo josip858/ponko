@@ -7,6 +7,7 @@
 
 mod actions;
 mod archetypes;
+mod extraction;
 mod membership;
 mod nav3d;
 mod net;
@@ -16,6 +17,7 @@ mod physics;
 mod physics3d;
 mod query_cache;
 mod report;
+mod streaming;
 
 use bevy_ecs::component::Component;
 use std::hint::black_box;
@@ -169,9 +171,11 @@ fn main() {
     physics::run(&mut b);
     physics3d::run(&mut b);
     nav3d::run(&mut b);
+    extraction::run(&mut b);
     net::run(&mut b);
     actions::run(&mut b);
     query_cache::run(&mut b);
+    streaming::run(&mut b);
 
     // Resource scoping versus the previous public take/put workaround.
     for scoped in [false, true] {

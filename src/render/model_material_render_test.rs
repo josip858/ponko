@@ -25,12 +25,14 @@ impl Rig {
     fn new(solid_prepass: bool) -> Option<Self> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
         let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default())) else {
-            eprintln!("no GPU adapter: skipped");
+            crate::render::render_test_support::no_gpu("no GPU adapter");
             return None;
         };
         eprintln!("model material test adapter: {:?}", adapter.get_info());
-        let Ok((device, queue)) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default())) else {
-            eprintln!("no GPU device: skipped");
+        let Ok((device, queue)) = pollster::block_on(adapter.request_device(
+            &crate::render::render_test_support::forced(&wgpu::DeviceDescriptor::default()),
+        )) else {
+            crate::render::render_test_support::no_gpu("no GPU device");
             return None;
         };
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -130,7 +132,7 @@ impl Rig {
 
     /// A material of `desc`, on the CPU and the GPU.
     fn material(&mut self, desc: MaterialDesc) -> Material {
-        let material = self.ctx.create_material(desc);
+        let material = self.ctx.gfx.create_material(desc);
         self.renderer
             .create_material(&self.device, &GpuMaterialDesc::new(&desc), &self.textures);
         material
@@ -139,7 +141,7 @@ impl Rig {
     /// A mesh of `data` with `desc`, on the CPU and the GPU.
     fn mesh(&mut self, data: &MeshData, desc: MaterialDesc) -> Mesh {
         let material = self.material(desc);
-        let mesh = self.ctx.create_mesh(data, material);
+        let mesh = self.ctx.gfx.create_mesh(data, material);
         self.renderer
             .create_mesh(&self.device, data, &[(0..data.indices.len() as u32, material)], true);
         mesh
@@ -158,8 +160,8 @@ impl Rig {
             .map(|(range, desc)| (range.clone(), self.material(*desc)))
             .collect();
         let mesh = match skeleton {
-            Some(skeleton) => self.ctx.create_skinned_mesh(data, parts[0].1, skeleton),
-            None => self.ctx.create_mesh(data, parts[0].1),
+            Some(skeleton) => self.ctx.gfx.create_skinned_mesh(data, parts[0].1, skeleton),
+            None => self.ctx.gfx.create_mesh(data, parts[0].1),
         };
         let mut weighted = data.clone();
         for w in &mut weighted.weights {
@@ -173,10 +175,10 @@ impl Rig {
     fn draw(&mut self) -> (Vec<u8>, usize) {
         let ctx = &mut self.ctx;
         let mut skins = SkinFrame::default();
-        skins.collect(&mut ctx.world, &ctx.assets3d);
+        skins.collect(&mut ctx.world, &ctx.gfx.assets3d);
         let mut frame = Frame3D::default();
         frame.lod = ctx.lod;
-        frame.collect(&mut ctx.world, &ctx.assets3d, &skins, &ctx.camera3d, &ctx.lighting);
+        frame.collect(&mut ctx.world, &ctx.gfx.assets3d, &skins, &ctx.camera3d, &ctx.lighting);
         frame.skins = skins;
         let scene = Scene3D {
             frame: &frame,

@@ -11,7 +11,8 @@ use ponko_ecs::World;
 mod window;
 
 use crate::control::{self, Control};
-use crate::ctx::{Ctx, SystemTiming};
+use crate::ctx::Ctx;
+use crate::perf::SystemTiming;
 use crate::systems::{animate_sprites, draw_sprites, draw_tilemaps, rebuild_spatial_grid};
 use crate::time::{Clock, DEFAULT_FIXED_HZ, FrameTiming};
 
@@ -261,6 +262,8 @@ pub struct Game {
     inspector: bool,
     /// Scheduled input from `input_scenario`, fed at the start of sim ticks.
     input_scenario: Option<crate::InputScenario>,
+    /// Whether tools may start input scenarios through the control endpoint.
+    input_injection: bool,
 }
 
 type SetupFn = Box<dyn FnOnce(&mut Ctx)>;
@@ -332,11 +335,13 @@ struct System {
     phase: u32,
     /// Unique per system: its read position for events.
     id: u32,
-    /// Declared access from `add_with_access`; `None` is exclusive.
+    /// Declared access from `add_with_access` or `add_view`; `None` is exclusive.
     access: Option<crate::SystemAccess>,
     /// Stays at the end of its phase: systems added later go before it.
     /// Set for the built-ins that must see what the phase's other systems did.
     last: bool,
+    /// A view system (`add_view`): it can't reach anything undeclared.
+    enforced: bool,
 }
 
 /// Ids for [`System::id`]; 0 means "outside any system".
@@ -349,7 +354,7 @@ fn next_system_id() -> u32 {
 }
 
 /// This frame's timing: the clock at the current sim speed (0 while
-/// paused), plus any single steps requested with `ctx.step()`.
+/// paused), plus any single steps requested with `ctx.time.step()`.
 fn frame_timing(clock: &mut Clock, ctx: &mut Ctx, frame_dt: f64) -> FrameTiming {
     let mut timing = clock.advance(frame_dt, ctx.effective_sim_speed());
     timing.fixed_steps += ctx.take_pending_steps();
@@ -357,7 +362,7 @@ fn frame_timing(clock: &mut Clock, ctx: &mut Ctx, frame_dt: f64) -> FrameTiming 
 }
 
 fn end_timings(ctx: &mut Ctx) {
-    for t in &mut ctx.timings {
+    for t in &mut ctx.perf.timings {
         t.avg_ms += (t.last_ms - t.avg_ms) * 0.05;
     }
 }
@@ -367,25 +372,30 @@ fn end_timings(ctx: &mut Ctx) {
 fn run_one(s: &mut System, ctx: &mut Ctx, timing_index: usize) {
     #[cfg(feature = "profiling")]
     puffin::profile_scope!("system", s.name);
-    let allocs_before = ctx.perf.on.then(crate::alloc_counts);
+    let allocs_before = ctx.perf.state.on.then(crate::alloc_counts);
     let start = Instant::now();
     ctx.system_index = timing_index;
     ctx.events.reader = s.id;
+    ctx.sync_services();
+    // View systems can't reach anything undeclared; only `Ctx` systems
+    // with a declaration need the recorder.
     #[cfg(debug_assertions)]
-    if s.access.is_some() {
+    let check = s.access.as_ref().filter(|_| !s.enforced);
+    #[cfg(debug_assertions)]
+    if check.is_some() {
         crate::access::begin_check(ctx);
     }
     (s.run)(ctx);
     #[cfg(debug_assertions)]
-    if let Some(access) = &s.access {
+    if let Some(access) = check {
         crate::access::end_check(ctx, s.name, access);
     }
     ctx.events.reader = 0;
     ctx.apply_commands();
-    ctx.timings[timing_index].last_ms += start.elapsed().as_secs_f32() * 1000.0;
+    ctx.perf.timings[timing_index].last_ms += start.elapsed().as_secs_f32() * 1000.0;
     if let Some(before) = allocs_before {
         let made = crate::alloc_counts().count.saturating_sub(before.count);
-        ctx.perf.add_system_allocs(timing_index, made);
+        ctx.perf.state.add_system_allocs(timing_index, made);
     }
 }
 
@@ -404,6 +414,7 @@ impl System {
             id,
             access: None,
             last: false,
+            enforced: false,
         }
     }
 
@@ -514,6 +525,7 @@ impl Game {
             hot_reload: cfg!(debug_assertions),
             inspector: cfg!(debug_assertions),
             input_scenario: None,
+            input_injection: false,
         };
         #[cfg(feature = "3d")]
         {
@@ -569,6 +581,80 @@ impl Game {
         self
     }
 
+    /// Registers a view system: it declares what it reads and writes, and
+    /// gets a [`SystemView`](crate::SystemView) that offers exactly that,
+    /// instead of the whole `Ctx`. Anything undeclared is unreachable (its
+    /// accessors panic, in every build), so the declaration is enforced by
+    /// the view, not trusted. Systems still run one at a time, in order;
+    /// view systems are the only ones a future parallel executor may run
+    /// together. See [`SystemAccess`](crate::SystemAccess) and the guide's
+    /// "Declared system access" chapter.
+    ///
+    /// ```
+    /// use ponko::*;
+    /// struct Pos(f32);
+    /// struct Vel(f32);
+    ///
+    /// fn movement(sys: &mut SystemView) {
+    ///     let dt = sys.dt();
+    ///     sys.world.query::<(&mut Pos, &Vel)>().for_each(|(p, v)| p.0 += v.0 * dt);
+    /// }
+    ///
+    /// let world = Game::new("view", 1, 1)
+    ///     .add_view(
+    ///         Phase::AfterPhysics,
+    ///         SystemAccess::new().write::<Pos>().read::<Vel>().read_service(Service::Time),
+    ///         movement,
+    ///     )
+    ///     .run_headless(60, |ctx| {
+    ///         ctx.world.spawn((Pos(0.0), Vel(1.0)));
+    ///     });
+    /// # let _ = world;
+    /// ```
+    ///
+    /// # Panics
+    /// If `access` can't be a view's: exclusive, items without a Rust type
+    /// (the C/C++ path), or a service the view doesn't offer (`gfx`, `ui`,
+    /// `assets`, `perf`, or writing `input`, `time` or `spatial`). Those
+    /// systems take `&mut Ctx`: use [`add_with_access`](Self::add_with_access).
+    #[track_caller]
+    pub fn add_view(
+        mut self,
+        phase: Phase,
+        access: crate::SystemAccess,
+        system: impl FnMut(&mut crate::SystemView<'_>) + 'static,
+    ) -> Self {
+        let name = crate::system_view::name_of(&system);
+        if let Some(problem) = access.view_problem() {
+            panic!("Game::add_view: system `{name}` {problem}");
+        }
+        let mut s = System::new(crate::system_view::wrap(name, access.clone(), system));
+        s.name = name;
+        s.builtin = None;
+        s.access = Some(access);
+        s.enforced = true;
+        self.insert_system(phase, s);
+        self
+    }
+
+    /// For language bindings (the C API): `named_add` with a declaration
+    /// (checked in debug builds, like [`add_with_access`](Self::add_with_access)).
+    #[doc(hidden)]
+    #[track_caller]
+    pub fn named_add_with_access(
+        mut self,
+        phase: Phase,
+        name: &'static str,
+        ticks: u32,
+        access: crate::SystemAccess,
+        system: impl FnMut(&mut Ctx) + 'static,
+    ) -> Self {
+        let mut s = self.build_named_system(phase, name, ticks, system);
+        s.access = Some(access);
+        self.insert_system(phase, s);
+        self
+    }
+
     /// Every system in run order with its declared access, and which
     /// declared systems in the same phase could run together.
     #[must_use]
@@ -581,6 +667,7 @@ impl Game {
                 name: s.name,
                 phase: s.stage,
                 access: s.access.clone(),
+                enforced: s.enforced,
             })
             .collect();
         crate::AccessReport::new(systems)
@@ -613,6 +700,27 @@ impl Game {
         ticks: u32,
         system: impl FnMut(&mut Ctx) + 'static,
     ) -> SystemId {
+        let s = self.build_named_system(phase, name, ticks, system);
+        self.insert_system(phase, s)
+    }
+
+    /// For language bindings (the C API): a startup callback on the builder
+    /// itself. It joins the same ordered queue as [`setup`](Self::setup) and
+    /// plugin setup, and runs before the closure passed to `run`.
+    #[doc(hidden)]
+    pub fn add_setup(mut self, setup: impl FnOnce(&mut Ctx) + 'static) -> Self {
+        self.setups.push(Box::new(setup));
+        self
+    }
+
+    #[track_caller]
+    fn build_named_system(
+        &self,
+        phase: Phase,
+        name: &'static str,
+        ticks: u32,
+        system: impl FnMut(&mut Ctx) + 'static,
+    ) -> System {
         assert!(ticks > 0, "Game::named_add: the interval must be at least 1 tick");
         assert!(
             ticks == 1 || phase <= Phase::SimLast,
@@ -625,16 +733,7 @@ impl Game {
             s.every = ticks;
             s.phase = same % ticks;
         }
-        self.insert_system(phase, s)
-    }
-
-    /// For language bindings (the C API): a startup callback on the builder
-    /// itself. It joins the same ordered queue as [`setup`](Self::setup) and
-    /// plugin setup, and runs before the closure passed to `run`.
-    #[doc(hidden)]
-    pub fn add_setup(mut self, setup: impl FnOnce(&mut Ctx) + 'static) -> Self {
-        self.setups.push(Box::new(setup));
-        self
+        s
     }
 
     fn insert_system(&mut self, phase: Phase, mut s: System) -> SystemId {
@@ -1041,9 +1140,13 @@ impl Game {
     /// Feeds scheduled input into the game by simulation tick, for
     /// reproducible tests (off unless called). Before the simulation systems
     /// of each tick run, the scenario's steps for that tick go through
-    /// [`Ctx::feed_input`], so [named actions](crate::ActionMap) and raw input
+    /// [`Input::feed`](crate::Input::feed), so [named actions](crate::ActionMap) and raw input
     /// queries see them exactly like live input. Calling it again replaces
     /// the previous scenario.
+    ///
+    /// Check steps run after the tick's systems, and the outcome is the
+    /// [`ScenarioReport`](crate::ScenarioReport) resource; see
+    /// [`run_headless_scenario`](Self::run_headless_scenario) for a runner.
     ///
     /// Edges last until the end of the frame. Headless runs have one tick per
     /// frame, so a press is visible to exactly one tick. A windowed frame that
@@ -1056,7 +1159,7 @@ impl Game {
     /// struct Jumps(u32);
     ///
     /// fn jump(ctx: &mut Ctx) {
-    ///     if ctx.action_pressed("jump") {
+    ///     if ctx.input.action_pressed("jump") {
     ///         ctx.world.query::<&mut Jumps>().for_each(|j| j.0 += 1);
     ///     }
     /// }
@@ -1070,13 +1173,62 @@ impl Game {
     ///     .run_headless(10, |ctx| {
     ///         let mut actions = ActionMap::default();
     ///         actions.set("jump", Action::Button(vec![ButtonBinding::Key(Key::Space)]));
-    ///         ctx.set_actions(actions);
+    ///         ctx.input.set_actions(actions);
     ///         ctx.world.spawn((Jumps(0),));
     ///     });
     /// assert_eq!(world.query::<&Jumps>().iter().next().unwrap().0, 1);
     /// ```
     pub fn input_scenario(mut self, scenario: crate::InputScenario) -> Self {
         self.input_scenario = Some(scenario);
+        self
+    }
+
+    /// Runs `scenario` headlessly for its [`ticks`](crate::InputScenario::ticks)
+    /// and returns the world with the scenario's report: the bounded runner
+    /// for tests and CI. A failed check ends the run at that tick and the
+    /// report names its step and tick; [`ScenarioReport::assert_passed`](crate::ScenarioReport::assert_passed)
+    /// turns that into a panic.
+    ///
+    /// ```
+    /// use ponko::*;
+    ///
+    /// let scenario = InputScenario::new()
+    ///     .at(2, InputEvent::Key(Key::Space, true))
+    ///     .expect(2, ScenarioCheck::action("jump").pressed(true))
+    ///     .expect(3, ScenarioCheck::action("jump").pressed(true)); // deliberately wrong
+    /// let (_world, report) = Game::new("test", 1, 1).run_headless_scenario(scenario, |ctx| {
+    ///     let mut actions = ActionMap::default();
+    ///     actions.set("jump", Action::Button(vec![ButtonBinding::Key(Key::Space)]));
+    ///     ctx.input.set_actions(actions);
+    /// });
+    /// let failure = report.failure.unwrap();
+    /// assert_eq!((failure.step, failure.tick), (2, 3));
+    /// ```
+    pub fn run_headless_scenario<S, U>(self, scenario: crate::InputScenario, setup: S) -> (World, crate::ScenarioReport)
+    where
+        S: FnOnce(&mut Ctx) -> U,
+        U: SetupResult,
+    {
+        let ticks = scenario.ticks();
+        let pending = crate::ScenarioReport::new(&scenario, 0);
+        let world = self.input_scenario(scenario).run_headless(ticks, setup);
+        let report = world.get_resource::<crate::ScenarioReport>().cloned();
+        (world, report.unwrap_or(pending))
+    }
+
+    /// Lets tools start input scenarios through the [control endpoint](Self::control_endpoint)
+    /// (the `input.scenario.*` methods and MCP's `run_input_scenario`). Off
+    /// by default, so a game with the endpoint open for inspection still
+    /// refuses injected input; setting `PONKO_INPUT_INJECTION=1` has the same
+    /// effect without code changes (the MCP `launch` tool sets it). Scenarios
+    /// installed with [`input_scenario`](Self::input_scenario) don't need it.
+    ///
+    /// ```no_run
+    /// # use ponko::*;
+    /// Game::new("Dev build", 800, 600).control_endpoint(true).input_injection(true).run(|_| |_: &mut Ctx| {});
+    /// ```
+    pub fn input_injection(mut self, on: bool) -> Self {
+        self.input_injection = on;
         self
     }
 
@@ -1100,7 +1252,7 @@ impl Game {
         self
     }
 
-    /// Reload textures, fonts, sounds and data files ([`Ctx::load_resource`])
+    /// Reload textures, fonts, sounds and data files ([`Assets::load_resource`](crate::Assets::load_resource))
     /// from `assets/` when their files change, under the same handles: save an
     /// image or a JSON file in your editor and the running game shows it
     /// within a quarter of a second. On by default in debug builds, off in
@@ -1109,7 +1261,7 @@ impl Game {
     /// A file is checked a few times a second (one `stat` per loaded
     /// texture). An image that changed size isn't reloaded (sprites store
     /// their texture's size): restart the game for that.
-    /// [`Ctx::reloaded_textures`] lists what was reloaded this frame.
+    /// [`Assets::reloaded_textures`](crate::Assets::reloaded_textures) lists what was reloaded this frame.
     ///
     /// ```no_run
     /// # use ponko::*;
@@ -1150,8 +1302,9 @@ impl Game {
     /// Starts the control endpoint if it's enabled, and applies `PONKO_START_PAUSED`.
     fn start_control(&self, ctx: &mut Ctx, headless: bool) -> Option<Control> {
         if control::env_flag(control::ENV_START_PAUSED) {
-            ctx.pause();
+            ctx.time.pause();
         }
+        ctx.input.scenarios.injection = self.input_injection || control::env_flag(control::ENV_INPUT_INJECTION);
         if !self.control {
             return None;
         }
@@ -1186,7 +1339,7 @@ impl Game {
     }
 
     /// Sets how many fixed updates run per second (default 60).
-    /// See [`Ctx::fixed_steps`].
+    /// See [`Time::fixed_steps`](crate::Time::fixed_steps).
     ///
     /// # Panics
     /// If `hz` is 0.
@@ -1261,7 +1414,7 @@ impl Game {
         ctx.set_in_sim(true);
         for _ in 0..fixed_steps {
             // Lockstep: a tick waits for everyone's input; the frame goes on.
-            if !ctx.net.ready(ctx.sim_tick()) {
+            if !ctx.net.ready(ctx.time.sim_tick()) {
                 break;
             }
             self.run_sim_tick(ctx);
@@ -1283,10 +1436,17 @@ impl Game {
 
     /// One simulation tick: every sim system once, then the tick counter.
     fn run_sim_tick(&mut self, ctx: &mut Ctx) {
-        let tick = ctx.sim_tick();
-        if let Some(scenario) = &mut self.input_scenario {
-            scenario.apply(ctx, tick);
+        let tick = ctx.time.sim_tick();
+        if let Some(scenario) = self.input_scenario.take() {
+            ctx.input.install_scenario(
+                &mut ctx.world,
+                &mut ctx.time,
+                scenario,
+                0,
+                crate::scenario::RunOrigin::default(),
+            );
         }
+        ctx.scenario_begin_tick();
         for (i, s) in self.sim_systems.iter_mut().enumerate() {
             if tick % u64::from(s.every) != u64::from(s.phase) {
                 continue;
@@ -1295,6 +1455,7 @@ impl Game {
             run_one(s, ctx, i);
         }
         ctx.set_sim_steps(1);
+        ctx.scenario_end_tick();
         ctx.net.end_tick(&ctx.world, tick);
         ctx.advance_tick();
     }
@@ -1317,10 +1478,10 @@ impl Game {
 
     /// Makes sure there's one timing slot per system, and zeroes this frame's times.
     fn begin_timings(&self, ctx: &mut Ctx) {
-        if ctx.timings.len()
+        if ctx.perf.timings.len()
             != self.sim_systems.len() + self.systems.len() + self.late_systems.len() + self.draw_systems.len()
         {
-            ctx.timings = (self.sim_systems.iter().map(|s| (s, true)))
+            ctx.perf.timings = (self.sim_systems.iter().map(|s| (s, true)))
                 .chain(
                     self.systems
                         .iter()
@@ -1335,13 +1496,13 @@ impl Game {
                     avg_ms: 0.0,
                 })
                 .collect();
-            ctx.schedule = self.schedule_slots();
+            ctx.perf.schedule = self.schedule_slots();
         }
-        for t in &mut ctx.timings {
+        for t in &mut ctx.perf.timings {
             t.last_ms = 0.0;
         }
         ctx.sync_profiling();
-        ctx.perf.begin_frame(ctx.timings.len());
+        ctx.perf.state.begin_frame(ctx.perf.timings.len());
         ctx.events.keep_ticks = self.sim_systems.iter().map(|s| s.every).max().unwrap_or(1);
     }
 
@@ -1443,8 +1604,8 @@ impl Game {
         let fixed_dt = Clock::new(self.fixed_hz).fixed_dt();
         let mut ctx = Ctx::new(fixed_dt, Vec2::new(self.width as f32, self.height as f32));
         ctx.seed = self.seed;
-        ctx.headless = true;
-        ctx.watcher.on = crate::hot_reload::enabled(self.hot_reload);
+        ctx.set_headless(true);
+        ctx.assets.watcher.set_on(crate::hot_reload::enabled(self.hot_reload));
         if let Some(cell) = self.spatial_cell {
             ctx.spatial = crate::SpatialGrid::new(cell);
         }
@@ -1461,10 +1622,12 @@ impl Game {
             ctx.net = net;
         }
         ctx.net.begin(ctx.seed);
+        ctx.set_in_setup(true);
         run_setups(std::mem::take(&mut self.setups), &mut ctx);
         drop(setup(&mut ctx).into_frame_fn()); // no frames, so no frame closure
+        ctx.set_in_setup(false);
         ctx.apply_commands();
-        ctx.discard_draws();
+        ctx.gfx.discard_draws();
 
         let timing = FrameTiming {
             dt: fixed_dt as f32,
@@ -1472,8 +1635,8 @@ impl Game {
             alpha: 0.0,
         };
         if warmup.is_some() {
-            ctx.perf.collector = crate::perf_report::Collector::new(crate::perf_report::HEADLESS_HISTORY);
-            ctx.set_profiling(true);
+            ctx.perf.state.collector = crate::perf_report::Collector::new(crate::perf_report::HEADLESS_HISTORY);
+            ctx.perf.set_profiling(true);
         }
         let total = ticks + warmup.unwrap_or(0);
         let mut ran = 0;
@@ -1486,12 +1649,12 @@ impl Game {
                     break;
                 }
                 // A paused game runs only the ticks tools ask for.
-                if ctx.is_paused() && !ctx.take_one_step() {
+                if ctx.time.is_paused() && !ctx.take_one_step() {
                     control.wait(&mut ctx, Duration::from_millis(50));
                     continue;
                 }
             }
-            if !ctx.net.ready(ctx.sim_tick()) {
+            if !ctx.net.ready(ctx.time.sim_tick()) {
                 if !ctx.net.wait() {
                     break;
                 }
@@ -1501,21 +1664,22 @@ impl Game {
             let tick_start = Instant::now();
             ctx.begin_frame(timing);
             ctx.reload_changed_assets();
+            ctx.pump_streaming();
             self.begin_timings(&mut ctx);
             ctx.set_in_sim(true);
             self.run_sim_tick(&mut ctx);
             ctx.set_in_sim(false);
             end_timings(&mut ctx);
-            ctx.discard_draws();
+            ctx.gfx.discard_draws();
             ctx.input.end_frame();
-            if ctx.perf.on {
+            if ctx.perf.state.on {
                 ctx.end_perf_frame(tick_start.elapsed().as_secs_f32() * 1000.0);
                 if warmup == Some(ran) {
-                    ctx.perf.collector.clear();
+                    ctx.perf.state.collector.clear();
                 }
             }
         }
-        let report = warmup.map(|_| ctx.perf_report());
+        let report = warmup.map(|_| ctx.perf.report());
         (std::mem::take(&mut ctx.world), report)
     }
 
@@ -1526,7 +1690,7 @@ impl Game {
     /// the systems). Variables created in `setup` and moved into that closure
     /// are your game state; no structs or traits required.
     ///
-    /// Each frame runs: simulation systems (`ctx.fixed_steps()` times), then
+    /// Each frame runs: simulation systems (`ctx.time.fixed_steps()` times), then
     /// frame systems, then the closure from `setup`, then the
     /// [`Phase::Animate`], [`Phase::Late`] and [`Phase::Draw`] systems (the
     /// built-in [`draw_sprites`] is one of the last), then rendering.
@@ -1536,7 +1700,7 @@ impl Game {
     /// Game::new("Counter", 800, 600).run(|_ctx| {
     ///     let mut clicks = 0;
     ///     move |ctx: &mut Ctx| {
-    ///         if ctx.mouse_pressed(MouseButton::Left) {
+    ///         if ctx.input.mouse_pressed(MouseButton::Left) {
     ///             clicks += 1;
     ///             println!("clicks: {clicks}");
     ///         }
@@ -1656,8 +1820,8 @@ mod tests {
             ctx.world.resource::<Log>().0,
             ["frame_b dt=0.0000", "late dt=0.0000", "draw dt=0.0000"]
         );
-        assert_eq!(ctx.system_timings().len(), 3);
-        assert!(ctx.system_timings()[1].name.ends_with("::late"));
+        assert_eq!(ctx.perf.system_timings().len(), 3);
+        assert!(ctx.perf.system_timings()[1].name.ends_with("::late"));
         #[allow(deprecated)]
         let game = game.remove_system(late);
         assert!(game.late_systems.is_empty());
@@ -1805,6 +1969,7 @@ mod tests {
         let mut ctx = ctx();
         game.run_systems(&mut ctx, 0);
         let listed: Vec<&str> = ctx
+            .perf
             .system_timings()
             .iter()
             .map(|t| t.name.rsplit("::").next().unwrap())
@@ -1851,10 +2016,10 @@ mod tests {
         let mut clock = Clock::new(60);
         let mut ctx = ctx();
         let frame = 1.0 / 60.0;
-        ctx.pause();
+        ctx.time.pause();
         assert_eq!(frame_timing(&mut clock, &mut ctx, frame).fixed_steps, 0);
-        ctx.step();
-        ctx.step();
+        ctx.time.step();
+        ctx.time.step();
         assert_eq!(
             frame_timing(&mut clock, &mut ctx, frame).fixed_steps,
             2,
@@ -1865,8 +2030,8 @@ mod tests {
             0,
             "steps are used up"
         );
-        ctx.resume();
-        ctx.set_sim_speed(4.0);
+        ctx.time.resume();
+        ctx.time.set_speed(4.0);
         let steps: u32 = (0..60)
             .map(|_| frame_timing(&mut clock, &mut ctx, frame).fixed_steps)
             .sum();
@@ -1881,7 +2046,7 @@ mod tests {
         let mut game = bare(Game::new("t", 1, 1).sim_system(slow)).system(frame_b);
         let mut ctx = ctx();
         game.run_systems(&mut ctx, 3);
-        let t = ctx.system_timings();
+        let t = ctx.perf.system_timings();
         assert_eq!(t.len(), 2, "{t:?}");
         assert!(t[0].sim && !t[1].sim);
         assert!(t[0].name.ends_with("slow"), "{}", t[0].name);
@@ -1899,7 +2064,7 @@ mod tests {
         let mut game = Game::new("t", 1, 1).system(move_right);
         let mut ctx = ctx();
         game.run_systems(&mut ctx, 0);
-        let order: Vec<_> = ctx.system_timings().iter().map(|t| t.name).collect();
+        let order: Vec<_> = ctx.perf.system_timings().iter().map(|t| t.name).collect();
         assert!(
             order[0].ends_with("move_right") && order.last().unwrap().ends_with("draw_sprites"),
             "{order:?}"
@@ -1917,9 +2082,11 @@ mod tests {
         }
         ctx.world.spawn((crate::Transform2D::default(),)); // no sprite: not drawn
         game.run_systems(&mut ctx, 0);
-        assert_eq!(ctx.sprite_count(), 10);
+        assert_eq!(ctx.gfx.sprite_count(), 10);
     }
 }
 
 #[cfg(test)]
 mod barrier_tests;
+#[cfg(test)]
+mod scenario_tests;

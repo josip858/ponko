@@ -164,8 +164,8 @@ struct MapView {
 /// Startup: the texture the map is painted into.
 fn make_map_view(ctx: &mut Ctx) {
     let (w, h) = (MAP.x as usize, MAP.y as usize);
-    let tex = ctx.create_texture(MAP.x, MAP.y, &vec![0; w * h * 4]);
-    ctx.set_texture_filter(&tex, TextureFilter::Nearest);
+    let tex = ctx.gfx.create_texture(MAP.x, MAP.y, &vec![0; w * h * 4]);
+    ctx.gfx.set_texture_filter(&tex, TextureFilter::Nearest);
     ctx.world.insert_resource(MapView {
         tex,
         pixels: vec![0u8; w * h * 4],
@@ -209,12 +209,12 @@ fn draw_map(ctx: &mut Ctx) {
         }
         // The upload needs all of `ctx`, so the pixels leave the resource for it.
         let pixels = std::mem::take(&mut view.pixels);
-        ctx.update_texture(&tex, &pixels);
+        ctx.gfx.update_texture(&tex, &pixels);
         ctx.world.resource_mut::<MapView>().pixels = pixels;
     }
-    ctx.clear(Color::BLACK);
+    ctx.gfx.clear(Color::BLACK);
     let size = MAP.as_vec2() * CELL;
-    ctx.draw_ex(
+    ctx.gfx.draw_ex(
         &tex,
         size / 2.0,
         DrawParams {
@@ -223,11 +223,11 @@ fn draw_map(ctx: &mut Ctx) {
             ..Default::default()
         },
     );
-    ctx.draw_circle(goal, 8.0, Color::rgba(1.0, 0.3, 0.3, 0.8));
+    ctx.gfx.draw_circle(goal, 8.0, Color::rgba(1.0, 0.3, 0.3, 0.8));
 }
 
 fn click_to_move_goal(ctx: &mut Ctx) {
-    if ctx.mouse_pressed(MouseButton::Left) && !ctx.mouse_over_ui() {
+    if ctx.input.mouse_pressed(MouseButton::Left) && !ctx.ui.wants_pointer() {
         let at = ctx.mouse_world();
         let paths = ctx.world.resource_mut::<Paths>();
         if paths.nav.walkable(at) {
@@ -235,7 +235,11 @@ fn click_to_move_goal(ctx: &mut Ctx) {
         }
     }
     if ctx.key_pressed(Key::Space) {
-        if ctx.is_paused() { ctx.resume() } else { ctx.pause() }
+        if ctx.time.is_paused() {
+            ctx.time.resume()
+        } else {
+            ctx.time.pause()
+        }
     }
     if ctx.key_pressed(Key::Escape) {
         ctx.quit();
@@ -244,17 +248,17 @@ fn click_to_move_goal(ctx: &mut Ctx) {
 
 fn hud(ctx: &mut Ctx) {
     let panel = Rect::new(12.0, 12.0, 260.0, 104.0);
-    ctx.ui_panel(panel);
-    let at = panel.min + ctx.ui_style.padding;
+    ctx.ui.immediate.panel(&mut ctx.gfx, panel);
+    let at = panel.min + ctx.ui.immediate.style.padding;
     let agents = ctx.world.query::<&Agent>().count();
     let ms = ctx.world.resource::<Paths>().compute_ms;
     let text = format!(
         "{agents} agents, {:.0} FPS\nfield: {}x{} cells, {ms:.2} ms\nclick: new goal   H: distances",
-        ctx.fps(),
+        ctx.time.fps(),
         MAP.x,
         MAP.y
     );
-    ctx.ui_label(at, &text);
+    ctx.ui.immediate.label(&mut ctx.gfx, at, &text);
 }
 
 fn main() {
@@ -268,7 +272,7 @@ fn main() {
             .sim_system(steer)
             .sim_system(move |ctx: &mut Ctx| {
                 // A new goal every 2 seconds, like a player clicking around.
-                let tick = ctx.sim_tick();
+                let tick = ctx.time.sim_tick();
                 if tick % 120 == 119 {
                     let paths = ctx.world.resource_mut::<Paths>();
                     let goal = walkable_point(&paths.nav, &mut rng);
@@ -302,7 +306,7 @@ fn main() {
         .system(hud)
         .system(draw_map)
         .setup(move |ctx| {
-            let dot = ctx.create_texture(2, 2, &[255; 2 * 2 * 4]);
+            let dot = ctx.gfx.create_texture(2, 2, &[255; 2 * 2 * 4]);
             setup(ctx, agents, Some(dot));
             make_map_view(ctx);
         })

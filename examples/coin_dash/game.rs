@@ -1,26 +1,37 @@
 //! The game: rules, input mapping and drawing. Shared with `tests/coin_dash.rs`.
 //!
-//! Three layers, each a [`Plugin`] and each testable on its own; [`CoinDash`]
-//! is the three together:
+//! Three layers, each a [`Plugin`] and testable on its own:
 //!
-//! 1. [`Controls`]: `read_input` (frame system) turns keys and gamepad into
-//!    an [`Intent`].
-//! 2. [`Rules`]: `rules` (sim system) is the whole game. It reads only the
+//! 1. [`PlayerInput`]: `read_input` (frame system) turns keys and gamepad
+//!    into an [`Intent`].
+//! 2. [`Rules`]: `rules` (sim system) is the whole game: it reads only the
 //!    `Intent` and the world, so a test can replace step 1 with a script and
 //!    get the same result on every run.
 //! 3. [`Drawing`]: entities with a `Sprite` are drawn by the engine's
-//!    built-in sprite system; `hud` adds the text. Neither changes the game.
+//!    built-in `draw_sprites`; `hud` adds the text. Neither changes the game.
 //!
-//! The game moves through four [`Screen`]s: `Title` → `Playing` ⇄ `Paused`,
-//! `Playing` → `Result` → `Playing` again (or back to `Title`). Only `rules`
-//! changes the screen. The best time and most coins are kept in a small
-//! [`Progress`] file that survives a missing or damaged file.
+//! [`SettingsScreen`] is a fourth plugin beside them, and [`CoinDash`] adds
+//! all four.
+//!
+//! The game moves through five [`Screen`]s: `Title` → `Playing` ⇄ `Paused`,
+//! `Playing` → `Result` → `Playing` again (or back to `Title`), and
+//! `Title` ⇄ `Settings`. Only `rules` changes the screen. The best time and
+//! most coins are kept in a small [`Progress`] file, and the player's choices
+//! (UI scale, volume, rebound controls) in a [`settings::Settings`] file; both
+//! survive a missing or damaged file.
 
 // The test file includes this module but needs only part of it.
 #![allow(dead_code)]
 
+// Next to this file, whichever crate includes it (`main.rs` or `tests/coin_dash.rs`).
+#[path = "settings.rs"]
+pub mod settings;
+#[path = "smoke.rs"]
+pub mod smoke;
+
 use ponko::*;
 use serde::{Deserialize, Serialize};
+use settings::Settings;
 use std::path::{Path, PathBuf};
 
 /// Size of the playfield, in world units (the window starts the same size).
@@ -39,10 +50,25 @@ pub struct Player;
 /// A coin to collect.
 pub struct Coin;
 
-/// The two procedural pictures, made once at startup.
+/// The pictures, made or loaded once at startup: a procedural disc (the
+/// player) and the coin, the one file the game loads from `assets/`.
 #[derive(Clone, Copy)]
 pub struct Art {
     disc: Texture,
+    pub coin: Texture,
+}
+
+/// The coin's file, relative to `assets/`. The packaged game finds it next to
+/// the executable, wherever it was unpacked.
+pub const COIN_ASSET: &str = "coin_dash/coin.png";
+
+/// The sound effects, made from sine tones at startup (no sound files).
+#[derive(Clone, Copy)]
+pub struct Sounds {
+    pickup: Sound,
+    win: Sound,
+    lose: Sound,
+    select: Sound,
 }
 
 /// Which screen the game is on. A resource, so tests and tools can read it.
@@ -50,6 +76,8 @@ pub struct Art {
 pub enum Screen {
     /// The menu shown at startup: best results, "press Enter".
     Title,
+    /// UI scale, volume and controls, drawn by the retained UI in `settings`.
+    Settings,
     /// A round is running.
     Playing,
     /// A round is frozen. Nothing moves and the clock stops.
@@ -92,6 +120,10 @@ pub struct Intent {
     pub pause: bool,
     /// Back to the title screen; on the title screen, quit.
     pub back: bool,
+    /// Open the settings from the title screen.
+    pub settings: bool,
+    /// Leave the settings (its Back button or the Escape key).
+    pub close_settings: bool,
 }
 
 // ANCHOR: controls
@@ -105,6 +137,7 @@ actions! {
         restart = "restart",
         pause = "pause",
         back = "back",
+        settings = "settings",
     }
 }
 // ANCHOR_END: controls
@@ -113,8 +146,9 @@ actions! {
 /// the same game.
 pub const SEED: u64 = 2024;
 
-/// The game without a window, ready for `run` or `run_headless`. Progress is
-/// kept in the default place, see [`save_path`].
+/// The game without a window, ready for `run` or `run_headless`: the
+/// [`CoinDash`] plugin with progress and settings in the default place (see
+/// [`save_path`]).
 pub fn build() -> Game {
     Game::new("Coin Dash", ARENA.x as u32, ARENA.y as u32)
         .seed(SEED)
@@ -122,36 +156,70 @@ pub fn build() -> Game {
 }
 
 // ANCHOR: plugins
-/// The whole game: its three layers, each a plugin of its own.
+/// The whole game: its layers, each a plugin of its own. Startup is the
+/// plugins' `setup`, in this order.
 pub struct CoinDash {
-    /// Where progress is kept (`None`: don't keep it).
+    /// Where progress is kept (`None`: don't keep progress or settings). The
+    /// settings file lives next to it, see [`settings::settings_path`].
     pub save: Option<PathBuf>,
 }
 
 impl Plugin for CoinDash {
     fn build(&self, game: Game) -> Game {
         let save = self.save.clone();
-        game.plugin(Controls).plugin(Rules { save }).plugin(Drawing)
+        game.plugin(PlayerInput)
+            .plugin(SettingsScreen { save: save.clone() })
+            .plugin(Rules { save })
+            .plugin(Drawing)
     }
 }
 
 /// Layer 1: keys and gamepad to an [`Intent`], once per rendered frame.
-pub struct Controls;
+pub struct PlayerInput;
 
-impl Plugin for Controls {
+impl Plugin for PlayerInput {
     fn build(&self, game: Game) -> Game {
         game.add(Phase::Frame, read_input)
     }
     fn setup(&self, ctx: &mut Ctx) {
-        ctx.set_actions(bindings());
+        // The default controls; the ids stay valid when the settings (or a
+        // rebinding) replace them.
+        ctx.input.set_actions(bindings());
         ctx.world.insert_resource(Act::resolve(ctx));
+        ctx.world.insert_resource(Intent::default());
+    }
+}
+
+/// The player's choices (UI scale, volume, controls): loaded at startup,
+/// changed on the settings screen.
+pub struct SettingsScreen {
+    pub save: Option<PathBuf>,
+}
+
+impl Plugin for SettingsScreen {
+    fn build(&self, game: Game) -> Game {
+        game.add(Phase::Frame, settings::settings_ui)
+    }
+    fn setup(&self, ctx: &mut Ctx) {
+        let path = self.save.as_deref().and_then(settings::settings_path);
+        let (loaded, load) = match &path {
+            Some(path) => Settings::load(path),
+            None => (Settings::default(), LoadStatus::Fresh),
+        };
+        ctx.input.set_actions(settings::bindings_for(&loaded.controls));
+        ctx.ui.set_scale(loaded.ui_scale);
+        ctx.world.insert_resource(loaded);
+        ctx.world.insert_resource(settings::SettingsFile {
+            path,
+            load,
+            save_failed: false,
+        });
     }
 }
 
 /// Layer 2: the rules, on the fixed tick, and the resources they own. The
 /// game starts on the title screen with the progress loaded from `save`.
 pub struct Rules {
-    /// Where progress is kept (`None`: don't keep it).
     pub save: Option<PathBuf>,
 }
 
@@ -160,7 +228,6 @@ impl Plugin for Rules {
         game.add(Phase::AfterPhysics, rules)
     }
     fn setup(&self, ctx: &mut Ctx) {
-        ctx.world.insert_resource(Intent::default());
         ctx.world.insert_resource(Round {
             collected: 0,
             time_left: ROUND_SECONDS,
@@ -181,8 +248,8 @@ impl Plugin for Rules {
     }
 }
 
-/// Layer 3: the pictures and the text. The sprites themselves are drawn by
-/// the engine's built-in sprite system.
+/// Layer 3: the pictures, the text and the sound effects. The sprites
+/// themselves are drawn by the engine's built-in sprite system.
 pub struct Drawing;
 
 impl Plugin for Drawing {
@@ -190,12 +257,51 @@ impl Plugin for Drawing {
         game.add(Phase::Frame, hud)
     }
     fn setup(&self, ctx: &mut Ctx) {
-        ctx.clear(Color::hex(0x14181f));
+        ctx.gfx.clear(Color::hex(0x14181f));
         let disc = disc(ctx);
-        ctx.world.insert_resource(Art { disc });
+        let coin = ctx.load_texture(COIN_ASSET);
+        ctx.world.insert_resource(Art { disc, coin });
+        let sounds = Sounds {
+            pickup: tone(ctx, 880.0, 1320.0, 0.10),
+            win: tone(ctx, 523.0, 1047.0, 0.45),
+            lose: tone(ctx, 330.0, 140.0, 0.45),
+            select: tone(ctx, 660.0, 660.0, 0.05),
+        };
+        ctx.world.insert_resource(sounds);
     }
 }
 // ANCHOR_END: plugins
+
+/// A short sine tone gliding from `from` to `to` Hz, fading out: a sound
+/// effect made in code, so the game needs no sound files.
+fn tone(ctx: &mut Ctx, from: f32, to: f32, seconds: f32) -> Sound {
+    const RATE: u32 = 44_100;
+    let count = (RATE as f32 * seconds) as usize;
+    let mut phase = 0.0f32;
+    let samples: Vec<f32> = (0..count)
+        .map(|i| {
+            let t = i as f32 / count as f32;
+            phase += (from + (to - from) * t) * std::f32::consts::TAU / RATE as f32;
+            phase.sin() * (1.0 - t) * 0.25
+        })
+        .collect();
+    ctx.audio.create(RATE, &samples)
+}
+
+/// Plays one of the sound effects at the saved volume. Silent without audio.
+fn sfx(ctx: &mut Ctx, pick: fn(&Sounds) -> Sound) {
+    let sound = pick(ctx.world.resource::<Sounds>());
+    let volume = ctx.world.resource::<Settings>().volume;
+    if volume > 0.0 {
+        ctx.audio.play_ex(
+            &sound,
+            SoundParams {
+                volume,
+                ..Default::default()
+            },
+        );
+    }
+}
 
 /// A white 32x32 disc, generated here so the game needs no image files. Sprites
 /// tint and scale it into the player and the coins.
@@ -209,7 +315,7 @@ fn disc(ctx: &mut Ctx) -> Texture {
             rgba.extend([255, 255, 255, (alpha * 255.0) as u8]);
         }
     }
-    ctx.create_texture(SIZE, SIZE, &rgba)
+    ctx.gfx.create_texture(SIZE, SIZE, &rgba)
 }
 
 /// A disc sprite with a radius in world units.
@@ -221,68 +327,29 @@ fn ball(art: Art, at: Vec2, radius: f32, color: Color) -> (Transform2D, Sprite) 
     )
 }
 
-/// Keyboard and gamepad, bound to the same names. Games would save this with
-/// `ActionMap::to_json` to let players rebind.
+/// Keyboard and gamepad, bound to the same names: the default controls, see
+/// [`settings::bindings_for`] for the ones a player rebound.
 pub fn bindings() -> ActionMap {
-    let pad = Gamepad::from_slot(0).expect("slot 0 exists");
-    let button = |key, pad_button| {
-        vec![
-            ButtonBinding::Key(key),
-            ButtonBinding::Gamepad {
-                pad,
-                button: pad_button,
-            },
-        ]
-    };
-    let mut map = ActionMap::default();
-    map.set(
-        "move",
-        Action::Axis2(vec![
-            Axis2Binding::Keys {
-                left: Key::A,
-                right: Key::D,
-                up: Key::W,
-                down: Key::S,
-            },
-            Axis2Binding::Keys {
-                left: Key::Left,
-                right: Key::Right,
-                up: Key::Up,
-                down: Key::Down,
-            },
-            Axis2Binding::Gamepad {
-                pad,
-                stick: GamepadStick::Left,
-                deadzone: 0.2,
-            },
-        ]),
-    );
-    let mut confirm = button(Key::Enter, GamepadButton::South);
-    confirm.push(ButtonBinding::Key(Key::Space));
-    map.set("confirm", Action::Button(confirm));
-    map.set("restart", Action::Button(button(Key::R, GamepadButton::West)));
-    let mut pause = button(Key::Escape, GamepadButton::Start);
-    pause.push(ButtonBinding::Key(Key::P));
-    map.set("pause", Action::Button(pause));
-    map.set("back", Action::Button(button(Key::Q, GamepadButton::East)));
-    map
+    settings::bindings_for(&settings::Controls::default())
 }
 
 // ANCHOR: read_input
 /// Frame system: named actions to [`Intent`]. Runs once per rendered frame.
 pub fn read_input(ctx: &mut Ctx) {
     let act = *ctx.world.resource::<Act>();
-    let direction = ctx.action_axis2(act.movement);
-    let confirm = ctx.action_pressed(act.confirm);
-    let restart = ctx.action_pressed(act.restart);
-    let pause = ctx.action_pressed(act.pause);
-    let back = ctx.action_pressed(act.back);
+    let direction = ctx.input.action_axis2(act.movement);
+    let confirm = ctx.input.action_pressed(act.confirm);
+    let restart = ctx.input.action_pressed(act.restart);
+    let pause = ctx.input.action_pressed(act.pause);
+    let back = ctx.input.action_pressed(act.back);
+    let open_settings = ctx.input.action_pressed(act.settings);
     let intent = ctx.world.resource_mut::<Intent>();
     intent.direction = direction;
     intent.confirm |= confirm;
     intent.restart |= restart;
     intent.pause |= pause;
     intent.back |= back;
+    intent.settings |= open_settings;
 }
 // ANCHOR_END: read_input
 
@@ -297,8 +364,9 @@ pub fn new_round(ctx: &mut Ctx, number: u32) {
     ctx.world.spawn((transform, sprite, Player));
     for _ in 0..COINS {
         let at = vec2(rng.range(40.0, ARENA.x - 40.0), rng.range(40.0, ARENA.y - 40.0));
-        let (transform, sprite) = ball(art, at, COIN_RADIUS, Color::hex(0xffbe0b));
-        ctx.world.spawn((transform, sprite, Coin));
+        let scale = Vec2::splat(COIN_RADIUS / 16.0); // the coin picture is 16 units in radius
+        ctx.world
+            .spawn((Transform2D::at(at).scaled(scale), Sprite::new(art.coin), Coin));
     }
     ctx.world.insert_resource(Round {
         collected: 0,
@@ -318,12 +386,16 @@ fn to_title(ctx: &mut Ctx) {
 /// Sim system: the whole game, one fixed step at a time. What a button does
 /// depends on the screen:
 ///
-/// | Screen | confirm | restart | pause | back |
-/// |---|---|---|---|---|
-/// | Title | play | | quit | quit |
-/// | Playing | | new round | pause | |
-/// | Paused | resume | new round | resume | title |
-/// | Result | play again | play again | title | title |
+/// | Screen | confirm | restart | pause | back | settings |
+/// |---|---|---|---|---|---|
+/// | Title | play | | quit | quit | open settings |
+/// | Playing | | new round | pause | | |
+/// | Paused | resume | new round | resume | title | |
+/// | Result | play again | play again | title | title | |
+/// | Settings | | | | | |
+///
+/// The settings screen is the retained UI's: only `close_settings` (its Back
+/// button or Escape) leaves it, see `settings::settings_ui`.
 pub fn rules(ctx: &mut Ctx) {
     let Intent {
         direction,
@@ -331,6 +403,8 @@ pub fn rules(ctx: &mut Ctx) {
         restart,
         pause,
         back,
+        settings,
+        close_settings,
     } = std::mem::take(ctx.world.resource_mut::<Intent>());
     // `take` cleared the latches; keep the held direction for the next tick.
     ctx.world.resource_mut::<Intent>().direction = direction;
@@ -339,9 +413,18 @@ pub fn rules(ctx: &mut Ctx) {
     match *ctx.world.resource::<Screen>() {
         Screen::Title => {
             if confirm {
+                sfx(ctx, |s| s.select);
                 new_round(ctx, next_round);
+            } else if settings {
+                sfx(ctx, |s| s.select);
+                ctx.world.insert_resource(Screen::Settings);
             } else if pause || back {
                 ctx.quit();
+            }
+        }
+        Screen::Settings => {
+            if close_settings {
+                settings::leave_settings(ctx);
             }
         }
         Screen::Playing => {
@@ -394,6 +477,9 @@ fn play(ctx: &mut Ctx, direction: Vec2) {
     for e in &touched {
         ctx.world.despawn(*e);
     }
+    if !touched.is_empty() {
+        sfx(ctx, |s| s.pickup);
+    }
 
     let dt = ctx.dt();
     let round = ctx.world.resource_mut::<Round>();
@@ -421,6 +507,10 @@ fn finish_round(ctx: &mut Ctx, outcome: Outcome) {
         None => false,
     };
     ctx.world.resource_mut::<Round>().new_best = new_best;
+    match outcome {
+        Outcome::Won => sfx(ctx, |s| s.win),
+        Outcome::Lost => sfx(ctx, |s| s.lose),
+    }
     ctx.world.insert_resource(Screen::Result(outcome));
 }
 
@@ -465,41 +555,58 @@ pub struct SaveFile {
     pub save_failed: bool,
 }
 
+/// Reads the JSON file `path` into a `T`. A missing file is a first run
+/// (`Fresh`, the default value); a file that can't be read, doesn't parse or
+/// fails `valid` is recovered from (`Recovered`, the default value), and its
+/// bytes are moved to `<name>.bad` for inspection. Shared by the progress and
+/// the settings files.
+fn load_json<T: Default + serde::de::DeserializeOwned>(path: &Path, valid: fn(&T) -> bool) -> (T, LoadStatus) {
+    let bytes = match std::fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return (T::default(), LoadStatus::Fresh),
+        Err(_) => return (T::default(), LoadStatus::Recovered),
+    };
+    match serde_json::from_slice::<T>(&bytes) {
+        Ok(value) if valid(&value) => (value, LoadStatus::Loaded),
+        _ => {
+            let mut backup = path.as_os_str().to_owned();
+            backup.push(".bad");
+            let _ = std::fs::rename(path, backup); // best effort
+            (T::default(), LoadStatus::Recovered)
+        }
+    }
+}
+
+/// Writes `value` to `path` (creating its folder) through a temporary file, so
+/// a crash in the middle leaves the old file, not half a new one.
+fn save_json<T: Serialize>(path: &Path, value: &T) -> std::io::Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let mut temp = path.as_os_str().to_owned();
+    temp.push(".tmp");
+    std::fs::write(&temp, serde_json::to_vec_pretty(value).map_err(std::io::Error::other)?)?;
+    std::fs::rename(&temp, path)
+}
+
 impl Progress {
     /// Reads `path`. A missing file is a first run; a file that can't be read,
     /// doesn't parse or holds impossible numbers is recovered from: zeroed
     /// progress, and the old bytes moved to `<name>.bad` for inspection.
     pub fn load(path: &Path) -> (Progress, LoadStatus) {
-        let bytes = match std::fs::read(path) {
-            Ok(bytes) => bytes,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return (Progress::default(), LoadStatus::Fresh),
-            Err(_) => return (Progress::default(), LoadStatus::Recovered),
-        };
-        match serde_json::from_slice::<Progress>(&bytes) {
-            Ok(progress) if progress.is_valid() => (progress, LoadStatus::Loaded),
-            _ => {
-                let mut backup = path.as_os_str().to_owned();
-                backup.push(".bad");
-                let _ = std::fs::rename(path, backup); // best effort
-                (Progress::default(), LoadStatus::Recovered)
-            }
-        }
+        load_json(path, Progress::is_valid)
     }
 
     /// Writes `path` (creating its folder) through a temporary file, so a
     /// crash in the middle leaves the old file, not half a new one.
     pub fn save(&self, path: &Path) -> std::io::Result<()> {
-        if let Some(dir) = path.parent() {
-            std::fs::create_dir_all(dir)?;
-        }
-        let mut temp = path.as_os_str().to_owned();
-        temp.push(".tmp");
-        let json = Progress {
-            version: SAVE_VERSION,
-            ..self.clone()
-        };
-        std::fs::write(&temp, serde_json::to_vec_pretty(&json).map_err(std::io::Error::other)?)?;
-        std::fs::rename(&temp, path)
+        save_json(
+            path,
+            &Progress {
+                version: SAVE_VERSION,
+                ..self.clone()
+            },
+        )
     }
 
     /// Whether the numbers could have come from this game.
@@ -576,6 +683,9 @@ pub fn screen_lines(world: &World) -> Vec<Line> {
     let red = Color::hex(0xff595e);
     let progress = world.resource::<Progress>();
     let save = world.resource::<SaveFile>();
+    let settings = world.resource::<Settings>();
+    let key = |control| settings.controls.key_name(control);
+    use settings::Control as C;
     let best = if progress.rounds_played == 0 {
         "No rounds played yet".to_string()
     } else {
@@ -586,7 +696,8 @@ pub fn screen_lines(world: &World) -> Vec<Line> {
         )
     };
     let mut lines = match *world.resource::<Screen>() {
-        Screen::Playing => return Vec::new(),
+        // The settings screen is the retained UI's; a round shows only the HUD.
+        Screen::Playing | Screen::Settings => return Vec::new(),
         Screen::Title => {
             let mut lines = vec![
                 line("COIN DASH", 56.0, gold),
@@ -600,12 +711,34 @@ pub fn screen_lines(world: &World) -> Vec<Line> {
             if save.load == LoadStatus::Recovered {
                 lines.push(line("Saved progress was unreadable and was reset", 20.0, red));
             }
-            lines.push(line("Enter: play    Esc: quit", 20.0, Color::WHITE));
+            if world.resource::<settings::SettingsFile>().load == LoadStatus::Recovered {
+                lines.push(line("Saved settings were unreadable and were reset", 20.0, red));
+            }
+            // A browser tab can't be closed by the game, so the web build has no quit.
+            let quit = if cfg!(target_arch = "wasm32") {
+                String::new()
+            } else {
+                format!("    {}: quit", key(C::Pause))
+            };
+            lines.push(line(
+                format!("{}: play    {}: settings{quit}", key(C::Confirm), key(C::Settings)),
+                20.0,
+                Color::WHITE,
+            ));
             lines
         }
         Screen::Paused => vec![
             line("Paused", 48.0, Color::WHITE),
-            line("Esc: resume    R: restart    Q: title", 20.0, Color::WHITE),
+            line(
+                format!(
+                    "{}: resume    {}: restart    {}: title",
+                    key(C::Pause),
+                    key(C::Restart),
+                    key(C::Back)
+                ),
+                20.0,
+                Color::WHITE,
+            ),
         ],
         Screen::Result(outcome) => {
             let round = world.resource::<Round>();
@@ -627,7 +760,11 @@ pub fn screen_lines(world: &World) -> Vec<Line> {
                 lines.push(line("New best!", 24.0, gold));
             }
             lines.push(line(best, 20.0, Color::WHITE));
-            lines.push(line("Enter: play again    Q: title", 20.0, Color::WHITE));
+            lines.push(line(
+                format!("{}: play again    {}: title", key(C::Confirm), key(C::Back)),
+                20.0,
+                Color::WHITE,
+            ));
             lines
         }
     };
@@ -637,23 +774,25 @@ pub fn screen_lines(world: &World) -> Vec<Line> {
     lines
 }
 
-/// Frame system: the text on top of the sprites. Read-only.
+/// Frame system: the text on top of the sprites, at the player's UI scale.
 pub fn hud(ctx: &mut Ctx) {
+    let scale = ctx.world.resource::<Settings>().ui_scale;
     if matches!(*ctx.world.resource::<Screen>(), Screen::Playing | Screen::Paused) {
         let round = ctx.world.resource::<Round>().clone();
         let status = format!(
             "Round {}   Coins {}/{}   Time {:.1}",
             round.number, round.collected, COINS, round.time_left
         );
-        ctx.draw_text(&status, vec2(12.0, 8.0), 20.0, Color::WHITE);
+        ctx.draw_text(&status, vec2(12.0, 8.0) * scale, 20.0 * scale, Color::WHITE);
     }
     // The block of lines, centred on the arena.
     let lines = screen_lines(&ctx.world);
-    let height: f32 = lines.iter().map(|l| l.size * 1.5).sum();
+    let height: f32 = lines.iter().map(|l| l.size * scale * 1.5).sum();
     let mut y = (ARENA.y - height) / 2.0;
     for l in lines {
-        let width = ctx.measure_text(&l.text, l.size).x;
-        ctx.draw_text(&l.text, vec2((ARENA.x - width) / 2.0, y), l.size, l.color);
-        y += l.size * 1.5;
+        let size = l.size * scale;
+        let width = ctx.gfx.measure_text(&l.text, size).x;
+        ctx.draw_text(&l.text, vec2((ARENA.x - width) / 2.0, y), size, l.color);
+        y += size * 1.5;
     }
 }

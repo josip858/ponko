@@ -66,8 +66,10 @@ simulates a million agents this way.
 ## A complete game, tested headlessly
 
 [`examples/coin_dash`](https://github.com/ponkoengine/ponko/tree/main/examples/coin_dash)
-is a small complete game (title, pause and result screens, win, lose,
-restart, saved progress, keyboard and gamepad, no asset files) built so that a test can play it. It has three layers,
+is a small complete game (title, settings, pause and result screens, win, lose,
+restart, saved progress, keyboard and gamepad; one picture file, everything else
+made in code) built so that a test can play it. Packaging it, the settings and the
+web build are in [A complete game, packaged](packaging.md). It has three layers,
 each a [plugin](systems.md#plugins):
 
 1. `Controls`: `read_input`, a frame system, turns the named

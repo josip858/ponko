@@ -47,6 +47,7 @@ mod commands;
 mod entity;
 mod query;
 mod storage;
+mod view;
 mod world;
 
 pub use access::AccessLog;
@@ -56,4 +57,5 @@ pub use commands::Commands;
 pub use entity::Entity;
 pub use query::{Or, OrTerm, OrTerms, Query, QueryData, QueryFilter, QueryIter, With, Without};
 pub use storage::{Archetype, ComponentId, ComponentInfo, DropFn};
+pub use view::{ViewAccess, ViewQuery, ViewState, WorldView};
 pub use world::{Chunk, World};

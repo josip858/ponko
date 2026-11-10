@@ -1330,13 +1330,77 @@ mod tests {
 
 // ---- Sprites ------------------------------------------------------------------------
 
-/// The asset names of textures loaded from files (`Ctx::load_texture`), so
-/// sprites are saved as `"texture": "crab.png"`. A resource of the game's world.
-#[derive(Default)]
-pub(crate) struct TextureNames {
-    pub(crate) by_id: HashMap<u32, String>,
-    pub(crate) by_name: HashMap<String, crate::Texture>,
+/// File names of loaded assets by handle id, and the handles by name, so
+/// components are saved by file name (`"texture": "crab.png"`).
+///
+/// One table is shared by the world (a resource: saving and loading read
+/// it) and the graphics service (which fills it in as files load, without
+/// borrowing the world).
+pub(crate) struct Names<H>(Arc<std::sync::Mutex<NameTable<H>>>);
+
+struct NameTable<H> {
+    by_id: HashMap<u32, String>,
+    by_name: HashMap<String, H>,
 }
+
+impl<H> Default for Names<H> {
+    fn default() -> Self {
+        Self(Arc::new(std::sync::Mutex::new(NameTable {
+            by_id: HashMap::new(),
+            by_name: HashMap::new(),
+        })))
+    }
+}
+
+impl<H> Clone for Names<H> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<H: Copy> Names<H> {
+    fn table(&self) -> std::sync::MutexGuard<'_, NameTable<H>> {
+        // A panic while holding the lock leaves the maps as they were.
+        self.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// The file name handle `id` was loaded from.
+    pub(crate) fn name(&self, id: u32) -> Option<String> {
+        self.table().by_id.get(&id).cloned()
+    }
+
+    /// The handle loaded from file `name`.
+    pub(crate) fn get(&self, name: &str) -> Option<H> {
+        self.table().by_name.get(name).copied()
+    }
+
+    /// Names handle `id` after file `name`, unless either is taken.
+    pub(crate) fn add(&self, id: u32, name: &str, handle: H) {
+        let mut table = self.table();
+        table.by_id.entry(id).or_insert_with(|| name.to_string());
+        table.by_name.entry(name.to_string()).or_insert(handle);
+    }
+
+    /// Names handle `id` after file `name`, over what was there.
+    #[cfg(feature = "3d")]
+    pub(crate) fn set(&self, id: u32, name: &str, handle: H) {
+        let mut table = self.table();
+        table.by_id.insert(id, name.to_string());
+        table.by_name.insert(name.to_string(), handle);
+    }
+
+    /// Forgets handle `id` (it was freed).
+    pub(crate) fn remove(&self, id: u32) {
+        let mut table = self.table();
+        if let Some(name) = table.by_id.remove(&id) {
+            table.by_name.remove(&name);
+        }
+    }
+}
+
+/// The asset names of textures loaded from files (`Graphics::load_texture`), so
+/// sprites are saved as `"texture": "crab.png"`. A resource of the game's world.
+pub(crate) type TextureNames = Names<crate::Texture>;
 
 /// A [`Sprite`](crate::Sprite) as JSON: the texture by its file name.
 #[derive(Serialize, serde::Deserialize)]
@@ -1364,9 +1428,9 @@ impl Default for SpriteJson {
 /// `None` for a texture made in code: it has no file to name, so the sprite
 /// isn't saved (the rest of the entity is).
 fn sprite_json(world: &World, s: &crate::Sprite) -> Option<Result<Value, String>> {
-    let name = world.get_resource::<TextureNames>()?.by_id.get(&s.texture.id)?;
+    let name = world.get_resource::<TextureNames>()?.name(s.texture.id)?;
     let json = SpriteJson {
-        texture: Some(name.clone()),
+        texture: Some(name),
         color: s.color,
         z: s.z,
         pivot: s.pivot,
@@ -1382,8 +1446,7 @@ fn sprite_from_json(world: &World, value: Value) -> Result<crate::Sprite, String
         .ok_or("a sprite needs \"texture\": an image in assets/, like \"crab.png\"")?;
     let texture = world
         .get_resource::<TextureNames>()
-        .and_then(|t| t.by_name.get(&name))
-        .copied()
+        .and_then(|t| t.get(&name))
         .ok_or_else(|| format!("texture \"{name}\" isn't loaded: ctx.load_texture(\"{name}\") first"))?;
     Ok(crate::Sprite {
         texture,
@@ -1432,14 +1495,10 @@ pub(crate) fn reflect_sprite(world: &mut World) {
 
 // ---- Models ------------------------------------------------------------------------
 
-/// The asset names of meshes loaded from files (`Ctx::load_mesh`), so
+/// The asset names of meshes loaded from files (`Graphics::load_mesh`), so
 /// models are saved as `"mesh": "tree.glb"`. A resource of the game's world.
 #[cfg(feature = "3d")]
-#[derive(Default)]
-pub(crate) struct MeshNames {
-    pub(crate) by_id: HashMap<u32, String>,
-    pub(crate) by_name: HashMap<String, crate::Mesh>,
-}
+pub(crate) type MeshNames = Names<crate::Mesh>;
 
 /// A [`Model`](crate::Model) as JSON: the mesh by its file name.
 #[cfg(feature = "3d")]
@@ -1464,9 +1523,9 @@ impl Default for ModelJson {
 /// isn't saved (the rest of the entity is).
 #[cfg(feature = "3d")]
 fn model_json(world: &World, m: &crate::Model) -> Option<Result<Value, String>> {
-    let name = world.get_resource::<MeshNames>()?.by_id.get(&m.mesh.id)?;
+    let name = world.get_resource::<MeshNames>()?.name(m.mesh.id)?;
     let json = ModelJson {
-        mesh: Some(name.clone()),
+        mesh: Some(name),
         color: m.color,
     };
     Some(serde_json::to_value(json).map_err(|err| err.to_string()))
@@ -1480,9 +1539,8 @@ fn model_from_json(world: &World, value: Value) -> Result<crate::Model, String> 
         .ok_or("a model needs \"mesh\": a glTF file in assets/, like \"tree.glb\"")?;
     let mesh = world
         .get_resource::<MeshNames>()
-        .and_then(|t| t.by_name.get(&name))
-        .copied()
-        .ok_or_else(|| format!("mesh \"{name}\" isn't loaded: ctx.load_mesh(\"{name}\") first"))?;
+        .and_then(|t| t.get(&name))
+        .ok_or_else(|| format!("mesh \"{name}\" isn't loaded: ctx.gfx.load_mesh(\"{name}\") first"))?;
     Ok(crate::Model {
         mesh,
         color: json.color,
@@ -1499,7 +1557,7 @@ struct ShadowMeshJson {
 #[cfg(feature = "3d")]
 fn shadow_mesh_json(world: &World, s: &crate::ShadowMesh) -> Option<Result<Value, String>> {
     let mesh = match s.0 {
-        Some(mesh) => Some(world.get_resource::<MeshNames>()?.by_id.get(&mesh.id)?.clone()),
+        Some(mesh) => Some(world.get_resource::<MeshNames>()?.name(mesh.id)?),
         None => None,
     };
     Some(serde_json::to_value(ShadowMeshJson { mesh }).map_err(|err| err.to_string()))
@@ -1513,18 +1571,22 @@ fn shadow_mesh_from_json(world: &World, value: Value) -> Result<crate::ShadowMes
     };
     let mesh = world
         .get_resource::<MeshNames>()
-        .and_then(|t| t.by_name.get(&name))
-        .copied()
-        .ok_or_else(|| format!("mesh \"{name}\" isn't loaded: ctx.load_mesh(\"{name}\") first"))?;
+        .and_then(|t| t.get(&name))
+        .ok_or_else(|| format!("mesh \"{name}\" isn't loaded: ctx.gfx.load_mesh(\"{name}\") first"))?;
     Ok(crate::ShadowMesh(Some(mesh)))
 }
 
 /// The materials of meshes loaded from files (`Ctx::load_mesh`), so a
 /// [`ModelMaterial`](crate::ModelMaterial) is saved as the file and the
-/// material's name in it. A resource of the game's world.
+/// material's name in it. One table shared by the world (a resource) and
+/// the graphics service, like [`Names`].
+#[cfg(feature = "3d")]
+#[derive(Default, Clone)]
+pub(crate) struct MaterialNames(Arc<std::sync::Mutex<MaterialTable>>);
+
 #[cfg(feature = "3d")]
 #[derive(Default)]
-pub(crate) struct MaterialNames {
+struct MaterialTable {
     /// A material's file and its number in that file's list.
     by_id: HashMap<u32, (String, usize)>,
     /// Each file's materials, in the file's order, with their names
@@ -1534,20 +1596,27 @@ pub(crate) struct MaterialNames {
 
 #[cfg(feature = "3d")]
 impl MaterialNames {
+    fn table(&self) -> std::sync::MutexGuard<'_, MaterialTable> {
+        // A panic while holding the lock leaves the maps as they were.
+        self.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
     /// Records the materials of mesh file `file`.
-    pub(crate) fn add(&mut self, file: &str, materials: impl Iterator<Item = (crate::Material, String)>) {
+    pub(crate) fn add(&self, file: &str, materials: impl Iterator<Item = (crate::Material, String)>) {
         let list: Vec<_> = materials.collect();
+        let mut table = self.table();
         for (i, (material, _)) in list.iter().enumerate() {
             // A material shared by two files keeps its first name.
-            self.by_id.entry(material.id).or_insert_with(|| (file.to_string(), i));
+            table.by_id.entry(material.id).or_insert_with(|| (file.to_string(), i));
         }
-        self.by_file.insert(file.to_string(), list);
+        table.by_file.insert(file.to_string(), list);
     }
 
     /// Forgets freed material `id`.
-    pub(crate) fn remove(&mut self, id: u32) {
-        self.by_id.remove(&id);
-        for list in self.by_file.values_mut() {
+    pub(crate) fn remove(&self, id: u32) {
+        let mut table = self.table();
+        table.by_id.remove(&id);
+        for list in table.by_file.values_mut() {
             list.retain(|(m, _)| m.id != id);
         }
     }
@@ -1555,8 +1624,9 @@ impl MaterialNames {
     /// How `material` is written in a scene file, if it came from a file:
     /// by its name when the file has that name once, else by its number.
     fn named(&self, material: crate::Material) -> Option<MaterialJson> {
-        let (file, _) = self.by_id.get(&material.id)?;
-        let list = self.by_file.get(file)?;
+        let table = self.table();
+        let (file, _) = table.by_id.get(&material.id)?;
+        let list = table.by_file.get(file)?;
         let at = list.iter().position(|(m, _)| *m == material)?;
         let name = &list[at].1;
         let unique = !name.is_empty() && list.iter().filter(|(_, n)| n == name).count() == 1;
@@ -1573,7 +1643,8 @@ impl MaterialNames {
     /// The material a scene file names, or an error saying what's missing.
     fn find(&self, json: &MaterialJson) -> Result<crate::Material, String> {
         let file = &json.mesh;
-        let list = self
+        let table = self.table();
+        let list = table
             .by_file
             .get(file)
             .ok_or_else(|| format!("mesh \"{file}\" isn't loaded: ctx.load_mesh(\"{file}\") first"))?;
@@ -1687,9 +1758,8 @@ fn model_materials_from_json(world: &World, value: Value) -> Result<crate::Model
 fn mesh_by_name(world: &World, name: &str) -> Result<crate::Mesh, String> {
     world
         .get_resource::<MeshNames>()
-        .and_then(|t| t.by_name.get(name))
-        .copied()
-        .ok_or_else(|| format!("mesh \"{name}\" isn't loaded: ctx.load_mesh(\"{name}\") first"))
+        .and_then(|t| t.get(name))
+        .ok_or_else(|| format!("mesh \"{name}\" isn't loaded: ctx.gfx.load_mesh(\"{name}\") first"))
 }
 
 /// A [`LodRenderer`](crate::LodRenderer) as JSON: the mesh by its file name.
@@ -1762,7 +1832,7 @@ fn lod_group_json(world: &World, g: &crate::LodGroup) -> Option<Result<Value, St
         list.iter()
             .map(|r| {
                 Some(LodRendererJson {
-                    mesh: Some(names.by_id.get(&r.mesh.id)?.clone()),
+                    mesh: Some(names.name(r.mesh.id)?),
                     offset: r.offset,
                     color: r.color,
                 })

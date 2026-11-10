@@ -98,7 +98,7 @@ phase (`Late` for a camera that follows a bone).
 
 ## One frame, in order
 
-1. The fixed-tick phases, `ctx.fixed_steps()` times: each tick runs
+1. The fixed-tick phases, `ctx.time.fixed_steps()` times: each tick runs
    `Input`, `BeforePhysics`, `Physics`, `AfterPhysics`, `SimLast`.
 2. `Frame`.
 3. `Animate`.
@@ -107,7 +107,7 @@ phase (`Late` for a camera that follows a bone).
 6. The renderer draws what the frame queued.
 
 There is nothing else: every step between the ticks and the renderer is a
-system in one of these phases, and [`ctx.system_timings()`](#timings) lists
+system in one of these phases, and [`ctx.perf.system_timings()`](#timings) lists
 all of them.
 
 ## Built-in systems
@@ -322,16 +322,15 @@ in may get coarser barriers, documented there. To be ready:
 
 ## Parallel queries and future scheduling
 
-Systems currently execute sequentially, taking exclusive `&mut Ctx` access.
-A system can use the ECS's parallel query methods to divide its entity work
-across threads; this is not automatic parallel execution of different systems.
-Optional declared-access scheduling is planned in
-[#137](https://github.com/ponkoengine/ponko/issues/137) and
-[#138](https://github.com/ponkoengine/ponko/issues/138), after safety and
-performance baselines. The sequential barriers above are the baseline any
-such scheduler must keep or document
-([#146](https://github.com/ponkoengine/ponko/issues/146)). Existing
-unannotated `sim_system` callbacks must remain usable and exclusive.
+Systems currently execute sequentially. A system can use the ECS's parallel
+query methods to divide its entity work across threads; this is not
+automatic parallel execution of different systems. Systems may declare what
+they read and write, and view systems (`Game::add_view`) get only what they
+declared; see [Declared system access](system-access.md). The parallel
+scheduler that will use those declarations is planned in
+[#138](https://github.com/ponkoengine/ponko/issues/138); the batch barrier it
+must keep is documented in that chapter. Existing unannotated `sim_system`
+callbacks remain usable and exclusive.
 See [the architecture](https://github.com/ponkoengine/ponko/blob/main/ARCHITECTURE.md)
 for current subsystem boundaries.
 
@@ -347,7 +346,7 @@ returns the closure:
 fn spawner(every: u64) -> impl FnMut(&mut Ctx) {
     let mut spawned = 0;
     move |ctx| {
-        if ctx.sim_tick() % every == 0 {
+        if ctx.time.sim_tick() % every == 0 {
             ctx.commands.spawn((Transform2D::default(),));
             spawned += 1;
         }
@@ -369,7 +368,7 @@ Game::new("t", 800, 600).sim_system(spawner(30));
 
 ## Timings
 
-`ctx.system_timings()` lists every system with its last and average time in
+`ctx.perf.system_timings()` lists every system with its last and average time in
 milliseconds, so a game can show its own profiler overlay. The engine's
 systems are in the list under their names (`ponko::systems::update_animators`,
 `ponko::ecs::draw_sprites`), next to yours, in the order they run. For a full
