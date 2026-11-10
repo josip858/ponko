@@ -66,6 +66,9 @@ pub(crate) struct Renderer {
     instance_buffer: wgpu::Buffer,
     /// Capacity of `instance_buffer`, in sprites.
     instance_capacity: usize,
+    /// What `instance_buffer` holds: sprites that didn't change aren't
+    /// uploaded again. Forgotten with the buffer it mirrors.
+    sprite_mirror: traffic::Mirror,
 
     timer: Option<GpuTimer>,
     /// What this GPU can do and the fallbacks used (fixed once opened).
@@ -263,6 +266,9 @@ impl Capture {
     }
 }
 
+/// Two changed sprites with up to this many unchanged ones between go in
+/// one upload.
+const SPRITE_BRIDGE: usize = 15;
 const INITIAL_INSTANCE_CAPACITY: usize = 1024;
 
 impl Renderer {
@@ -587,6 +593,7 @@ impl Renderer {
             freed_textures: Default::default(),
             instance_buffer,
             instance_capacity: INITIAL_INSTANCE_CAPACITY,
+            sprite_mirror: traffic::Mirror::default(),
             timer,
             capabilities,
             draw_hidden: false,
@@ -1386,29 +1393,37 @@ impl Renderer {
 
         if traffic::outgrown(&mut self.instance_capacity, total) {
             self.instance_buffer = Self::create_instance_buffer(&self.device, self.instance_capacity);
+            self.sprite_mirror.forget();
         }
-        if !world.is_empty() {
-            self.queue
-                .uploading(Upload::Sprites)
-                .write_buffer(&self.instance_buffer, 0, bytemuck::cast_slice(world));
-        }
-        if !ui.is_empty() {
-            let offset = std::mem::size_of_val(world) as u64;
-            self.queue
-                .uploading(Upload::Sprites)
-                .write_buffer(&self.instance_buffer, offset, bytemuck::cast_slice(ui));
-        }
+        // Only the sprites that changed since the last frame are uploaded,
+        // with the few unchanged ones between two of them.
+        let page = size_of::<SpriteInstance>();
+        let mut upload_sprites = |at: usize, sprites: &[SpriteInstance]| {
+            let (buffer, uploads) = (&self.instance_buffer, self.queue.uploading(Upload::Sprites));
+            let bytes = bytemuck::cast_slice(sprites);
+            self.sprite_mirror
+                .sync_bridged(at, bytes, page, SPRITE_BRIDGE, |at, bytes| {
+                    uploads.write_buffer(buffer, at as u64, bytes);
+                });
+        };
+        upload_sprites(0, world);
+        upload_sprites(std::mem::size_of_val(world), ui);
         // World-space UI panels' sprites go after the screen's, each panel
         // with a camera of its own pixels.
         let mut panel_base = (world.len() + ui.len()) as u32;
         let mut panel_starts = Vec::with_capacity(panels.len());
         for (i, (_, size, (sprites, _))) in panels.iter().enumerate() {
             if !sprites.is_empty() {
-                let offset = u64::from(panel_base) * size_of::<SpriteInstance>() as u64;
-                self.queue.uploading(Upload::Sprites).write_buffer(
-                    &self.instance_buffer,
+                let offset = panel_base as usize * page;
+                let (buffer, uploads) = (&self.instance_buffer, self.queue.uploading(Upload::Sprites));
+                self.sprite_mirror.sync_bridged(
                     offset,
                     bytemuck::cast_slice(sprites),
+                    page,
+                    SPRITE_BRIDGE,
+                    |at, bytes| {
+                        uploads.write_buffer(buffer, at as u64, bytes);
+                    },
                 );
             }
             if i == self.panel_cameras.len() {

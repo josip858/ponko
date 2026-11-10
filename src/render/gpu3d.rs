@@ -2780,6 +2780,7 @@ impl Renderer3D {
             .check(device, queue, &self.instances, 0, "instances");
         self.moved.check(device, queue);
         self.particles.check_mirrors(device, queue);
+        self.skinning.check_mirrors(device, queue);
     }
 
     /// Every material pipeline key built so far (tests).
