@@ -766,7 +766,7 @@ impl Graphics {
     /// For offscreen test rigs that draw `ui_list` themselves, with no
     /// renderer: gives shapes and text their textures (ids 0 and 1), so
     /// drawing them works. The rig uploads `text.uploads` into the second.
-    #[cfg(test)]
+    #[cfg(all(test, feature = "3d"))]
     pub(crate) fn stand_in_textures(&mut self) {
         self.white = Some(crate::Texture::new(0, 1, 1));
         self.font_atlas = Some(crate::Texture::new(1, Text::ATLAS_SIZE, Text::ATLAS_SIZE));

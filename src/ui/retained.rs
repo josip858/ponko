@@ -878,7 +878,8 @@ impl Ui {
                 UiEvent::Clicked(id) => Some(id),
                 _ => None,
             })
-            .last()
+            // Dropping the drain removes the events before the last click too.
+            .next_back()
     }
     /// The pointer belongs to UI: it is over a widget of the tree or an
     /// [immediate](Self::immediate) one drawn this frame or the previous

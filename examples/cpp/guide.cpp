@@ -2331,6 +2331,7 @@ static void shop_guide(ponko::ctx& ctx) {
     click_node(ctx, "buy");
     shop_events(ctx);
     if (tree.top_screen() != tree.find("dialog") || tree.text(*tree.find("message")) != "Buy item 3?") std::abort();
+    tree.layout_for({900, 700});  // the dialog was pushed after the last layout
     const auto dialog = tree.rect(*tree.find("dialog"));
     if (dialog.min.x != 270 || dialog.min.y != 180) std::abort();
     click_node(ctx, "confirm");
