@@ -442,8 +442,8 @@ impl NetMessages {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::MAX_MESSAGE_BYTES;
     use crate::net::Lane;
+    use crate::net::MAX_MESSAGE_BYTES;
     use crate::net::MessageEvent;
     use std::collections::BTreeMap;
     use std::time::Duration;

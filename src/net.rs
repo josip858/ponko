@@ -1220,6 +1220,10 @@ impl Transport for Local {
     }
 }
 
+/// Steamworks SDK used by Steam transports.
+#[cfg(feature = "steam")]
+pub use steamworks as steam;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1255,7 +1259,3 @@ mod tests {
         assert_eq!((back.tick, back.total, back.parts), (cb.tick, cb.total, cb.parts));
     }
 }
-
-/// Steamworks SDK used by Steam transports.
-#[cfg(feature = "steam")]
-pub use steamworks as steam;
