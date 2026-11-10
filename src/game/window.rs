@@ -317,6 +317,7 @@ where
                         id,
                         access: None,
                         last: false,
+                        changes_seen: Default::default(),
                         enforced: false,
                     },
                 );
