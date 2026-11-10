@@ -108,15 +108,15 @@ impl GlobalIllumination {
     }
 
     /// How many probes the grid has along x, y and z: `extent / spacing +
-    /// 1`, 2 to 64 each, fewer when that's more than [`GlobalIllumination::MAX_PROBES`](crate::render::GlobalIllumination::MAX_PROBES) in
-    /// all (the grid shrinks; the spacing stays).
+    /// 1`, 2 to 64 each, fewer when that is more than
+    /// [`GlobalIllumination::MAX_PROBES`](crate::render::GlobalIllumination::MAX_PROBES) in all (the grid shrinks; the spacing stays).
     /// ```
     /// use ponko::prelude::*;
     /// let gi = ponko::render::GlobalIllumination { extent: vec3(8.0, 4.0, 8.0), spacing: 1.0, ..Default::default() };
     /// assert_eq!(gi.probe_counts(), [9, 5, 9]);
     /// let huge = ponko::render::GlobalIllumination { extent: Vec3::splat(1000.0), ..Default::default() };
     /// let [x, y, z] = huge.probe_counts();
-    /// assert!(x * y * z <= ponko::render::MAX_GI_PROBES);
+    /// assert!(x * y * z <= ponko::render::GlobalIllumination::MAX_PROBES);
     /// ```
     #[must_use]
     pub fn probe_counts(&self) -> [u32; 3] {
