@@ -612,7 +612,7 @@ fn the_guide_hills_are_nine_tiles_of_four_details() {
     });
     assert_eq!(
         meshes.len(),
-        9 * ponko::terrain::TERRAIN_LODS,
+        9 * ponko::terrain::TerrainTile::LODS,
         "every tile and level has its own mesh"
     );
 }

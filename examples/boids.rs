@@ -34,7 +34,11 @@ fn flocking(bounds: Vec2) -> impl FnMut(&mut Ctx) {
         let dt = ctx.dt();
         // Keep boids that are close in space close in memory, so neighbor
         // lookups hit the cache (1M boids: 62 -> 40 ms/tick).
-        if ctx.time.sim_tick().is_multiple_of(ponko::spatial::SPATIAL_SORT_EVERY) {
+        if ctx
+            .time
+            .sim_tick()
+            .is_multiple_of(ponko::spatial::SpatialGrid::<()>::SORT_EVERY)
+        {
             ctx.world
                 .sort_by::<Transform2D>(|t| ponko::spatial::spatial_key(t.position, RADIUS));
         }

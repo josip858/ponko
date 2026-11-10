@@ -3,7 +3,7 @@
 #[doc(hidden)]
 #[deprecated(note = "use ponko::access::AccessConflict")]
 #[cfg(feature = "3d")]
-pub type AccessConflict = crate::access::AccessConflict;
+pub use crate::access::AccessConflict;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::access::AccessReport")]
 #[cfg(feature = "3d")]
@@ -19,7 +19,7 @@ pub type ReportedSystem = crate::access::ReportedSystem;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::access::Service")]
 #[cfg(feature = "3d")]
-pub type Service = crate::access::Service;
+pub use crate::access::Service;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::access::SystemAccess")]
 #[cfg(feature = "3d")]
@@ -27,7 +27,7 @@ pub type SystemAccess = crate::access::SystemAccess;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::actions::InputEvent")]
 #[cfg(feature = "3d")]
-pub type InputEvent = crate::actions::InputEvent;
+pub use crate::actions::InputEvent;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::actions::UnknownAction")]
 #[cfg(feature = "3d")]
@@ -96,7 +96,7 @@ pub type AudioListener3D = crate::d3::AudioListener;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::audio::AudioRolloff")]
 #[cfg(feature = "3d")]
-pub type AudioRolloff = crate::audio::AudioRolloff;
+pub use crate::audio::AudioRolloff;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::d3::AudioSettings")]
 #[cfg(feature = "3d")]
@@ -158,15 +158,15 @@ pub type Gamepad = crate::input::Gamepad;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::input::GamepadAxis")]
 #[cfg(feature = "3d")]
-pub type GamepadAxis = crate::input::GamepadAxis;
+pub use crate::input::GamepadAxis;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::input::GamepadButton")]
 #[cfg(feature = "3d")]
-pub type GamepadButton = crate::input::GamepadButton;
+pub use crate::input::GamepadButton;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::input::GamepadStick")]
 #[cfg(feature = "3d")]
-pub type GamepadStick = crate::input::GamepadStick;
+pub use crate::input::GamepadStick;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::input::Input")]
 #[cfg(feature = "3d")]
@@ -175,7 +175,7 @@ pub type Input = crate::input::Input;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::inventory::AssetClass")]
 #[cfg(feature = "3d")]
-pub type AssetClass = crate::inventory::AssetClass;
+pub use crate::inventory::AssetClass;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::inventory::AssetCount")]
 #[cfg(feature = "3d")]
@@ -199,7 +199,7 @@ pub type Authority = crate::net::Authority;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::AuthorityCheck")]
 #[cfg(feature = "3d")]
-pub type AuthorityCheck = crate::net::AuthorityCheck;
+pub use crate::net::AuthorityCheck;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::ClockSync")]
 #[cfg(feature = "3d")]
@@ -215,7 +215,7 @@ pub type InterestChange = crate::net::InterestChange;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::InterestChangeKind")]
 #[cfg(feature = "3d")]
-pub type InterestChangeKind = crate::net::InterestChangeKind;
+pub use crate::net::InterestChangeKind;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::InterestConfig")]
 #[cfg(feature = "3d")]
@@ -255,7 +255,7 @@ pub type SnapshotConfig = crate::net::SnapshotConfig;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::SnapshotPush")]
 #[cfg(feature = "3d")]
-pub type SnapshotPush = crate::net::SnapshotPush;
+pub use crate::net::SnapshotPush;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::SnapshotSample")]
 #[cfg(feature = "3d")]
@@ -263,7 +263,7 @@ pub type SnapshotSample<T> = crate::net::SnapshotSample<T>;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::SnapshotState")]
 #[cfg(feature = "3d")]
-pub type SnapshotState = crate::net::SnapshotState;
+pub use crate::net::SnapshotState;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::SnapshotStream")]
 #[cfg(feature = "3d")]
@@ -279,11 +279,11 @@ pub type Desync = crate::net::Desync;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::Lane")]
 #[cfg(feature = "3d")]
-pub type Lane = crate::net::Lane;
+pub use crate::net::Lane;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::MessageEvent")]
 #[cfg(feature = "3d")]
-pub type MessageEvent = crate::net::MessageEvent;
+pub use crate::net::MessageEvent;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::MessageStats")]
 #[cfg(feature = "3d")]
@@ -299,7 +299,7 @@ pub type NetMessages = crate::net::NetMessages;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::NetState")]
 #[cfg(feature = "3d")]
-pub type NetState = crate::net::NetState;
+pub use crate::net::NetState;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::net::NetStats")]
 #[cfg(feature = "3d")]
@@ -317,7 +317,7 @@ pub type SteamLobby = crate::net::SteamLobby;
 #[deprecated(note = "use ponko::net::SteamLobbyVisibility")]
 #[cfg(feature = "steam")]
 #[cfg(feature = "3d")]
-pub type SteamLobbyVisibility = crate::net::SteamLobbyVisibility;
+pub use crate::net::SteamLobbyVisibility;
 #[doc(hidden)]
 #[doc(hidden)]
 #[deprecated(note = "use ponko::perf::Perf")]
@@ -379,7 +379,7 @@ pub type SystemReport = crate::perf::SystemReport;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::perf::WarningKind")]
 #[cfg(feature = "3d")]
-pub type WarningKind = crate::perf::WarningKind;
+pub use crate::perf::WarningKind;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::perf::WorstFrame")]
 #[cfg(feature = "3d")]
@@ -408,7 +408,7 @@ pub type RigidBody = crate::d2::RigidBody;
 #[deprecated(note = "use ponko::d2::Shape")]
 #[cfg(feature = "physics")]
 #[cfg(feature = "3d")]
-pub type Shape = crate::d2::Shape;
+pub use crate::d2::Shape;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::d2::Velocity")]
 #[cfg(feature = "physics")]
@@ -513,7 +513,7 @@ pub type RigidBody3D = crate::d3::RigidBody;
 #[deprecated(note = "use ponko::d3::Shape")]
 #[cfg(feature = "physics3d")]
 #[cfg(feature = "3d")]
-pub type Shape3D = crate::d3::Shape;
+pub use crate::d3::Shape as Shape3D;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::physics3d::TerrainCollider")]
 #[cfg(feature = "physics3d")]
@@ -546,7 +546,7 @@ pub type GpuPass = crate::perf::GpuPass;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::reflect::ReflectError")]
 #[cfg(feature = "3d")]
-pub type ReflectError = crate::reflect::ReflectError;
+pub use crate::reflect::ReflectError;
 #[doc(hidden)]
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::GpuAdapter")]
@@ -559,7 +559,7 @@ pub type GpuCapabilities = crate::render::GpuCapabilities;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::GpuFeature")]
 #[cfg(feature = "3d")]
-pub type GpuFeature = crate::render::GpuFeature;
+pub use crate::render::GpuFeature;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::GpuFeatureStatus")]
 #[cfg(feature = "3d")]
@@ -571,7 +571,7 @@ pub type GpuLimits = crate::render::GpuLimits;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::GpuTier")]
 #[cfg(feature = "3d")]
-pub type GpuTier = crate::render::GpuTier;
+pub use crate::render::GpuTier;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::GpuUploads")]
 #[cfg(feature = "3d")]
@@ -588,7 +588,7 @@ pub type RenderStats = crate::render::RenderStats;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::residency::ResidencyKind")]
 #[cfg(feature = "3d")]
-pub type ResidencyKind = crate::residency::ResidencyKind;
+pub use crate::residency::ResidencyKind;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::residency::ResidencyStats")]
 #[cfg(feature = "3d")]
@@ -600,7 +600,7 @@ pub type InputScenario = crate::scenario::InputScenario;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::scenario::ScenarioCheck")]
 #[cfg(feature = "3d")]
-pub type ScenarioCheck = crate::scenario::ScenarioCheck;
+pub use crate::scenario::ScenarioCheck;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::scenario::ScenarioError")]
 #[cfg(feature = "3d")]
@@ -616,7 +616,7 @@ pub type ScenarioReport = crate::scenario::ScenarioReport;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::scenario::ScenarioStatus")]
 #[cfg(feature = "3d")]
-pub type ScenarioStatus = crate::scenario::ScenarioStatus;
+pub use crate::scenario::ScenarioStatus;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::scope::ProfileScope")]
 #[cfg(feature = "3d")]
@@ -640,7 +640,7 @@ pub type SpatialGrid<T = ()> = crate::spatial::SpatialGrid<T>;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::streaming::AssetState")]
 #[cfg(feature = "3d")]
-pub type AssetState = crate::streaming::AssetState;
+pub use crate::streaming::AssetState;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::streaming::StreamedAsset")]
 #[cfg(feature = "3d")]
@@ -656,7 +656,7 @@ pub type AmbientOcclusion = crate::render::AmbientOcclusion;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::AnimationCondition")]
 #[cfg(feature = "3d")]
-pub type AnimationCondition = crate::anim::AnimationCondition;
+pub use crate::anim::AnimationCondition;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::AnimationEvent")]
 #[cfg(feature = "3d")]
@@ -672,7 +672,7 @@ pub type AnimationLayer = crate::anim::AnimationLayer;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::AnimationParameter")]
 #[cfg(feature = "3d")]
-pub type AnimationParameter = crate::anim::AnimationParameter;
+pub use crate::anim::AnimationParameter;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::AnimationState")]
 #[cfg(feature = "3d")]
@@ -692,7 +692,7 @@ pub type Animator = crate::anim::Animator;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::AntiAliasing")]
 #[cfg(feature = "3d")]
-pub type AntiAliasing = crate::render::AntiAliasing;
+pub use crate::render::AntiAliasing;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::AttachToJoint")]
 #[cfg(feature = "3d")]
@@ -700,7 +700,7 @@ pub type AttachToJoint = crate::anim::AttachToJoint;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::Blend")]
 #[cfg(feature = "3d")]
-pub type Blend = crate::anim::Blend;
+pub use crate::anim::Blend;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::d3::Camera")]
 #[cfg(feature = "3d")]
@@ -756,7 +756,7 @@ pub type InstanceLevel = crate::render::InstanceLevel;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::Interpolation")]
 #[cfg(feature = "3d")]
-pub type Interpolation = crate::anim::Interpolation;
+pub use crate::anim::Interpolation;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::Joint")]
 #[cfg(feature = "3d")]
@@ -768,7 +768,7 @@ pub type JointAnimation = crate::anim::JointAnimation;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::LayerBlend")]
 #[cfg(feature = "3d")]
-pub type LayerBlend = crate::anim::LayerBlend;
+pub use crate::anim::LayerBlend;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::Lighting")]
 #[cfg(feature = "3d")]
@@ -799,7 +799,7 @@ pub type LodLevel = crate::render::LodLevel;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::LodPick")]
 #[cfg(feature = "3d")]
-pub type LodPick = crate::render::LodPick;
+pub use crate::render::LodPick;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::LodRenderer")]
 #[cfg(feature = "3d")]
@@ -811,7 +811,7 @@ pub type LodSettings = crate::render::LodSettings;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::LodShadow")]
 #[cfg(feature = "3d")]
-pub type LodShadow = crate::render::LodShadow;
+pub use crate::render::LodShadow;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::Material")]
 #[cfg(feature = "3d")]
@@ -862,7 +862,7 @@ pub type MorphTarget = crate::anim::MorphTarget;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::Motion")]
 #[cfg(feature = "3d")]
-pub type Motion = crate::anim::Motion;
+pub use crate::anim::Motion;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::MotionChild")]
 #[cfg(feature = "3d")]
@@ -898,7 +898,7 @@ pub type Post = crate::render::Post;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::QualityLevel")]
 #[cfg(feature = "3d")]
-pub type QualityLevel = crate::render::QualityLevel;
+pub use crate::render::QualityLevel;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::ReceivesDecals")]
 #[cfg(feature = "3d")]
@@ -933,11 +933,11 @@ pub type ShaderDiagnostic = crate::render::ShaderDiagnostic;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::ShaderKind")]
 #[cfg(feature = "3d")]
-pub type ShaderKind = crate::render::ShaderKind;
+pub use crate::render::ShaderKind;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::ShaderOutcome")]
 #[cfg(feature = "3d")]
-pub type ShaderOutcome = crate::render::ShaderOutcome;
+pub use crate::render::ShaderOutcome;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::ShaderStatus")]
 #[cfg(feature = "3d")]
@@ -998,13 +998,13 @@ pub type TextAlign3D = crate::d3::TextAlign;
 #[cfg(feature = "3d")]
 pub type TextureArray = crate::terrain::TextureArray;
 #[doc(hidden)]
-#[deprecated(note = "use ponko::terrain::TextureKind")]
-#[cfg(feature = "3d")]
-pub type TextureKind = crate::terrain::TextureKind;
-#[doc(hidden)]
 #[deprecated(note = "use ponko::render::Tonemap")]
 #[cfg(feature = "3d")]
-pub type Tonemap = crate::render::Tonemap;
+pub use crate::render::Tonemap;
+#[doc(hidden)]
+#[deprecated(note = "use ponko::terrain::TextureKind")]
+#[cfg(feature = "3d")]
+pub use crate::terrain::TextureKind;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::d3::Trail")]
 #[cfg(feature = "3d")]
@@ -1039,7 +1039,7 @@ pub type UiAccessTree = crate::ui::UiAccessTree;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::ui::UiAccessValue")]
 #[cfg(feature = "3d")]
-pub type UiAccessValue = crate::ui::UiAccessValue;
+pub use crate::ui::UiAccessValue;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::ui::UiBuilder")]
 #[cfg(feature = "3d")]
@@ -1047,7 +1047,7 @@ pub type UiBuilder<'a> = crate::ui::UiBuilder<'a>;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::ui::UiEvent")]
 #[cfg(feature = "3d")]
-pub type UiEvent = crate::ui::UiEvent;
+pub use crate::ui::UiEvent;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::ui::UiId")]
 #[cfg(feature = "3d")]
@@ -1071,7 +1071,7 @@ pub type UiPaint = crate::ui::UiPaint;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::ui::UiRole")]
 #[cfg(feature = "3d")]
-pub type UiRole = crate::ui::UiRole;
+pub use crate::ui::UiRole;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::ui::UiStyle")]
 #[cfg(feature = "3d")]
@@ -1079,7 +1079,7 @@ pub type UiStyle = crate::ui::UiStyle;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::ui::UiTextAlign")]
 #[cfg(feature = "3d")]
-pub type UiTextAlign = crate::ui::UiTextAlign;
+pub use crate::ui::UiTextAlign;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::ui::UiTheme")]
 #[cfg(feature = "3d")]
@@ -1087,4 +1087,63 @@ pub type UiTheme = crate::ui::UiTheme;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::ui::UiWidget")]
 #[cfg(feature = "3d")]
-pub type UiWidget = crate::ui::UiWidget;
+pub use crate::ui::UiWidget;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::d3::Decal::MAX")]
+#[cfg(feature = "3d")]
+pub const MAX_DECALS: usize = crate::d3::Decal::MAX;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::d3::Decal::MAX_PER_CLUSTER")]
+#[cfg(feature = "3d")]
+pub const MAX_DECALS_PER_CLUSTER: usize = crate::d3::Decal::MAX_PER_CLUSTER;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::render::GlobalIllumination::MAX_PROBES")]
+#[cfg(feature = "3d")]
+pub const MAX_GI_PROBES: u32 = crate::render::GlobalIllumination::MAX_PROBES;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::render::GlobalIllumination::MAX_PROBES_PER_FRAME")]
+#[cfg(feature = "3d")]
+pub const MAX_GI_PROBES_PER_FRAME: u32 = crate::render::GlobalIllumination::MAX_PROBES_PER_FRAME;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::d3::PointLight::MAX_SHADOW_VIEWS")]
+#[cfg(feature = "3d")]
+pub const MAX_LIGHT_SHADOW_VIEWS: usize = crate::d3::PointLight::MAX_SHADOW_VIEWS;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::d3::PointLight::SHADOW_SIZE")]
+#[cfg(feature = "3d")]
+pub const LIGHT_SHADOW_SIZE: u32 = crate::d3::PointLight::SHADOW_SIZE;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::d3::PointLight::SHADOW_ATLAS_SIZE")]
+#[cfg(feature = "3d")]
+pub const LIGHT_SHADOW_ATLAS_SIZE: u32 = crate::d3::PointLight::SHADOW_ATLAS_SIZE;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::render::GraphicsQuality::MIN_RENDER_SCALE")]
+#[cfg(feature = "3d")]
+pub const MIN_RENDER_SCALE: f32 = crate::render::GraphicsQuality::MIN_RENDER_SCALE;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::render::GraphicsQuality::MAX_RENDER_SCALE")]
+#[cfg(feature = "3d")]
+pub const MAX_RENDER_SCALE: f32 = crate::render::GraphicsQuality::MAX_RENDER_SCALE;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::terrain::TerrainTile::LODS")]
+#[cfg(feature = "3d")]
+pub const TERRAIN_LODS: usize = crate::terrain::TerrainTile::LODS;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::terrain::TerrainTile::LAYERS")]
+#[cfg(feature = "3d")]
+pub const TERRAIN_LAYERS: usize = crate::terrain::TerrainTile::LAYERS;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::spatial::SpatialGrid::<()>::SORT_EVERY")]
+pub const SPATIAL_SORT_EVERY: u64 = crate::spatial::SpatialGrid::<()>::SORT_EVERY;

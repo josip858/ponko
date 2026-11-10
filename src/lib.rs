@@ -206,7 +206,7 @@ pub use sheet::{Animation, SpriteSheet};
 #[doc(hidden)]
 pub use spatial::RawGridView;
 #[doc(hidden)]
-pub use spatial::{SPATIAL_SORT_EVERY, spatial_key};
+pub use spatial::spatial_key;
 /// The Steamworks SDK (re-exported `steamworks` crate, feature `steam`):
 /// create the [`steamworks::Client`] for [`Net::steam_host`] here, and use
 /// it for achievements, friends and the rest of Steam.
@@ -223,7 +223,7 @@ pub use streaming::DEFAULT_UPLOAD_BUDGET;
 pub use systems::at_root::*;
 /// Flex/grid/absolute layout types used by retained UI.
 /// ```
-/// use ponko::ui_layout::Style;
+/// use ponko::ui::layout::Style;
 /// let style: Style = Style::default();
 /// ```
 pub use taffy as ui_layout;
@@ -237,9 +237,7 @@ pub use three::StreamedLod;
 #[cfg(feature = "3d")]
 #[doc(hidden)]
 pub use three::{
-    AnimationClip, JointMask, LIGHT_SHADOW_ATLAS_SIZE, LIGHT_SHADOW_SIZE, MAX_DECALS, MAX_DECALS_PER_CLUSTER,
-    MAX_GI_PROBES, MAX_GI_PROBES_PER_FRAME, MAX_LIGHT_SHADOW_VIEWS, MAX_RENDER_SCALE, MIN_RENDER_SCALE, ModelMaterials,
-    MorphWeights, ParticleCurve, ParticleGradient, ShadowMesh, TERRAIN_LAYERS, TERRAIN_LODS, look_at_joint,
+    AnimationClip, JointMask, ModelMaterials, MorphWeights, ParticleCurve, ParticleGradient, ShadowMesh, look_at_joint,
     two_bone_ik,
 };
 

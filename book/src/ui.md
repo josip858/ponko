@@ -109,8 +109,8 @@ CSS escapes; reserved CSS keywords and names starting with digits are rejected.
 <div>
 
 ```rust
-use ponko::{ponko::ui::Ui, ponko::ui::UiWidget, ui_layout::*};
-use ponko::ui_layout::style_helpers::*;
+use ponko::ui::{Ui, UiWidget, layout::*};
+use ponko::ui::layout::style_helpers::*;
 let mut tree = ponko::ui::Ui::default();
 let dashboard = tree.add(ponko::ui::UiWidget::Panel, Style {
     display: Display::Grid,
