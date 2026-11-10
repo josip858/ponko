@@ -165,3 +165,27 @@ fn prefab_2d_transform_placement_sets_rotation_and_scale_as_well_as_position() {
         assert_eq!(ctx.world.get::<Transform>(placed), Some(&at));
     });
 }
+
+/// The 3D examples are written with `use ponko::d3::*;` and bare names: no
+/// type in their code carries a `3D` suffix (fields like `ctx.camera3d` and
+/// prose like "Ponko: 3D" are not type names).
+#[test]
+fn the_3d_examples_use_the_d3_module_without_suffixed_names() {
+    for (name, source) in [
+        ("3d.rs", include_str!("../examples/3d.rs")),
+        ("physics3d.rs", include_str!("../examples/physics3d.rs")),
+        ("vehicle.rs", include_str!("../examples/vehicle.rs")),
+        ("terrain.rs", include_str!("../examples/terrain.rs")),
+    ] {
+        assert!(source.contains("use ponko::d3::*;"), "{name} imports ponko::d3");
+        for (number, line) in source.lines().enumerate() {
+            let code = line.split("//").next().unwrap();
+            let suffixed = code
+                .split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+                .find(|word| {
+                    word.len() > 2 && word.ends_with("3D") && word.starts_with(|c: char| c.is_ascii_uppercase())
+                });
+            assert!(suffixed.is_none(), "{name}:{}: {suffixed:?} in `{line}`", number + 1);
+        }
+    }
+}

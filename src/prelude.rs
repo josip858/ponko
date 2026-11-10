@@ -1,4 +1,30 @@
-//! The common game API. Add `use ponko::d2::*` or `use ponko::d3::*` for dimension-specific names.
+//! The one glob import a game starts with: `use ponko::prelude::*;`.
+//!
+//! It holds what a typical game touches: the game loop ([`Game`], [`Ctx`],
+//! [`Phase`], [`Plugin`], [`Error`]), the ECS ([`World`], [`Entity`],
+//! [`Query`], [`Commands`]), math (`Vec2`, `Vec3`, `Quat`, `Mat4` and their
+//! constructors), input ([`Key`], [`MouseButton`]), [`Color`], textures,
+//! sounds and fonts, [`Rect`], [`Random`], [`Events`], reflection, and the
+//! common transforms and cameras under their descriptive names
+//! (`Transform2D`, `Camera2D`, `Transform3D`, `Camera3D`).
+//!
+//! Add `use ponko::d2::*;` or `use ponko::d3::*;` for one dimension's names
+//! (`Transform`, `RigidBody`, `Physics`, `Hit`, ...), and import service
+//! modules (`ponko::net`, `ponko::perf`, `ponko::render`, `ponko::anim`, ...)
+//! where a file needs them. Short generic names a game is likely to define
+//! itself (`Pose`, `Material`, `Job`, `Motion`, `Shader`, `Joint`, ...) stay
+//! out of the prelude.
+//!
+//! ```
+//! use ponko::prelude::*;
+//! use ponko::d2::*;
+//!
+//! struct Pose; // the game's own; no clash with the prelude
+//! let mut world = World::new();
+//! let e = world.spawn((Transform::at(vec2(1.0, 2.0)),));
+//! assert_eq!(world.get::<Transform2D>(e).unwrap().position, vec2(1.0, 2.0));
+//! # let _ = Pose;
+//! ```
 pub use crate::actions::{Action, ActionId, ActionMap, ActionRef, Axis2Binding, AxisBinding, ButtonBinding};
 pub use crate::assets::{AssetSource, Assets, MemorySource};
 pub use crate::audio::{AudioBus, Playing, Sound, SoundParams};

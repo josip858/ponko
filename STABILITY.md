@@ -70,9 +70,12 @@ The module/prelude migration keeps the original compatibility coverage of
 existing root exports and dynamic `World` methods, including those now hidden
 from the landing page or typed API documentation. Hiding an existing API is
 not permission to remove it in a compatible release. Deprecated root type
-aliases preserve identity; enums, traits and public tuple structs retain reexports so existing
-variant imports and implementations keep compiling. C/C++ names and layouts
-remain flat and unchanged.
+aliases, constants and system forwarders preserve identity and values; enums,
+traits and public tuple structs retain reexports so existing variant imports,
+tuple constructors and implementations keep compiling. Those reexports carry
+`#[deprecated]`, but rustc does not warn through a reexport, so the
+[naming chapter](book/src/naming.md) and the CHANGELOG list them as deprecated
+instead. C/C++ names and layouts remain flat and unchanged.
 
 Nothing is removed without warning. Before an item is removed in the next
 major release, at least one minor release ships it marked `#[deprecated]`
