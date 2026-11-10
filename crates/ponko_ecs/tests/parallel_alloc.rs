@@ -82,6 +82,10 @@ fn warm_parallel_queries_do_not_allocate_on_the_querying_thread() {
         w.query::<&Value>().without::<Marker<3>>().par_for_each(|v| {
             std::hint::black_box(v.0);
         });
+        // Small archetypes only: the first chunk is timed on this thread.
+        w.query::<&Value>().with::<Marker<0>>().par_for_each(|v| {
+            std::hint::black_box(v.0);
+        });
         w.query::<&Value>().par_collect_into(&mut plain, |v| v.0);
         // A destructor takes the other collection path.
         w.query::<&Value>().par_collect_into(&mut owned, |v| Owned(v.0));

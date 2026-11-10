@@ -251,10 +251,23 @@ fn cached_parallel_chunks_follow_growth_and_preserve_order() {
 
 // ---- the work plan across archetypes of every size ---------------------------
 
-/// Rows per parallel chunk at least (`PAR_MIN_CHUNK`), and the most rows of
-/// small archetypes that still run on the calling thread (`PAR_SERIAL_ROWS`).
+/// Rows per parallel chunk at least (`PAR_MIN_CHUNK`). A query over small
+/// archetypes only times its first chunk of rows on the calling thread and
+/// runs the rest in parallel unless the whole query would take under 50 µs.
 const MIN_CHUNK: usize = if cfg!(miri) { 64 } else { 512 };
-const SERIAL_ROWS: usize = if cfg!(miri) { 128 } else { 4096 };
+
+/// Per-entity work that makes any query over more than one chunk of rows
+/// slow enough to run in parallel: at least 200 ns per entity, so the timed
+/// first chunk alone takes over 100 µs. Not needed under Miri, which always
+/// runs the parallel path.
+fn slow(slow: bool) {
+    if slow && !cfg!(miri) {
+        let start = std::time::Instant::now();
+        while start.elapsed() < std::time::Duration::from_nanos(200) {
+            std::hint::spin_loop();
+        }
+    }
+}
 
 /// A unique value per entity, in spawn order.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -297,13 +310,21 @@ fn on_four_threads<T: Send>(f: impl FnOnce() -> T + Send) -> T {
 /// Every parallel way of running `query` agrees with its sequential order:
 /// `par_for_each_indexed` visits each position once with the entity `iter`
 /// yields there, `par_for_each` visits each entity once, and
-/// `par_collect_into` (plain and owning results) fills that order.
+/// `par_collect_into` (plain and owning results) fills that order. Checked
+/// with cheap per-entity work and with [`slow`] work, which always reaches
+/// the parallel path.
 fn assert_parallel_order(w: &mut World, query: fn(&mut World) -> Query<'_, &Id>) -> usize {
+    assert_parallel_order_with(w, query, false);
+    assert_parallel_order_with(w, query, true)
+}
+
+fn assert_parallel_order_with(w: &mut World, query: fn(&mut World) -> Query<'_, &Id>, heavy: bool) -> usize {
     use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
     let expected: Vec<u64> = query(w).iter().map(|id| id.0).collect();
     on_four_threads(|| {
         let slots: Vec<AtomicU64> = expected.iter().map(|_| AtomicU64::new(u64::MAX)).collect();
         query(w).par_for_each_indexed(|i, id| {
+            slow(heavy);
             let before = slots[i].swap(id.0, Ordering::Relaxed);
             assert_eq!(before, u64::MAX, "position {i} visited twice");
         });
@@ -312,16 +333,23 @@ fn assert_parallel_order(w: &mut World, query: fn(&mut World) -> Query<'_, &Id>)
 
         let visits = AtomicUsize::new(0);
         query(w).par_for_each(|_| {
+            slow(heavy);
             visits.fetch_add(1, Ordering::Relaxed);
         });
         assert_eq!(visits.into_inner(), expected.len(), "par_for_each visits");
 
         let mut plain = vec![7, 8, 9];
-        query(w).par_collect_into(&mut plain, |id| id.0);
+        query(w).par_collect_into(&mut plain, |id| {
+            slow(heavy);
+            id.0
+        });
         assert_eq!(plain, expected, "par_collect_into, plain results");
 
         let mut owned = vec!["stale".to_string()];
-        query(w).par_collect_into(&mut owned, |id| id.0.to_string());
+        query(w).par_collect_into(&mut owned, |id| {
+            slow(heavy);
+            id.0.to_string()
+        });
         let want: Vec<String> = expected.iter().map(u64::to_string).collect();
         assert_eq!(owned, want, "par_collect_into, owning results");
     });
@@ -334,7 +362,7 @@ fn all_ids(w: &mut World) -> Query<'_, &Id> {
 
 #[test]
 fn many_tiny_archetypes_keep_the_sequential_order() {
-    // Over the serial limit, so the tiny archetypes are batched into chunks.
+    // Several chunks of tiny archetypes, batched into chunks.
     let layouts = if cfg!(miri) { 48 } else { 512 };
     let mut w = World::new();
     spawn_layouts(
@@ -343,7 +371,7 @@ fn many_tiny_archetypes_keep_the_sequential_order() {
         |bits| if cfg!(miri) { 3 + bits % 3 } else { 8 + bits % 8 },
     );
     let n = assert_parallel_order(&mut w, all_ids);
-    assert!(n > SERIAL_ROWS, "{n} rows reach the parallel plan");
+    assert!(n > 2 * MIN_CHUNK, "{n} rows reach the parallel plan");
 }
 
 #[test]
@@ -351,7 +379,8 @@ fn a_few_tiny_archetypes_stay_on_the_calling_thread_and_keep_the_order() {
     let mut w = World::new();
     spawn_layouts(&mut w, 16, |bits| 1 + bits % 5);
     let n = assert_parallel_order(&mut w, all_ids);
-    assert!(n <= SERIAL_ROWS);
+    // At most one chunk: no thread is woken.
+    assert!(n <= MIN_CHUNK);
     // The serial path runs `f` on the calling thread only.
     let caller = std::thread::current().id();
     on_four_threads(|| {
@@ -488,7 +517,7 @@ fn cached_queries_plan_many_tiny_archetypes_in_order() {
         w.query::<&Id>().without::<M<6>>()
     }
     let n = assert_parallel_order(&mut w, cached);
-    assert!(n > SERIAL_ROWS, "{n} rows reach the parallel plan");
+    assert!(n > 2 * MIN_CHUNK, "{n} rows reach the parallel plan");
     let want: Vec<u64> = scanned(&mut w).iter().map(|id| id.0).collect();
     let mut got = Vec::new();
     cached(&mut w).par_collect_into(&mut got, |id| id.0);
@@ -567,25 +596,29 @@ fn a_mapper_panic_across_many_tiny_archetypes_drops_each_written_value_once() {
     let mut w = World::new();
     spawn_layouts(&mut w, layouts, |bits| 1 + bits % 4);
     let n = w.query::<&Id>().count();
-    let panic_at = w.query::<&Id>().iter().nth(n * 2 / 3).unwrap().0;
-    let drops = Arc::new(AtomicUsize::new(0));
-    let created = AtomicUsize::new(0);
-    let mut out = Vec::new();
-    on_four_threads(|| {
-        let result = catch_unwind(AssertUnwindSafe(|| {
-            w.query::<&Id>().par_collect_into(&mut out, |id| {
-                assert_ne!(id.0, panic_at, "mapper panic");
-                created.fetch_add(1, Ordering::Relaxed);
-                Counted(drops.clone())
-            });
-        }));
-        assert!(result.is_err());
-    });
-    assert!(out.is_empty());
-    assert_eq!(drops.load(Ordering::Relaxed), created.load(Ordering::Relaxed));
-    // The world and the reused output still work after the unwind.
-    on_four_threads(|| w.query::<&Id>().par_collect_into(&mut out, |_| Counted(drops.clone())));
-    assert_eq!(out.len(), n);
+    // A panic in the timed first chunk, and one in the part after it.
+    for (heavy, at) in [(false, MIN_CHUNK / 2), (true, n * 2 / 3)] {
+        let panic_at = w.query::<&Id>().iter().nth(at).unwrap().0;
+        let drops = Arc::new(AtomicUsize::new(0));
+        let created = AtomicUsize::new(0);
+        let mut out = Vec::new();
+        on_four_threads(|| {
+            let result = catch_unwind(AssertUnwindSafe(|| {
+                w.query::<&Id>().par_collect_into(&mut out, |id| {
+                    slow(heavy);
+                    assert_ne!(id.0, panic_at, "mapper panic");
+                    created.fetch_add(1, Ordering::Relaxed);
+                    Counted(drops.clone())
+                });
+            }));
+            assert!(result.is_err());
+        });
+        assert!(out.is_empty());
+        assert_eq!(drops.load(Ordering::Relaxed), created.load(Ordering::Relaxed));
+        // The world and the reused output still work after the unwind.
+        on_four_threads(|| w.query::<&Id>().par_collect_into(&mut out, |_| Counted(drops.clone())));
+        assert_eq!(out.len(), n);
+    }
 }
 
 #[test]

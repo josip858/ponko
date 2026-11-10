@@ -489,19 +489,55 @@ const PAR_MIN_CHUNK: usize = if cfg!(miri) { 64 } else { 512 };
 /// balance uneven per-entity work.
 #[cfg(feature = "parallel")]
 const PAR_MAX_CHUNK: usize = if cfg!(miri) { 64 } else { 8192 };
-/// Up to this many rows, a query whose archetypes are all small (none bigger
-/// than `PAR_MIN_CHUNK`) runs on the calling thread, as it did before small
-/// archetypes were batched. Measured crossover: `crates/ponko_bench/PAR_ARCHETYPES.md`.
+/// A query whose archetypes are all small (none bigger than `PAR_MIN_CHUNK`
+/// rows) used to run on the calling thread. It still does when its first
+/// `PAR_MIN_CHUNK` rows, timed, project the whole query to under this many
+/// nanoseconds: below that, waking other threads costs more than it saves.
+/// The measured crossover is in `crates/ponko_bench/PAR_ARCHETYPES.md`.
+/// Zero under Miri, so tests always reach the parallel path.
 #[cfg(feature = "parallel")]
-const PAR_SERIAL_ROWS: usize = if cfg!(miri) { 128 } else { 4096 };
+const PAR_SERIAL_BUDGET_NS: u128 = if cfg!(miri) { 0 } else { 50_000 };
 
 /// A parallel query's work plan: its rows in query order, how many there
-/// are, and the chunk size to split them into (`None`: run on this thread).
+/// are, the chunk size to split them into (`None`: run on this thread), and
+/// whether to time a first chunk on this thread before deciding.
 #[cfg(feature = "parallel")]
 struct Plan {
     tasks: Vec<ParTask>,
     total: usize,
     chunk: Option<usize>,
+    probe: bool,
+}
+
+#[cfg(feature = "parallel")]
+impl Plan {
+    /// Runs the positions that stay on this thread, by calling
+    /// `serial(lo, hi)`, and returns where the parallel part starts and its
+    /// chunk size, if there is one.
+    fn run_serial_part(&self, mut serial: impl FnMut(usize, usize)) -> Option<(usize, usize)> {
+        let chunk = match self.chunk {
+            None => {
+                serial(0, self.total);
+                return None;
+            }
+            Some(chunk) => chunk,
+        };
+        if !self.probe {
+            return Some((0, chunk));
+        }
+        // The rows of small archetypes: time the first ones (as the old
+        // path ran them, on this thread) and keep going here if the whole
+        // query is cheap.
+        let probe = PAR_MIN_CHUNK.min(self.total);
+        let start = std::time::Instant::now();
+        serial(0, probe);
+        let projected = start.elapsed().as_nanos() * self.total as u128 / probe as u128;
+        if projected < PAR_SERIAL_BUDGET_NS {
+            serial(probe, self.total);
+            return None;
+        }
+        Some((probe, chunk))
+    }
 }
 
 /// What every thread of a parallel query reads: the archetypes, the plan
@@ -959,8 +995,8 @@ impl<'w, Q: QueryData> Query<'w, Q> {
     /// hold many small archetypes or part of a big one, so many small
     /// archetypes use every core too. Use it for heavy per-entity work over
     /// many entities; for a few thousand cheap updates, `for_each` is just as
-    /// fast (queries over at most 4096 rows of small archetypes run on the
-    /// calling thread).
+    /// fast. A query whose archetypes are all small times its first rows and
+    /// stays on the calling thread if the whole loop would be quick.
     ///
     /// `f` can't capture `&mut` state (it runs on many threads at once). To
     /// spawn or despawn, collect what you need and use commands afterwards.
@@ -1056,14 +1092,17 @@ impl<'w, Q: QueryData> Query<'w, Q> {
         // scheduling stays negligible.
         let threads = rayon::current_num_threads().max(1);
         let chunk = (total / (threads * 4)).clamp(PAR_MIN_CHUNK, PAR_MAX_CHUNK);
-        // Rows of small archetypes only (none bigger than a chunk) used to
-        // run on the calling thread; up to `PAR_SERIAL_ROWS` of them still do,
-        // where waking other threads costs more than cheap work would gain.
-        let serial = total <= chunk || (longest <= PAR_MIN_CHUNK && total <= PAR_SERIAL_ROWS);
+        // Rows of small archetypes only (none bigger than `PAR_MIN_CHUNK`)
+        // used to run on the calling thread: time the first ones to decide
+        // (see `Plan::run_serial_part`). The web has no clock to time them
+        // with, so they keep running here.
+        let small = longest <= PAR_MIN_CHUNK;
+        let serial = total <= chunk || (small && cfg!(target_family = "wasm"));
         Plan {
             tasks,
             total,
             chunk: (!serial).then_some(chunk),
+            probe: small,
         }
     }
 
@@ -1078,16 +1117,16 @@ impl<'w, Q: QueryData> Query<'w, Q> {
             ids: self.ids,
         };
         let total = plan.total;
-        match plan.chunk {
-            // SAFETY: the plan was built under this query's world borrow,
-            // whose access was validated, and only this thread runs it.
-            None => unsafe { work.visit(0, total, |i, item| f(i, item)) },
-            Some(chunk) => (0..total.div_ceil(chunk)).into_par_iter().for_each(|c| {
-                let lo = c * chunk;
+        // SAFETY: the plan was built under this query's world borrow, whose
+        // access was validated; the serial part runs before the parallel one.
+        let parallel = plan.run_serial_part(|lo, hi| unsafe { work.visit(lo, hi, |i, item| f(i, item)) });
+        if let Some((from, chunk)) = parallel {
+            (0..(total - from).div_ceil(chunk)).into_par_iter().for_each(|c| {
+                let lo = from + c * chunk;
                 // SAFETY: as above; chunks are disjoint ranges of positions,
                 // and every position is one row of one archetype.
                 unsafe { work.visit(lo, (lo + chunk).min(total), |i, item| f(i, item)) };
-            }),
+            });
         }
         self.world.par_plan.0 = plan.tasks;
     }
@@ -1188,16 +1227,16 @@ impl<'w, Q: QueryData> Query<'w, Q> {
                 }
             }
 
-            let chunk = plan.chunk.unwrap_or(n);
             let work = ParWork::<Q> {
                 archetypes: &self.world.archetypes,
                 tasks: &plan.tasks,
                 ids: self.ids,
             };
-            let mut initialized = fill(Initialized { slots, len: 0 }, 0, n, chunk, &|lo, hi, initialized| {
+            let leaf = |lo: usize, hi: usize, initialized: &mut Initialized<R>| {
                 // SAFETY: the plan was built under this query's world borrow,
-                // whose access was validated; `fill` hands out disjoint
-                // ranges, and every position is one row of one archetype.
+                // whose access was validated; the serial part and `fill` hand
+                // out disjoint ranges, and every position is one row of one
+                // archetype.
                 unsafe {
                     work.visit(lo, hi, |_, item| {
                         let value = f(item);
@@ -1207,7 +1246,20 @@ impl<'w, Q: QueryData> Query<'w, Q> {
                         initialized.len += 1;
                     })
                 }
-            });
+            };
+            // The serial part fills a prefix of `out`, the parallel part the rest.
+            let mut initialized = Initialized { slots, len: 0 };
+            let parallel = plan.run_serial_part(|lo, hi| leaf(lo, hi, &mut initialized));
+            if let Some((from, chunk)) = parallel {
+                debug_assert_eq!(initialized.len, from);
+                let rest = Initialized {
+                    slots: Slots(slots.at(from)),
+                    len: 0,
+                };
+                let mut rest = fill(rest, from, n - from, chunk, &leaf);
+                initialized.len += rest.len;
+                rest.len = 0;
+            }
             debug_assert_eq!(initialized.len, n);
             // All results now belong to `out`; disarm before setting its length.
             initialized.len = 0;
