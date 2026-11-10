@@ -7,7 +7,7 @@
 //! Where the GPU can't run compute shaders (WebGL2), the CPU poses them
 //! instead.
 
-use crate::render::traffic::{self, Counted, NewBuffer, Synced, Upload};
+use crate::render::traffic::{self, Counted, MAX_WRITES, NewBuffer, Synced, Upload};
 
 use super::Vertex;
 use crate::three::SkinFrame;
@@ -153,8 +153,22 @@ impl Skinning {
         let storage = wgpu::BufferUsages::STORAGE;
         Self {
             pipeline,
-            joints: Synced::new(device, "3d skin matrices", storage, 64 * 64, Upload::Skins, (64, 4)),
-            weights: Synced::new(device, "3d morph weights", storage, 64 * 4, Upload::Skins, (16, 8)),
+            joints: Synced::new(
+                device,
+                "3d skin matrices",
+                storage,
+                64 * 64,
+                Upload::Skins,
+                (64, 4, MAX_WRITES),
+            ),
+            weights: Synced::new(
+                device,
+                "3d morph weights",
+                storage,
+                64 * 4,
+                Upload::Skins,
+                (16, 8, MAX_WRITES),
+            ),
             generation: 0,
             params: Synced::new(
                 device,
@@ -162,7 +176,7 @@ impl Skinning {
                 wgpu::BufferUsages::UNIFORM,
                 4 * stride as usize,
                 Upload::Skins,
-                (16, 0),
+                (16, 0, MAX_WRITES),
             ),
             stride,
             slots: Vec::new(),
@@ -365,7 +379,7 @@ impl Skinning {
             }
         }
         if self.pipeline.is_some() {
-            self.params.write_capped(queue, 0, &self.params_scratch, 16);
+            self.params.write(queue, 0, &self.params_scratch);
         }
     }
 

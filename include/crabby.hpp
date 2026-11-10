@@ -168,7 +168,7 @@ using mesh = CrabbyMesh;
 /// Frame timing over the last few seconds, in ms (`gpu_ms` -1 where the GPU can't time itself).
 using frame_stats = CrabbyFrameStats;
 /// Bytes the renderer uploaded over the last drawn frame, by kind, and the
-/// buffers it made (`reallocations`: those replacing a buffer grown too small).
+/// buffers it made (`reallocations`: buffers and textures replaced because outgrown).
 using gpu_uploads = CrabbyGpuUploads;
 using material = CrabbyMaterial;
 using material_desc = CrabbyMaterialDesc;

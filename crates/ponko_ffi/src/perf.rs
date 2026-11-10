@@ -95,7 +95,7 @@ pub unsafe extern "C" fn crabby_ctx_frame_stats(
 
 /// What the renderer sent to the GPU over the last drawn frame (Rust
 /// `RenderStats::uploads`, `GpuUploads`): bytes uploaded by kind, buffers
-/// made, and of those the ones that replaced a buffer grown too small.
+/// made, and the buffers and textures replaced because they were outgrown.
 /// All zero in headless runs and before the first frame. In a scene where
 /// nothing changes, nothing is uploaded and no buffer is made.
 /// ```
@@ -131,7 +131,9 @@ pub struct CrabbyGpuUploads {
     pub buffer_bytes_created: u64,
     /// Buffers made.
     pub buffers_created: u32,
-    /// Of `buffers_created`, those that replaced a buffer grown too small.
+    /// Buffers and textures replaced by bigger ones because they were
+    /// outgrown (the new buffers are also in `buffers_created`, the
+    /// textures not).
     pub reallocations: u32,
 }
 

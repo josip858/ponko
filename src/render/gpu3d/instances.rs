@@ -112,7 +112,7 @@ impl Culling {
         let occlusion = device.new_buffer(&wgpu::BufferDescriptor {
             label: Some("static occlusion grid"),
             size: ((device.limits().max_texture_dimension_2d as u64 / 8 + 1) * 160 + 32) * 4,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | crate::render::traffic::MIRRORED,
             mapped_at_creation: false,
         });
         let mut marker = Instance3D::default();
@@ -347,7 +347,9 @@ impl Renderer3D {
                                 let uniform = device.new_buffer(&wgpu::BufferDescriptor {
                                     label: Some("static cull view"),
                                     size: size_of::<View>() as u64,
-                                    usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                                    usage: wgpu::BufferUsages::UNIFORM
+                                        | wgpu::BufferUsages::COPY_DST
+                                        | crate::render::traffic::MIRRORED,
                                     mapped_at_creation: false,
                                 });
                                 let read = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -483,4 +485,23 @@ impl Renderer3D {
 }
 fn count_visibility(count: u32) -> usize {
     count as usize + 1
+}
+
+#[cfg(test)]
+impl Renderer3D {
+    /// The static batches' and their culling's part of `check_mirrors`.
+    pub(super) fn check_batch_mirrors(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        for batch in self.static_batches.iter().flatten() {
+            for view in &batch.views {
+                view.uniform_mirror
+                    .check(device, queue, &view.uniform, 0, "static batch view");
+            }
+        }
+        if let Some(cull) = &self.static_culling {
+            cull.header_mirror
+                .check(device, queue, &cull.occlusion, 0, "static culling header");
+            cull.grid_mirror
+                .check(device, queue, &cull.occlusion, 96, "static culling depth grid");
+        }
+    }
 }

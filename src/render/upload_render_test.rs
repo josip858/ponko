@@ -750,3 +750,39 @@ fn outgrown_particle_buffers_draw_what_buffers_made_that_size_draw() {
     let differ = grown.chunks(4).zip(once.chunks(4)).filter(|(a, b)| a != b).count();
     assert_eq!(differ, 0, "{differ} pixels differ");
 }
+
+#[test]
+fn scattered_changes_take_a_bounded_number_of_writes() {
+    use super::upload_bench::{scatter, scattered};
+    use traffic::{MAX_WRITES, Upload};
+    // Every 17th model and every other emitter's particles change: more
+    // runs of changes than writes allowed, in both buffers.
+    let Some((mut rig, cubes, emitters)) = scattered() else {
+        return;
+    };
+    traffic::take();
+    rig.draw();
+    // The first frame uploads everything whole.
+    let whole = traffic::take();
+    for i in 0..4 {
+        scatter(&mut rig, &cubes, &emitters, i);
+        rig.draw();
+    }
+    traffic::take_writes();
+    traffic::take();
+    for i in 4..8 {
+        scatter(&mut rig, &cubes, &emitters, i);
+        rig.draw();
+        let (writes, uploads) = (traffic::take_writes(), traffic::take());
+        let instances = writes[Upload::Instances as usize] as usize;
+        let particles = writes[Upload::Other as usize] as usize;
+        assert!(instances <= MAX_WRITES, "{instances} instance writes");
+        assert!(particles <= MAX_WRITES, "{particles} particle writes");
+        // Closing gaps uploads unchanged records along, but never more
+        // than writing all of them.
+        assert!(uploads.instances <= whole.instances, "{uploads:?} {whole:?}");
+        assert!(uploads.other <= whole.other, "{uploads:?} {whole:?}");
+    }
+    // And the buffers hold what was meant.
+    rig.check_mirrors();
+}

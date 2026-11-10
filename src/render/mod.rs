@@ -128,10 +128,12 @@ pub struct GpuUploads {
     pub other: u64,
     /// Buffers created (a buffer outgrown is replaced by a new one).
     pub buffers_created: u32,
-    /// Of `buffers_created`, those that replaced a buffer grown too small
-    /// (instances, sprites, particles, skinning and the like). Buffers grow
-    /// to the next power of two, so a scene that keeps growing reallocates
-    /// a logarithmic number of times, and a steady one none.
+    /// Buffers and textures replaced by bigger ones because they were
+    /// outgrown (instances, sprites, particles, skinning, light grids and
+    /// the like). The new buffers are also in `buffers_created`; the
+    /// textures are not. They grow to the next power of two, so a scene
+    /// that keeps growing reallocates a logarithmic number of times, and a
+    /// steady one none.
     pub reallocations: u32,
     /// The bytes of the buffers created.
     pub buffer_bytes_created: u64,

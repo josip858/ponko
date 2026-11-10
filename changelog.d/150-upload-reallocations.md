@@ -1,7 +1,8 @@
 ### Added
-- `GpuUploads::reallocations`: the buffers a frame replaced because they
-  were outgrown (they grow to the next power of two, so a growing world
-  replaces them a logarithmic number of times and a steady one none). In
+- `GpuUploads::reallocations`: the buffers and textures a frame replaced
+  because they were outgrown (they grow to the next power of two, so a
+  growing world replaces them a logarithmic number of times and a steady
+  one none). In
   benchmark reports, `perf_report` and `perf.get`'s `render.uploads`.
 - C and C++: `ponko_ctx_gpu_uploads` with `PonkoGpuUploads`, and
   `ctx.gpu_uploads()` in C++: the bytes the renderer uploaded last frame

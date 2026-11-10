@@ -5,7 +5,7 @@
 //! stayed the same cost nothing.
 use super::gpu::GpuTexture;
 use crate::ParticleBlend3D;
-use crate::render::traffic::{Synced, Upload};
+use crate::render::traffic::{MAX_WRITES, Synced, Upload};
 use crate::three::particles::{ParticleFrame, ParticleInstance, ParticleRun};
 use crate::three::strips::{StripRun, StripVertex};
 use crate::three::text3d::TextVertex;
@@ -45,7 +45,7 @@ impl Particles {
             wgpu::BufferUsages::UNIFORM,
             size_of::<Camera>(),
             Upload::Uniforms,
-            (16, 4),
+            (16, 4, MAX_WRITES),
         );
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("particle camera"),
@@ -279,11 +279,19 @@ impl Particles {
     }
 }
 /// A vertex buffer for `capacity` `T`s, written one changed `T` at a time
-/// (with up to four unchanged ones between two changed ones along).
+/// (with up to four unchanged ones between two changed ones along, and in
+/// at most [`MAX_WRITES`] writes a frame).
 fn vertices<T>(device: &wgpu::Device, label: &'static str, capacity: usize) -> Synced {
     let size = size_of::<T>();
     let usage = wgpu::BufferUsages::VERTEX;
-    Synced::new(device, label, usage, capacity * size, Upload::Other, (size, 4))
+    Synced::new(
+        device,
+        label,
+        usage,
+        capacity * size,
+        Upload::Other,
+        (size, 4, MAX_WRITES),
+    )
 }
 
 #[cfg(test)]

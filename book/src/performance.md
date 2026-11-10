@@ -172,8 +172,8 @@ goes, in a running game:
   time split into culling (`collect_ms`), recording (`record_ms`, all
   cores) and submitting. `uploads` counts the bytes sent to the GPU that
   frame, by kind (model transforms, uniforms, lights, ...), the buffers
-  created, and of those the `reallocations` (buffers replaced because they
-  were outgrown): in a scene where nothing changes it should stay at the
+  created, and the `reallocations` (buffers and textures replaced because
+  they were outgrown; the new buffers also count as created): in a scene where nothing changes it should stay at the
   clock's few bytes and no buffers. Models that stand still cost no
   uploads, also while the camera moves; only the models that changed, or
   entered or left a view, are sent (see

@@ -43,6 +43,20 @@ thread_local! {
     static COUNTS: Cell<GpuUploads> = const { Cell::new(GpuUploads::ZERO) };
 }
 
+#[cfg(test)]
+thread_local! {
+    /// Upload calls: `write_buffer`, `write_texture`, `create_buffer_init`.
+    /// In `wgpu` each write makes and maps a staging buffer of its own.
+    static WRITES: Cell<[u32; 10]> = const { Cell::new([0; 10]) };
+}
+
+/// The upload calls since the last call on this thread, by [`Upload`] kind
+/// (indexed `kind as usize`), which are then reset.
+#[cfg(test)]
+pub(crate) fn take_writes() -> [u32; 10] {
+    WRITES.with(|w| w.replace([0; 10]))
+}
+
 fn count(f: impl FnOnce(&mut GpuUploads)) {
     COUNTS.with(|c| {
         let mut counts = c.get();
@@ -52,6 +66,12 @@ fn count(f: impl FnOnce(&mut GpuUploads)) {
 }
 
 fn add(kind: Upload, bytes: u64) {
+    #[cfg(test)]
+    WRITES.with(|w| {
+        let mut writes = w.get();
+        writes[kind as usize] += 1;
+        w.set(writes);
+    });
     count(|c| {
         let field = match kind {
             Upload::Instances => &mut c.instances,
@@ -160,6 +180,30 @@ impl NewBuffer for wgpu::Device {
     }
 }
 
+/// The most writes a frame makes into one buffer whose changes can be
+/// scattered (see [`Mirror::sync_capped`]).
+///
+/// `wgpu` makes and maps a staging buffer for every `write_buffer`. On an
+/// Apple M4 Max (Metal) a write costs the CPU about 2 µs, as much as
+/// copying about 30 KB more (`upload_bench`: 64 writes of 64 bytes take
+/// 150 µs, one write of 256 KB 37 µs), so closing gaps narrower than that
+/// saves time. In the benchmark's scattered scene (every 17th of 1,024
+/// models and every other of 200 emitters changing) preparing a frame
+/// took 0.56 ms uncapped (241 writes), 0.37 ms with 64 writes a list,
+/// 0.27 ms with 32 and 0.17 ms with 16 (37 writes), for 98, 208, 264 and
+/// 292 KB uploaded. A few changes still upload only themselves.
+pub(crate) const MAX_WRITES: usize = 16;
+
+/// The usage a buffer written through a [`Mirror`] adds: in tests, it can
+/// be read back to check that it holds what the mirror says
+/// (`Renderer3D::check_mirrors`); otherwise none.
+#[cfg_attr(not(feature = "3d"), allow(dead_code))]
+pub(crate) const MIRRORED: wgpu::BufferUsages = if cfg!(test) {
+    wgpu::BufferUsages::COPY_SRC
+} else {
+    wgpu::BufferUsages::empty()
+};
+
 /// What a GPU buffer (or texture) holds, kept on the CPU, so a frame
 /// writes only the parts that changed since the last.
 ///
@@ -247,17 +291,22 @@ impl Mirror {
         self.remember(offset, new);
     }
 
-    /// Like [`sync`](Self::sync), but in at most `max_writes` writes: when
-    /// more runs of pages changed, the runs with the narrowest gaps of
-    /// unchanged bytes between them go in one write (the gap along), so
-    /// what is uploaded beyond the changes is as little as that many
-    /// writes allow. A few changes cost little, and many cost no more
-    /// writes than `max_writes`, nor more bytes than writing all.
+    /// Like [`sync_bridged`](Self::sync_bridged), but in at most
+    /// `max_writes` writes: when more runs of pages changed, the runs with
+    /// the narrowest gaps of unchanged bytes between them go in one write
+    /// (the gap along), so what is uploaded beyond the changes is as
+    /// little as that many writes allow. A few changes cost little, and
+    /// changes scattered all over cost no more writes than `max_writes`,
+    /// nor more bytes than writing all.
+    ///
+    /// Every write costs a staging buffer (see [`MAX_WRITES`]), so buffers
+    /// whose changes can be scattered (one record per model, particle,
+    /// joint) are written through this.
     pub fn sync_capped(
         &mut self,
         offset: usize,
         new: &[u8],
-        page: usize,
+        (page, bridge): (usize, usize),
         max_writes: usize,
         mut write: impl FnMut(usize, &[u8]),
     ) {
@@ -276,7 +325,7 @@ impl Mirror {
             let same = to <= known && self.bytes[offset + at..offset + to] == new[at..to];
             if !same {
                 match runs.last_mut() {
-                    Some(run) if run.1 == at => run.1 = to,
+                    Some(run) if at - run.1 <= bridge * page => run.1 = to,
                     _ => runs.push((at, to)),
                 }
             }
@@ -334,20 +383,22 @@ pub(crate) struct Synced {
     kind: Upload,
     page: usize,
     bridge: usize,
+    max_writes: usize,
 }
 
 #[cfg_attr(not(feature = "3d"), allow(dead_code))]
 impl Synced {
     /// A buffer of `bytes` (at least 4) whose writes count as `kind`, compared in
-    /// `page`-byte pages (a multiple of 4) and joined across up to `bridge`
-    /// unchanged pages (see [`Mirror::sync_bridged`]).
+    /// `page`-byte pages (a multiple of 4), joined across up to `bridge`
+    /// unchanged pages, and at most `max_writes` a frame (see
+    /// [`Mirror::sync_capped`]).
     pub fn new(
         device: &wgpu::Device,
         label: &'static str,
         usage: wgpu::BufferUsages,
         bytes: usize,
         kind: Upload,
-        (page, bridge): (usize, usize),
+        (page, bridge, max_writes): (usize, usize, usize),
     ) -> Self {
         let capacity = bytes.max(4).next_multiple_of(4);
         Self {
@@ -359,6 +410,7 @@ impl Synced {
             kind,
             page,
             bridge,
+            max_writes,
         }
     }
 
@@ -366,8 +418,7 @@ impl Synced {
         device.new_buffer(&wgpu::BufferDescriptor {
             label: Some(label),
             size: bytes as u64,
-            // Readable, so tests can check what it holds.
-            usage: usage | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: usage | wgpu::BufferUsages::COPY_DST | MIRRORED,
             mapped_at_creation: false,
         })
     }
@@ -390,24 +441,15 @@ impl Synced {
     }
 
     /// Brings bytes `offset..offset + data.len()` up to `data`, uploading
-    /// only the pages that changed. They must fit (see [`reserve`](Self::reserve));
-    /// `offset` and `data.len()` are multiples of 4.
+    /// only the pages that changed, in at most its `max_writes` writes. They
+    /// must fit (see [`reserve`](Self::reserve)); `offset` and `data.len()`
+    /// are multiples of 4.
     pub fn write(&mut self, queue: &wgpu::Queue, offset: usize, data: &[u8]) {
         debug_assert!(offset + data.len() <= self.capacity, "{} overflows", self.label);
         let (buffer, uploads) = (&self.buffer, queue.uploading(self.kind));
+        let paging = (self.page, self.bridge);
         self.mirror
-            .sync_bridged(offset, data, self.page, self.bridge, |at, bytes| {
-                uploads.write_buffer(buffer, at as u64, bytes);
-            });
-    }
-
-    /// Like [`write`](Self::write), in at most `max_writes` writes (see
-    /// [`Mirror::sync_capped`]).
-    pub fn write_capped(&mut self, queue: &wgpu::Queue, offset: usize, data: &[u8], max_writes: usize) {
-        debug_assert!(offset + data.len() <= self.capacity, "{} overflows", self.label);
-        let (buffer, uploads) = (&self.buffer, queue.uploading(self.kind));
-        self.mirror
-            .sync_capped(offset, data, self.page, max_writes, |at, bytes| {
+            .sync_capped(offset, data, paging, self.max_writes, |at, bytes| {
                 uploads.write_buffer(buffer, at as u64, bytes);
             });
     }
@@ -554,8 +596,12 @@ mod tests {
         }
         let mut out = Vec::new();
         m.clone_from_bytes(&first);
-        m.sync_capped(0, &second, 4, 8, |at, b| out.push((at, b.len())));
+        m.sync_capped(0, &second, (4, 0), 8, |at, b| out.push((at, b.len())));
         assert_eq!(out, [(0, 4), (8, 8), (40, 4), (60, 4)], "under the cap: each run alone");
+        m.clone_from_bytes(&first);
+        out.clear();
+        m.sync_capped(0, &second, (4, 1), 8, |at, b| out.push((at, b.len())));
+        assert_eq!(out, [(0, 16), (40, 4), (60, 4)], "bridged across one page");
         for (cap, expected) in [
             (3, vec![(0, 16), (40, 4), (60, 4)]),
             (2, vec![(0, 16), (40, 24)]),
@@ -563,15 +609,15 @@ mod tests {
         ] {
             m.clone_from_bytes(&first);
             out.clear();
-            m.sync_capped(0, &second, 4, cap, |at, b| out.push((at, b.len())));
+            m.sync_capped(0, &second, (4, 0), cap, |at, b| out.push((at, b.len())));
             assert_eq!(out, expected, "{cap} writes");
         }
         out.clear();
-        m.sync_capped(0, &second, 4, 1, |at, b| out.push((at, b.len())));
+        m.sync_capped(0, &second, (4, 0), 1, |at, b| out.push((at, b.len())));
         assert!(out.is_empty(), "what was written is known");
         // Past what is known, everything.
         out.clear();
-        m.sync_capped(80, &[1; 8], 4, 4, |at, b| out.push((at, b.len())));
+        m.sync_capped(80, &[1; 8], (4, 0), 4, |at, b| out.push((at, b.len())));
         assert_eq!(out, [(80, 8)]);
     }
 

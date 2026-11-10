@@ -161,7 +161,7 @@ impl Gi {
         let uniform = device.new_buffer(&wgpu::BufferDescriptor {
             label: Some("3d gi updates"),
             size: size_of::<Updates>() as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST | crate::render::traffic::MIRRORED,
             mapped_at_creation: false,
         });
         let image = |label, size: (u32, u32), samples, format, usage| {
@@ -221,7 +221,9 @@ impl Gi {
                 device.new_buffer(&wgpu::BufferDescriptor {
                     label: Some("3d gi view frame"),
                     size: uniform_size,
-                    usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                    usage: wgpu::BufferUsages::UNIFORM
+                        | wgpu::BufferUsages::COPY_DST
+                        | crate::render::traffic::MIRRORED,
                     mapped_at_creation: false,
                 })
             })
@@ -421,6 +423,18 @@ impl Gi {
                 tile(column * DEPTH_TILE, self.rows * LIGHT_TILE + row * DEPTH_TILE),
                 size(DEPTH_TILE),
             );
+        }
+    }
+}
+
+#[cfg(test)]
+impl Gi {
+    /// See `Renderer3D::check_mirrors`.
+    pub fn check_mirrors(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.uniform_mirror
+            .check(device, queue, &self.uniform, 0, "probe updates");
+        for (mirror, buffer) in self.face_mirrors.iter().zip(&self.face_buffers) {
+            mirror.check(device, queue, buffer, 0, "probe face frame uniform");
         }
     }
 }

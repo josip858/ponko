@@ -127,7 +127,7 @@ impl Ao {
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("GTAO"),
                 contents: bytemuck::bytes_of(&Settings::zeroed()),
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST | crate::render::traffic::MIRRORED,
             });
         Self {
             layout,
@@ -341,3 +341,12 @@ impl Ao {
     }
 }
 use bytemuck::Zeroable;
+
+#[cfg(test)]
+impl Ao {
+    /// See `Renderer3D::check_mirrors`.
+    pub fn check_mirrors(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.uniform_mirror
+            .check(device, queue, &self.uniform, 0, "ambient occlusion settings");
+    }
+}

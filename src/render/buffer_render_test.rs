@@ -417,6 +417,9 @@ fn persistent_batch_draw(compute: bool) {
         hidden[((y * SIZE + x) * 4) as usize] < 50,
         "occluded instance survived ({compute})"
     );
+    // The batch's view settings and its culling header and grid were
+    // written only where they changed.
+    rig.check_mirrors();
     rig.renderer.set_instance_batch(&rig.device, b.id(), None);
     // Cutout-only batches must trigger the coverage prepass even without model entities.
     let cutout = rig.mesh(

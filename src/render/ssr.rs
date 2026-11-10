@@ -221,7 +221,7 @@ impl Ssr {
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("screen reflections"),
                 contents: bytemuck::bytes_of(&<Settings as bytemuck::Zeroable>::zeroed()),
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST | crate::render::traffic::MIRRORED,
             });
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("screen reflections"),
@@ -532,5 +532,14 @@ impl Ssr {
         pass.set_pipeline(pipeline);
         pass.set_bind_group(0, group, &[]);
         pass.draw(0..3, 0..1);
+    }
+}
+
+#[cfg(test)]
+impl Ssr {
+    /// See `Renderer3D::check_mirrors`.
+    pub fn check_mirrors(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.uniform_mirror
+            .check(device, queue, &self.uniform, 0, "reflection settings");
     }
 }

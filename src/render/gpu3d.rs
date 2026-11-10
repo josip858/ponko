@@ -25,7 +25,7 @@
 //! Sprites and UI are drawn on top afterwards, without tone mapping.
 
 mod draw_order;
-use crate::render::traffic::{self, Counted, Mirror, NewBuffer, Synced, Upload};
+use crate::render::traffic::{self, Counted, MAX_WRITES, MIRRORED, Mirror, NewBuffer, Synced, Upload};
 mod instances;
 mod passes;
 mod pipeline_cache;
@@ -233,13 +233,6 @@ struct FrameUniform {
     /// Global illumination's probe grid (see `gi.wgsl`); all zero without.
     gi: [[f32; 4]; 3],
 }
-
-/// The most writes a frame's motion records take (see `Mirror::sync_capped`).
-const MOVED_WRITES: usize = 32;
-
-/// Buffers written through a `Mirror` can be read back, so tests can check
-/// that they hold what the mirror says.
-const MIRRORED: wgpu::BufferUsages = wgpu::BufferUsages::COPY_SRC;
 
 /// Writes a frame uniform at `at` in `buffer`, whose contents there
 /// `mirror` knows: only the vec4s that changed since the last frame (the
@@ -1784,7 +1777,7 @@ impl Renderer3D {
                 wgpu::BufferUsages::VERTEX,
                 16 * size_of::<MovedInstance>(),
                 Upload::Instances,
-                (16, 0),
+                (16, 0, MAX_WRITES),
             ),
             moved_runs: Vec::new(),
             ao: None,
@@ -2757,9 +2750,11 @@ impl Renderer3D {
     }
 
     /// Panics unless every buffer the renderer writes only the changes of
-    /// holds what its mirror says: the frame uniforms (every view's copy),
-    /// the post settings, the instances, the motion records and the
-    /// particles. Call after a frame was submitted.
+    /// holds what its mirror says: the frame uniforms (every view's copy,
+    /// shadow views' and probe faces'), the post, ambient occlusion,
+    /// reflection, antialiasing, probe-update and environment settings,
+    /// the instances, the motion records, particles, skinning, and the
+    /// static batches' views and culling. Call after a frame was submitted.
     #[cfg(test)]
     pub(crate) fn check_mirrors(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.frame_mirror
@@ -2781,6 +2776,20 @@ impl Renderer3D {
         self.moved.check(device, queue);
         self.particles.check_mirrors(device, queue);
         self.skinning.check_mirrors(device, queue);
+        self.environment.check_mirrors(device, queue);
+        if let Some(ao) = &self.ao {
+            ao.check_mirrors(device, queue);
+        }
+        if let Some(ssr) = &self.ssr {
+            ssr.check_mirrors(device, queue);
+        }
+        if let Some(taa) = &self.taa {
+            taa.check_mirrors(device, queue);
+        }
+        if let Some(gi) = &self.gi {
+            gi.check_mirrors(device, queue);
+        }
+        self.check_batch_mirrors(device, queue);
     }
 
     /// Every material pipeline key built so far (tests).
@@ -3225,7 +3234,8 @@ impl Renderer3D {
         let buffer = &self.instances;
         let mut upload = |at: usize, bytes: &[u8]| uploads.write_buffer(buffer, at as u64, bytes);
         // A frame uploads the instances that changed, with the few
-        // unchanged ones between two of them.
+        // unchanged ones between two of them, in at most `MAX_WRITES`
+        // writes a list.
         let page = size_of::<Instance3D>();
         let mut at = 0;
         let views = frame.views.iter().map(|v| &v.frame.instances);
@@ -3236,7 +3246,7 @@ impl Renderer3D {
         {
             let bytes = bytemuck::cast_slice(instances);
             self.instance_mirror
-                .sync_bridged(at, bytes, page, INSTANCE_BRIDGE, &mut upload);
+                .sync_capped(at, bytes, (page, INSTANCE_BRIDGE), MAX_WRITES, &mut upload);
             at += bytes.len();
         }
         if self.velocity_on && !frame.motion.runs.is_empty() {
@@ -3244,7 +3254,7 @@ impl Renderer3D {
             // Bound when drawn: a new buffer needs no rebinding.
             let moved = bytemuck::cast_slice(moved);
             self.moved.reserve(device, moved.len());
-            self.moved.write_capped(queue, 0, moved, MOVED_WRITES);
+            self.moved.write(queue, 0, moved);
             self.moved_runs.extend_from_slice(&frame.motion.runs);
         }
         let scaled = |c, k: f32| {

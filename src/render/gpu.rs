@@ -1,6 +1,6 @@
 //! wgpu setup, textures, and the instanced sprite pass.
 
-use crate::render::traffic::{self, Counted, NewBuffer, Upload};
+use crate::render::traffic::{self, Counted, MAX_WRITES, NewBuffer, Upload};
 use std::sync::Arc;
 
 use glam::Mat4;
@@ -1396,13 +1396,14 @@ impl Renderer {
             self.sprite_mirror.forget();
         }
         // Only the sprites that changed since the last frame are uploaded,
-        // with the few unchanged ones between two of them.
+        // with the few unchanged ones between two of them, in at most
+        // `MAX_WRITES` writes a list.
         let page = size_of::<SpriteInstance>();
         let mut upload_sprites = |at: usize, sprites: &[SpriteInstance]| {
             let (buffer, uploads) = (&self.instance_buffer, self.queue.uploading(Upload::Sprites));
             let bytes = bytemuck::cast_slice(sprites);
             self.sprite_mirror
-                .sync_bridged(at, bytes, page, SPRITE_BRIDGE, |at, bytes| {
+                .sync_capped(at, bytes, (page, SPRITE_BRIDGE), MAX_WRITES, |at, bytes| {
                     uploads.write_buffer(buffer, at as u64, bytes);
                 });
         };
@@ -1416,11 +1417,11 @@ impl Renderer {
             if !sprites.is_empty() {
                 let offset = panel_base as usize * page;
                 let (buffer, uploads) = (&self.instance_buffer, self.queue.uploading(Upload::Sprites));
-                self.sprite_mirror.sync_bridged(
+                self.sprite_mirror.sync_capped(
                     offset,
                     bytemuck::cast_slice(sprites),
-                    page,
-                    SPRITE_BRIDGE,
+                    (page, SPRITE_BRIDGE),
+                    MAX_WRITES,
                     |at, bytes| {
                         uploads.write_buffer(buffer, at as u64, bytes);
                     },
