@@ -17,7 +17,7 @@
 //! puts it on the same pixels.
 use super::batch::SpriteInstance;
 use super::gpu::{GpuTexture, Renderer, SpritePass, sprite_pipeline};
-use super::render_test_support::{Image, TestGpu, gpu, target};
+use super::render_test_support::{Image, TestGpu, gpu, output_dir, target};
 use crate::text::Text;
 use crate::{Color, Ctx, Ui, UiEvent, UiId, UiInput, UiPanel3D, Vec2, vec2};
 
@@ -56,6 +56,9 @@ mod before {
         pub confirm: UiId,
         pub cancel: UiId,
         pub selected: Option<usize>,
+        // Not kept by the old code; the test aims the pointer with them.
+        pub note: UiId,
+        pub gift: UiId,
     }
 
     pub fn shop(ui: &mut Ui) -> Shop {
@@ -74,8 +77,8 @@ mod before {
         );
         let title = ui.add_child(root, UiWidget::Label, fixed(400.0, 32.0));
         ui.set_text(title, "General store — choose an item");
-        let search = ui.add_child(root, UiWidget::TextInput, fixed(360.0, 36.0));
-        ui.set_text(search, "Your order note");
+        let note = ui.add_child(root, UiWidget::TextInput, fixed(360.0, 36.0));
+        ui.set_text(note, "Your order note");
         let scroll = ui.add_child(
             root,
             UiWidget::Scroll,
@@ -167,6 +170,8 @@ mod before {
             confirm,
             cancel,
             selected: None,
+            note,
+            gift,
         }
     }
 
@@ -445,44 +450,32 @@ fn pointer(at: Vec2, pressed: bool, released: bool) -> UiInput {
     }
 }
 
-/// Keeps the pictures of a failing (or any) run to look at.
-fn keep(name: &str, image: &Image) {
-    let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/render-test-output");
-    std::fs::create_dir_all(&dir).unwrap();
-    image::save_buffer(
-        dir.join(format!("{name}.png")),
-        &image.rgba,
-        image.width,
-        image.height,
-        image::ColorType::Rgba8,
-    )
-    .unwrap();
+/// Saves both pictures of a failing step to look at, and says where.
+fn keep(step: &str, before: &Image, after: &Image) -> String {
+    let dir = output_dir();
+    std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("creating {}: {e}", dir.display()));
+    let name = format!("ui_{}", step.replace(' ', "_"));
+    for (side, image) in [("before", before), ("after", after)] {
+        let path = dir.join(format!("{name}_{side}.png"));
+        image::save_buffer(&path, &image.rgba, image.width, image.height, image::ColorType::Rgba8)
+            .unwrap_or_else(|e| panic!("writing {}: {e}", path.display()));
+    }
+    format!("{}/{name}_{{before,after}}.png", dir.display())
 }
 
-/// Asserts two pictures are the same, pixel for pixel, and not blank.
+/// Asserts two pictures are the same, pixel for pixel, and not blank. Only
+/// a failing step writes its pictures (to the render tests' output folder).
 fn assert_same(step: &str, before: &Image, after: &Image) {
-    let name = step.replace(' ', "_");
-    keep(&format!("{name}_before"), before);
-    keep(&format!("{name}_after"), after);
     let colours: std::collections::HashSet<[u8; 4]> = after.rgba.as_chunks::<4>().0.iter().copied().collect();
-    assert!(
-        colours.len() > 8,
-        "{step}: the picture is blank ({} colours)",
-        colours.len()
-    );
-    let different = before
-        .rgba
-        .as_chunks::<4>()
-        .0
-        .iter()
-        .zip(after.rgba.as_chunks::<4>().0)
-        .filter(|(a, b)| a != b)
-        .count();
-    eprintln!("{step}: {} colours, {different} pixels differ", colours.len());
-    assert_eq!(
-        different, 0,
-        "{step}: the builders' picture differs from the old tree's"
-    );
+    if colours.len() <= 8 {
+        let saved = keep(step, before, after);
+        panic!("{step}: the picture is blank ({} colours); see {saved}", colours.len());
+    }
+    let different = changed(before, after);
+    if different != 0 {
+        let saved = keep(step, before, after);
+        panic!("{step}: the builders' picture differs from the old tree's in {different} pixels; see {saved}");
+    }
 }
 
 /// How many pixels differ between two pictures.
@@ -554,6 +547,35 @@ fn the_shop_example_draws_what_its_hand_built_tree_drew() {
     let dialog = new.ctx.ui.find("dialog").unwrap();
     assert_eq!(new.ctx.ui.rect(dialog), old.ctx.ui.rect(ids.dialog));
     assert_eq!(new.ctx.ui.rect(dialog).unwrap().min, vec2(270.0, 180.0));
+    // Back closes the dialog and buys nothing.
+    let cancel = center(&old.ctx.ui, ids.cancel);
+    assert_eq!(cancel, center(&new.ctx.ui, new.ctx.ui.find("cancel").unwrap()));
+    step(
+        "back pressed",
+        &mut old,
+        &mut new,
+        &mut ids,
+        pointer(cancel, true, false),
+    );
+    step("backed out", &mut old, &mut new, &mut ids, pointer(cancel, false, true));
+    assert_eq!(
+        new.ctx.ui.text(new.ctx.ui.find("title").unwrap()),
+        Some("General store — choose an item")
+    );
+    step(
+        "buy pressed again",
+        &mut old,
+        &mut new,
+        &mut ids,
+        pointer(buy, true, false),
+    );
+    step(
+        "dialog open again",
+        &mut old,
+        &mut new,
+        &mut ids,
+        pointer(buy, false, true),
+    );
     let confirm = center(&old.ctx.ui, ids.confirm);
     step(
         "confirm pressed",
@@ -568,6 +590,59 @@ fn the_shop_example_draws_what_its_hand_built_tree_drew() {
         Some("Purchase complete!")
     );
 
+    // The gift-wrap toggle turns on.
+    let gift = new.ctx.ui.find("gift").unwrap();
+    let toggle = center(&old.ctx.ui, ids.gift);
+    assert_eq!(toggle, center(&new.ctx.ui, gift));
+    step(
+        "toggle pressed",
+        &mut old,
+        &mut new,
+        &mut ids,
+        pointer(toggle, true, false),
+    );
+    step(
+        "gift wrapped",
+        &mut old,
+        &mut new,
+        &mut ids,
+        pointer(toggle, false, true),
+    );
+    assert_eq!(new.ctx.ui.value(gift), Some(1.0));
+    assert_eq!(new.ctx.ui.value(gift), old.ctx.ui.value(ids.gift));
+
+    // Typing into the order note: a click focuses it, then the keys arrive.
+    let note = new.ctx.ui.find("note").unwrap();
+    let field = center(&old.ctx.ui, ids.note);
+    assert_eq!(field, center(&new.ctx.ui, note));
+    step(
+        "note pressed",
+        &mut old,
+        &mut new,
+        &mut ids,
+        pointer(field, true, false),
+    );
+    step(
+        "note focused",
+        &mut old,
+        &mut new,
+        &mut ids,
+        pointer(field, false, true),
+    );
+    step(
+        "typed",
+        &mut old,
+        &mut new,
+        &mut ids,
+        UiInput {
+            text: ", please".into(),
+            ..pointer(field, false, false)
+        },
+    );
+    let typed = new.ctx.ui.text(note).unwrap().to_owned();
+    assert!(typed.contains(", please"), "{typed:?}");
+    assert_eq!(Some(typed.as_str()), old.ctx.ui.text(ids.note));
+
     // The comparison can fail: every step changed the picture.
     for pair in pictures.windows(2) {
         assert!(
@@ -575,18 +650,15 @@ fn the_shop_example_draws_what_its_hand_built_tree_drew() {
             "a step that changed nothing compares nothing"
         );
     }
-    // The modal dialog darkens the screen behind it; popping it lights it again.
-    // (An empty spot of the shop's panel, right of the buy button.)
+    // The modal dialog darkens the screen behind it; popping it, with Back
+    // or with Confirm, lights it again. (An empty spot of the shop's panel,
+    // right of the buy button.)
     let lit = |i: usize| pictures[i].pixel(600, 600)[0];
+    let [pressed, open, backed, open_again, bought] = [5, 6, 8, 10, 12].map(lit);
     assert!(
-        lit(6) < lit(5) && lit(8) == lit(5),
-        "{} {} {} {}",
-        lit(0),
-        lit(5),
-        lit(6),
-        lit(8)
+        open < pressed && backed == pressed && open_again == open && bought == pressed,
+        "{pressed} {open} {backed} {open_again} {bought}"
     );
-    eprintln!("lit: {} {} {} {}", lit(0), lit(5), lit(6), lit(8));
 }
 
 #[test]

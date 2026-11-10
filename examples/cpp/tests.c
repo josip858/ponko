@@ -525,6 +525,37 @@ static void ui_presets_setup(PonkoCtx* ctx, void* user) {
     CHECK(ponko_ctx_ui_remove(ctx, PONKO_UI_SCREEN, root) == PONKO_OK);
     CHECK(ponko_ctx_ui_find(ctx, PONKO_UI_SCREEN, "shop.buy", &found) == PONKO_OK && found == PONKO_UI_NONE);
 }
+/* A screen root's auto margins take the window's free space, as a child's do. */
+static void ui_auto_margins_setup(PonkoCtx* ctx, void* user) {
+    (void)user;
+    PonkoUiLength automatic = {PONKO_UI_LENGTH_AUTO, 0};
+    PonkoUiLayout across = ponko_ui_layout_fixed(200, 100);
+    across.margin.left = across.margin.right = automatic;
+    across.margin.top = (PonkoUiLength){PONKO_UI_LENGTH_POINTS, 40};
+    PonkoUiLayout middle = ponko_ui_layout_fixed(200, 100);
+    middle.margin.left = middle.margin.right = middle.margin.top = middle.margin.bottom = automatic;
+    PonkoUiLayout pushed = ponko_ui_layout_fixed(200, 100);
+    pushed.margin.left = automatic;
+    uint64_t a, m, p;
+    CHECK(ponko_ctx_ui_add_panel(ctx, PONKO_UI_SCREEN, PONKO_UI_NONE, &across, &a) == PONKO_OK);
+    CHECK(ponko_ctx_ui_add_panel(ctx, PONKO_UI_SCREEN, PONKO_UI_NONE, &middle, &m) == PONKO_OK);
+    CHECK(ponko_ctx_ui_add_panel(ctx, PONKO_UI_SCREEN, PONKO_UI_NONE, &pushed, &p) == PONKO_OK);
+    CHECK(ponko_ctx_ui_push_screen(ctx, PONKO_UI_SCREEN, a, false) == PONKO_OK);
+    CHECK(ponko_ctx_ui_push_screen(ctx, PONKO_UI_SCREEN, m, false) == PONKO_OK);
+    CHECK(ponko_ctx_ui_push_screen(ctx, PONKO_UI_SCREEN, p, false) == PONKO_OK);
+    CHECK(ponko_ctx_ui_layout(ctx, PONKO_UI_SCREEN, (PonkoVec2){800, 600}) == PONKO_OK);
+    PonkoRect r;
+    /* Centered across, 40 points down. */
+    CHECK(ponko_ctx_ui_rect(ctx, PONKO_UI_SCREEN, a, &r) == PONKO_OK && r.min.x == 300 && r.min.y == 40 && r.max.x == 500);
+    /* Auto on all four sides: the middle of the window. */
+    CHECK(ponko_ctx_ui_rect(ctx, PONKO_UI_SCREEN, m, &r) == PONKO_OK && r.min.x == 300 && r.min.y == 250);
+    /* Only the left margin auto: pushed to the right edge. */
+    CHECK(ponko_ctx_ui_rect(ctx, PONKO_UI_SCREEN, p, &r) == PONKO_OK && r.min.x == 600 && r.max.x == 800 && r.min.y == 0);
+    /* A bigger window moves them with it. */
+    CHECK(ponko_ctx_ui_layout(ctx, PONKO_UI_SCREEN, (PonkoVec2){1000, 800}) == PONKO_OK);
+    CHECK(ponko_ctx_ui_rect(ctx, PONKO_UI_SCREEN, m, &r) == PONKO_OK && r.min.x == 400 && r.min.y == 350);
+    CHECK(ponko_ctx_ui_rect(ctx, PONKO_UI_SCREEN, p, &r) == PONKO_OK && r.min.x == 800);
+}
 static void retained_ui(void) {
     PonkoGame* game = ponko_game_new("c ui", 1, 1); CHECK(game);
     PonkoWorld* w = NULL;
@@ -532,6 +563,9 @@ static void retained_ui(void) {
     CHECK(ponko_world_free(w) == PONKO_OK);
     game = ponko_game_new("c ui presets", 1, 1); CHECK(game);
     CHECK(ponko_game_run_headless(game, 0, ui_presets_setup, NULL, &w) == PONKO_OK);
+    CHECK(ponko_world_free(w) == PONKO_OK);
+    game = ponko_game_new("c ui auto margins", 1, 1); CHECK(game);
+    CHECK(ponko_game_run_headless(game, 0, ui_auto_margins_setup, NULL, &w) == PONKO_OK);
     CHECK(ponko_world_free(w) == PONKO_OK);
 }
 /* Ribbon and line defaults, and a decal cut from a floor. */

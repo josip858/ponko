@@ -812,11 +812,15 @@ impl Ui {
     pub fn set_scale(&mut self, scale: f32) {
         self.scale = if scale.is_finite() { scale.clamp(0.25, 8.0) } else { 1.0 };
     }
-    /// Resolved rectangle in logical window coordinates (including user scale).
+    /// The node's rectangle in logical window coordinates (including user
+    /// scale) as of the last layout: [`Ui::frame`] (run by the engine before
+    /// the frame's systems) or [`Ui::layout`]. It is a zero rectangle until the
+    /// first layout, and changes made since then show only after the next
+    /// one. `None` for an id not in the tree.
     /// ```
     /// use ponko::*;
     /// let mut ui = Ui::default(); let id = ui.add(UiWidget::Panel, ui_layout::Style::default());
-    /// assert!(ui.rect(id).is_some());
+    /// assert_eq!(ui.rect(id), Some(Rect::default()), "no layout yet");
     /// ```
     pub fn rect(&self, id: UiId) -> Option<Rect> {
         Some(self.node(id)?.rect)

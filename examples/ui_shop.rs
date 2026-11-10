@@ -8,7 +8,7 @@ pub fn build(ctx: &mut Ctx) {
     let title = ui.label(root, "General store — choose an item");
     title.layout(UiLayout::fixed(400.0, 32.0)).name("title");
     let note = ui.text_input(root).text("Your order note");
-    note.layout(UiLayout::fixed(360.0, 36.0));
+    note.layout(UiLayout::fixed(360.0, 36.0)).name("note");
     let scroll = ui.scroll_area(root).layout(UiLayout::fill().height(360.0)).id();
     // 95% wide, so the scrollbar doesn't cover the last column.
     let cells = UiLayout::grid(3, 76.0).gap(8.0).width_fraction(0.95);
@@ -18,7 +18,9 @@ pub fn build(ctx: &mut Ctx) {
         let item = item.layout(UiLayout::auto().padding(8.0)).wrap().border_width(1.0).id();
         ui.set_name(item, format!("item.{i}"));
     }
-    ui.toggle(root, "Gift wrap").layout(UiLayout::fixed(220.0, 28.0));
+    ui.toggle(root, "Gift wrap")
+        .layout(UiLayout::fixed(220.0, 28.0))
+        .name("gift");
     let buy = ui.button(root, "Buy selected item");
     buy.layout(UiLayout::fixed(220.0, 40.0)).enabled(false).name("buy");
     ui.push_screen(root, false);

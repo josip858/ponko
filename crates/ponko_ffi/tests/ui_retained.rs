@@ -334,6 +334,35 @@ unsafe fn widgets_lay_out_and_react(ctx: Ctx) {
             crabby_ctx_ui_text(ctx, CRABBY_UI_SCREEN, label, null_mut(), 1, &mut len),
             CRABBY_INVALID_ARGUMENT
         );
+        // The outputs are checked first: a null output is an invalid
+        // argument even for a node or panel that doesn't exist (not "not
+        // found"), and nothing is read.
+        for (target, node) in [
+            (CRABBY_UI_SCREEN, 999_999),
+            (CRABBY_UI_SCREEN, label),
+            (u64::MAX - 1, label),
+        ] {
+            assert_eq!(
+                crabby_ctx_ui_text(ctx, target, node, small.as_mut_ptr(), small.len(), null_mut()),
+                CRABBY_INVALID_ARGUMENT
+            );
+            assert_eq!(
+                crabby_ctx_ui_name(ctx, target, node, null_mut(), 4, &mut len),
+                CRABBY_INVALID_ARGUMENT
+            );
+        }
+        assert_eq!(
+            crabby_ctx_ui_text(
+                ctx,
+                CRABBY_UI_SCREEN,
+                999_999,
+                small.as_mut_ptr(),
+                small.len(),
+                &mut len
+            ),
+            CRABBY_NOT_FOUND,
+            "with good outputs, the missing node is the error"
+        );
 
         // The tab key walks the controls in order.
         frame(
@@ -1199,4 +1228,48 @@ unsafe fn presets_theme_titles_and_names(ctx: Ctx) {
 #[test]
 fn presets_theme_titles_names_and_take_click_work_from_c() {
     run(presets_theme_titles_and_names);
+}
+
+/// Screen roots with `CRABBY_UI_LENGTH_AUTO` margins share out the window's
+/// free space, as children do: centered, in the middle, or pushed aside.
+unsafe fn auto_margins_on_screen_roots(ctx: Ctx) {
+    unsafe {
+        let automatic = CrabbyUiLength {
+            kind: CrabbyUiLengthKind::CRABBY_UI_LENGTH_AUTO as u32,
+            value: 0.0,
+        };
+        let mut across = crabby_ui_layout_fixed(200.0, 100.0);
+        across.margin.left = automatic;
+        across.margin.right = automatic;
+        across.margin.top = px(40.0);
+        let mut middle = crabby_ui_layout_fixed(200.0, 100.0);
+        middle.margin = all(automatic);
+        let mut pushed = crabby_ui_layout_fixed(200.0, 100.0);
+        pushed.margin.left = automatic;
+        let roots = [across, middle, pushed].map(|layout| panel(ctx, CRABBY_UI_NONE, &layout));
+        for root in roots {
+            assert_eq!(crabby_ctx_ui_push_screen(ctx, CRABBY_UI_SCREEN, root, false), CRABBY_OK);
+        }
+        let corners = |window: CrabbyVec2| {
+            assert_eq!(crabby_ctx_ui_layout(ctx, CRABBY_UI_SCREEN, window), CRABBY_OK);
+            roots.map(|root| {
+                let r = rect(ctx, root);
+                (r.min.x, r.min.y, r.max.x - r.min.x)
+            })
+        };
+        assert_eq!(
+            corners(v2(800.0, 600.0)),
+            [(300.0, 40.0, 200.0), (300.0, 250.0, 200.0), (600.0, 0.0, 200.0)]
+        );
+        assert_eq!(
+            corners(v2(1000.0, 800.0)),
+            [(400.0, 40.0, 200.0), (400.0, 350.0, 200.0), (800.0, 0.0, 200.0)],
+            "a bigger window moves them with it"
+        );
+    }
+}
+
+#[test]
+fn auto_margins_place_screen_roots_from_c() {
+    run(auto_margins_on_screen_roots);
 }
