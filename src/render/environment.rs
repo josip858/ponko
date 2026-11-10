@@ -405,6 +405,15 @@ impl Environment {
 }
 
 #[cfg(test)]
+impl Environment {
+    /// See `Renderer3D::check_mirrors`.
+    pub fn check_mirrors(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.settings_mirror
+            .check(device, queue, &self.buffers[0], 0, "environment settings");
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -438,14 +447,5 @@ mod tests {
         let mut nan = baked;
         nan[1] = f32::NAN;
         assert!(rebake(Some(&baked), &nan, 0).0);
-    }
-}
-
-#[cfg(test)]
-impl Environment {
-    /// See `Renderer3D::check_mirrors`.
-    pub fn check_mirrors(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
-        self.settings_mirror
-            .check(device, queue, &self.buffers[0], 0, "environment settings");
     }
 }

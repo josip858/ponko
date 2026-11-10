@@ -1311,13 +1311,14 @@ mod tests {
     #[test]
     fn perf_reports_list_the_frames_gpu_uploads_and_reallocations() {
         let mut ctx = ctx();
-        let mut uploads = crate::GpuUploads::default();
-        uploads.instances = 640;
-        uploads.uniforms = 80;
-        uploads.buffers_created = 3;
-        uploads.reallocations = 2;
-        uploads.buffer_bytes_created = 4096;
-        ctx.perf.last_render_stats.uploads = uploads;
+        ctx.perf.last_render_stats.uploads = crate::GpuUploads {
+            instances: 640,
+            uniforms: 80,
+            buffers_created: 3,
+            reallocations: 2,
+            buffer_bytes_created: 4096,
+            ..Default::default()
+        };
         let perf = handle(&mut ctx, "perf.get", &json!({})).unwrap();
         let u = &perf["render"]["uploads"];
         assert_eq!(u["bytes"], 720, "{u}");

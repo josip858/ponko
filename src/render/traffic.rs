@@ -52,7 +52,7 @@ thread_local! {
 
 /// The upload calls since the last call on this thread, by [`Upload`] kind
 /// (indexed `kind as usize`), which are then reset.
-#[cfg(test)]
+#[cfg(all(test, feature = "3d"))]
 pub(crate) fn take_writes() -> [u32; 10] {
     WRITES.with(|w| w.replace([0; 10]))
 }
@@ -146,7 +146,7 @@ thread_local! {
 }
 
 /// The [`too_big`] reports since the last call on this thread.
-#[cfg(test)]
+#[cfg(all(test, feature = "3d"))]
 pub(crate) fn take_too_big() -> u32 {
     TOO_BIG.with(|c| c.replace(0))
 }

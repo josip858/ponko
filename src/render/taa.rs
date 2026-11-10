@@ -375,6 +375,15 @@ impl Taa {
 }
 
 #[cfg(test)]
+impl Taa {
+    /// See `Renderer3D::check_mirrors`.
+    pub fn check_mirrors(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.uniform_mirror
+            .check(device, queue, &self.uniform, 0, "antialiasing settings");
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -413,14 +422,5 @@ mod tests {
         // +y is down in pixels, up in NDC: -0.25 px is 0.25 / 50 * 2 up.
         assert!((after.y - before.y - 2.0 * 0.25 / 50.0).abs() < 1e-6);
         assert!((after.z - before.z).abs() < 1e-6);
-    }
-}
-
-#[cfg(test)]
-impl Taa {
-    /// See `Renderer3D::check_mirrors`.
-    pub fn check_mirrors(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
-        self.uniform_mirror
-            .check(device, queue, &self.uniform, 0, "antialiasing settings");
     }
 }
