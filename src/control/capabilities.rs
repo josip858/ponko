@@ -158,7 +158,7 @@ fn subsystems(ctx: &Ctx, gpu: Option<&crate::GpuCapabilities>) -> Value {
 
 /// The `capabilities` answer.
 pub(super) fn report(ctx: &Ctx) -> Value {
-    report_with_gpu(ctx, ctx.gpu_capabilities())
+    report_with_gpu(ctx, ctx.gfx.gpu_capabilities())
 }
 
 fn report_with_gpu(ctx: &Ctx, gpu: Option<&crate::GpuCapabilities>) -> Value {

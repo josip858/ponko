@@ -225,7 +225,7 @@ reports this instance's mode, compiled features, operation availability, and
 reflected component/resource schemas. In a windowed renderer,
 `subsystems.renderer.adapter` identifies the adapter/backend and
 `subsystems.renderer.gpu` contains the same limits and feature fallback reasons
-as `Ctx::gpu_capabilities()`. Before a GPU opens, those values are null and
+as `Gfx::gpu_capabilities()`. Before a GPU opens, those values are null and
 `adapter_reason` explains why. Headless instances report an inactive renderer.
 A tool being present in MCP does not imply that the selected instance supports it.
 
