@@ -3162,6 +3162,14 @@ enum CrabbyStatus crabby_world_save(struct CrabbyWorld *world,
 
 enum CrabbyStatus crabby_world_load(struct CrabbyWorld *world, const char *json);
 
+enum CrabbyStatus crabby_world_describe_component(struct CrabbyWorld *world,
+                                                  const char *name,
+                                                  const char *schema);
+
+enum CrabbyStatus crabby_world_describe_resource(struct CrabbyWorld *world,
+                                                 const char *name,
+                                                 const char *schema);
+
 bool crabby_seq_newer(uint16_t a, uint16_t b);
 
 int16_t crabby_seq_diff(uint16_t a, uint16_t b);

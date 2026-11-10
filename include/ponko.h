@@ -1255,6 +1255,8 @@
 #define ponko_world_advance_change_tick crabby_world_advance_change_tick
 #define ponko_world_change_tick crabby_world_change_tick
 #define ponko_world_changes_since crabby_world_changes_since
+#define ponko_world_describe_component crabby_world_describe_component
+#define ponko_world_describe_resource crabby_world_describe_resource
 #define ponko_world_free crabby_world_free
 #define ponko_world_len crabby_world_len
 #define ponko_world_load crabby_world_load

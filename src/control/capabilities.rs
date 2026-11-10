@@ -90,7 +90,7 @@ fn compiled_out(feature: &str) -> Value {
     })
 }
 
-fn subsystems(ctx: &Ctx) -> Value {
+fn subsystems(ctx: &Ctx, gpu: Option<&crate::GpuCapabilities>) -> Value {
     let windowed = !ctx.headless;
     let renderer = if !cfg!(feature = "window") {
         compiled_out("window")
@@ -102,9 +102,9 @@ fn subsystems(ctx: &Ctx) -> Value {
             "compiled": true,
             "active": true,
             "3d": cfg!(feature = "3d"),
-            // Not recorded by the renderer yet; reported as unknown rather than guessed.
-            "adapter": null,
-            "adapter_reason": "adapter and backend details are not reported yet",
+            "adapter": gpu.map(|g| &g.adapter),
+            "gpu": gpu,
+            "adapter_reason": if gpu.is_none() { Some("the renderer has not opened a GPU device") } else { None },
         })
     };
     let windowed_only = |feature: &str, compiled: bool| {
@@ -166,6 +166,10 @@ fn subsystems(ctx: &Ctx) -> Value {
 
 /// The `capabilities` answer.
 pub(super) fn report(ctx: &Ctx) -> Value {
+    report_with_gpu(ctx, ctx.gfx.gpu_capabilities())
+}
+
+fn report_with_gpu(ctx: &Ctx, gpu: Option<&crate::GpuCapabilities>) -> Value {
     let methods: Vec<Value> = METHODS
         .iter()
         .map(|(name, about)| {
@@ -186,7 +190,7 @@ pub(super) fn report(ctx: &Ctx) -> Value {
         "engine_version": env!("CARGO_PKG_VERSION"),
         "mode": if ctx.headless { "headless" } else { "windowed" },
         "features": FEATURES.iter().map(|&(f, on)| (f.to_string(), json!(on))).collect::<serde_json::Map<_, _>>(),
-        "subsystems": subsystems(ctx),
+        "subsystems": subsystems(ctx, gpu),
         "methods": methods,
         "reflection": {
             "components": components,
@@ -390,7 +394,7 @@ mod tests {
             ctx.world
                 .reflect_fields(id, &[crate::Field::new("hp", crate::FieldType::F32, 0)]);
         }
-        let r = report(&ctx);
+        let r = crate::control::handle(&mut ctx, "capabilities", &json!({})).unwrap();
         let comp = |name: &str| {
             r["reflection"]["components"]
                 .as_array()
@@ -429,3 +433,7 @@ mod tests {
         assert!(matches!(e, Err(crate::ReflectError::UnknownResource(_))));
     }
 }
+
+#[cfg(test)]
+#[path = "capabilities_completion_tests.rs"]
+mod completion_tests;
