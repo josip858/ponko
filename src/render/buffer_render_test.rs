@@ -20,6 +20,9 @@ pub(super) struct Rig {
     /// The clock the next draw is drawn at: (seconds since the start,
     /// seconds since the last frame).
     pub time: (f32, f32),
+    /// CPU time of the last draw's `Renderer3D::prepare` (collecting not
+    /// included), in ms.
+    pub prepare_ms: f64,
 }
 
 impl Rig {
@@ -142,6 +145,7 @@ impl Rig {
             ctx,
             frame: Frame3D::default(),
             time: (0.0, 1.0 / 60.0),
+            prepare_ms: 0.0,
         })
     }
 
@@ -213,6 +217,7 @@ impl Rig {
             time: self.time,
             occlusion: ctx.camera3d.occlusion_culling,
         };
+        let start = std::time::Instant::now();
         self.renderer.prepare(
             &self.device,
             &self.queue,
@@ -222,6 +227,7 @@ impl Rig {
                 size: (SIZE, SIZE),
             },
         );
+        self.prepare_ms = start.elapsed().as_secs_f64() * 1e3;
         let buffers = self
             .renderer
             .draw(&self.device, &self.target, wgpu::Color::BLACK, &self.textures, None);
