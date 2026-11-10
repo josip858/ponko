@@ -138,6 +138,11 @@ resource_set!(A 0, B 1, C 2, D 3, E 4, F 5, G 6);
 resource_set!(A 0, B 1, C 2, D 3, E 4, F 5, G 6, H 7);
 
 /// A query that carries resources, from [`Query::with_resources`].
+///
+/// The resources are out of the world while this lives and go back when it
+/// is dropped, after the loop or on a panic. Leaking it (`std::mem::forget`)
+/// leaks them too: they never return, and the world has no such resources
+/// afterwards. Let it drop.
 #[must_use = "a query does nothing until iterated"]
 pub struct QueryResources<'w, Q: QueryData, R: ResourceSet> {
     query: Query<'w, Q>,
@@ -246,6 +251,7 @@ impl<Q: QueryData, L: QueryData> QueryLookup<'_, Q, L> {
             entities: &raw const world.entities,
             archetypes: &raw const world.archetypes[..],
             ids: self.ids,
+            stamp: world.tracks_changes().then(|| world.changes.stamp()),
             _world: PhantomData,
             _data: PhantomData,
         };
@@ -265,20 +271,25 @@ pub struct Lookup<'a, L: QueryData> {
     entities: *const Entities,
     archetypes: *const [Archetype],
     ids: L::Ids,
+    /// The world's change stamp, if it tracks any component: what
+    /// [`get_mut`](Self::get_mut) writes for the tracked components it hands
+    /// out, as [`World::get_mut`] does.
+    stamp: Option<u32>,
     _world: PhantomData<&'a World>,
     _data: PhantomData<fn() -> L>,
 }
 
 impl<L: QueryData> Lookup<'_, L> {
     #[inline]
-    fn locate(&self, e: Entity) -> Option<(L::State, usize)> {
+    fn locate(&self, e: Entity) -> Option<(&Archetype, L::State, usize)> {
         // SAFETY: both point into the world the running query borrows for
         // longer than this lookup lives, and nothing writes to the entity
         // table or the archetype list while a query loops.
         let (entities, archetypes) = unsafe { (&*self.entities, &*self.archetypes) };
         let loc = entities.get(e)?;
-        let state = L::state(&archetypes[loc.archetype as usize], &self.ids)?;
-        Some((state, loc.row as usize))
+        let arch = &archetypes[loc.archetype as usize];
+        let state = L::state(arch, &self.ids)?;
+        Some((arch, state, loc.row as usize))
     }
 
     /// `L`'s item for entity `e`, or `None` if it is dead or lacks one of
@@ -289,7 +300,7 @@ impl<L: QueryData> Lookup<'_, L> {
     where
         L: ReadOnlyQueryData,
     {
-        let (state, row) = self.locate(e)?;
+        let (_, state, row) = self.locate(e)?;
         // SAFETY: `e` is alive, so `row` is a row of its archetype. `L` only
         // reads, and the query writes none of `L`'s components (checked in
         // `with_lookup`).
@@ -299,9 +310,19 @@ impl<L: QueryData> Lookup<'_, L> {
     /// `L`'s item for entity `e`, with its `&mut` components writable, or
     /// `None` if it is dead or lacks one of the components. One result at a
     /// time.
+    ///
+    /// Like [`World::get_mut`], it counts as a change of every tracked
+    /// component `L` writes, so a later `Changed<T>` query sees it.
     #[inline]
     pub fn get_mut(&mut self, e: Entity) -> Option<L::Item<'_>> {
-        let (state, row) = self.locate(e)?;
+        let (arch, state, row) = self.locate(e)?;
+        if let Some(stamp) = self.stamp
+            && arch.tracked()
+        {
+            // The query writes none of these stamps and reads none of them
+            // through a filter (both checked in `with_lookup`).
+            crate::change::mark_row::<L>(arch, &self.ids, stamp, row);
+        }
         // SAFETY: `e` is alive, so `row` is a row of its archetype. The query
         // touches none of the components `L` writes and writes none that `L`
         // reads (checked in `with_lookup`), `L` doesn't alias itself, and
@@ -393,14 +414,33 @@ impl<'w, Q: QueryData> Query<'w, Q> {
     /// The query's filters don't apply to the lookup: it reaches any entity
     /// that has `L`'s components. Call it last, after the filters.
     ///
+    /// Writes through [`Lookup::get_mut`] count as changes, as with
+    /// [`World::get_mut`]. So the lookup can't write a component the query
+    /// filters on with [`Added`](crate::Added) or [`Changed`](crate::Changed):
+    /// that filter reads the very stamps the lookup would change while the
+    /// query decides which rows to visit.
+    ///
     /// # Panics
     /// If the query and the lookup access the same component and at least
-    /// one of them mutably, or the lookup asks for a component twice, once
-    /// mutably.
+    /// one of them mutably, the lookup asks for a component twice, once
+    /// mutably, or the lookup writes a component the query's `Added` or
+    /// `Changed` filter reads.
+    #[track_caller]
     pub fn with_lookup<L: QueryData>(self) -> QueryLookup<'w, Q, L> {
         let ids = L::ids(self.world);
         check_aliasing::<L>(self.world, &ids);
         check_disjoint::<Q, L>(self.world, &self.ids, &ids);
+        let filters = self.filters();
+        L::access(&ids, &mut |id, mutable, _| {
+            if mutable && filters.reads_stamps_of(id) {
+                panic!(
+                    "lookup `{}` writes `{}`, which the query's `Added`/`Changed` filter reads; \
+                     filter on another component, or change it after the loop",
+                    std::any::type_name::<L>(),
+                    self.world.component_info(id).name()
+                );
+            }
+        });
         self.world
             .recorder
             .note(|l| L::access(&ids, &mut |id, write, _| l.component(id, write)));

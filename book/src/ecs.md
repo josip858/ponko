@@ -420,7 +420,10 @@ The lookup may read what the query reads (follow a leader's `Transform2D`
 while writing your own `Velocity`). It can't touch a component the query
 writes, or write one the query reads: that would be two references to one
 value, and it panics when the query is built. A lookup ignores the query's
-filters.
+filters. A write through `get_mut` counts as a change, as with
+`world.get_mut`, so a later `Changed<T>` query sees it; for that reason a
+lookup can't write a component the query itself filters on with `Added` or
+`Changed` (it panics when the query is built).
 
 **A few entities together.** `get_many_mut` borrows the same component of
 several entities, for work on a pair that needs both sides. It returns
