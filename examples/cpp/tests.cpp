@@ -853,6 +853,35 @@ static void streaming() {
     });
 }
 
+static void model_material_overrides() {
+    ponko::game("overrides", 64, 64).run_headless(2, [](ponko::ctx& ctx) {
+        auto gold = ctx.create_material(ponko::material_of(ponko::rgb(1, .8f, .2f)));
+        auto wood = ctx.create_material(ponko::material_of(ponko::rgb(.5f, .3f, .1f)));
+        auto cube = ctx.create_plain_mesh(ponko::mesh_data::cube(1));
+        CHECK(ctx.is_mesh_live(cube));
+        auto e = ctx.world().spawn(ponko::transform3d_at({0, 0, 0}), ponko::model_of(cube));
+        CHECK(!ctx.model_material(e));
+        ctx.set_model_material(e, gold);
+        CHECK(ctx.model_material(e) && ctx.model_material(e)->id == gold.id);
+        throws([&] { ctx.set_model_material(e, ponko::material{99}); });
+        ctx.clear_model_material(e);
+        CHECK(!ctx.model_material(e));
+
+        CHECK(ctx.model_part_materials(e).empty());
+        ctx.set_model_part_materials(e, {{3, gold}, {0, wood}, {3, wood}});
+        auto parts = ctx.model_part_materials(e);
+        CHECK(parts.size() == 2 && parts[0].first == 0 && parts[0].second.id == wood.id);
+        CHECK(parts[1].first == 3 && parts[1].second.id == wood.id);
+        throws([&] { ctx.set_model_part_materials(e, {{0, ponko::material{99}}}); });
+        CHECK(ctx.model_part_materials(e).size() == 2);
+        ctx.set_model_part_materials(e, {});
+        CHECK(ctx.model_part_materials(e).empty());
+        // Left on for the frames after setup.
+        ctx.set_model_material(e, gold);
+        ctx.set_model_part_materials(e, {{0, wood}});
+    });
+}
+
 static void handle_lifecycle() {
     ponko::game("handles", 64, 64).run_headless(0, [](ponko::ctx& ctx) {
         auto before = ctx.live_counts();
@@ -1864,6 +1893,7 @@ int main() {
     inverse_kinematics();
     streaming();
     streamed_worlds();
+    model_material_overrides();
     handle_lifecycle();
     parallel_queries();
     games();

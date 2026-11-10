@@ -304,6 +304,7 @@ impl Overrides {
     }
 
     /// The per-part list of entry `o`.
+    #[cfg(test)]
     pub fn parts_of(&self, o: &MaterialOverride) -> &[(u32, u32)] {
         &self.parts[o.parts.0 as usize..(o.parts.0 + o.parts.1) as usize]
     }

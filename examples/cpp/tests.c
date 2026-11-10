@@ -485,6 +485,56 @@ static void streamed_worlds(void) {
     CHECK(!ponko_collision_mesh_data_heightfield(flat, 3, 1));
 }
 
+static void recolor(PonkoCtx* ctx, void* user) {
+    (void)user;
+    PonkoWorld* w = ponko_ctx_world(ctx);
+    uint32_t transform, model;
+    CHECK(ponko_transform3d_component(w, &transform) == PONKO_OK && ponko_model_component(w, &model) == PONKO_OK);
+    PonkoMaterialDesc look = ponko_material_desc((PonkoColor){1, 0.8f, 0.2f, 1});
+    PonkoMaterial gold, wood;
+    CHECK(ponko_ctx_create_material(ctx, &look, &gold) == PONKO_OK);
+    CHECK(ponko_ctx_create_material(ctx, &look, &wood) == PONKO_OK);
+    PonkoMeshData* cube = ponko_mesh_data_cube(1);
+    PonkoMesh mesh;
+    CHECK(ponko_ctx_create_plain_mesh(ctx, cube, &mesh) == PONKO_OK);
+    CHECK(ponko_ctx_create_plain_mesh(ctx, NULL, &mesh) == PONKO_INVALID_ARGUMENT);
+    ponko_mesh_data_free(cube);
+    PonkoTransform3D t = ponko_transform3d_at((PonkoVec3){0, 0, 0});
+    PonkoModel m = ponko_model(mesh);
+    PonkoValue parts[] = {{transform, &t, sizeof t}, {model, &m, sizeof m}};
+    uint64_t e;
+    CHECK(ponko_spawn(w, parts, 2, &e) == PONKO_OK);
+
+    PonkoMaterial found; bool has = true;
+    CHECK(ponko_ctx_model_material(ctx, e, &found, &has) == PONKO_OK && !has);
+    CHECK(ponko_ctx_set_model_material(ctx, e, gold, true) == PONKO_OK);
+    CHECK(ponko_ctx_model_material(ctx, e, &found, &has) == PONKO_OK && has && found.id == gold.id);
+    CHECK(ponko_ctx_set_model_material(ctx, e, (PonkoMaterial){99}, true) == PONKO_INVALID_ARGUMENT);
+    CHECK(ponko_ctx_set_model_material(ctx, e, gold, false) == PONKO_OK);
+    CHECK(ponko_ctx_model_material(ctx, e, &found, &has) == PONKO_OK && !has);
+
+    uint32_t numbers[] = {3, 0, 3};
+    PonkoMaterial materials[] = {gold, wood, wood};
+    CHECK(ponko_ctx_set_model_part_materials(ctx, e, numbers, materials, 3) == PONKO_OK);
+    uint32_t got_parts[2]; PonkoMaterial got[2]; size_t n = 0;
+    CHECK(ponko_ctx_model_part_materials(ctx, e, NULL, NULL, 0, &n) == PONKO_OK && n == 2);
+    CHECK(ponko_ctx_model_part_materials(ctx, e, got_parts, got, 2, &n) == PONKO_OK && n == 2);
+    CHECK(got_parts[0] == 0 && got_parts[1] == 3 && got[0].id == wood.id && got[1].id == wood.id);
+    CHECK(ponko_ctx_set_model_part_materials(ctx, e, numbers, NULL, 2) == PONKO_INVALID_ARGUMENT);
+    CHECK(ponko_ctx_set_model_part_materials(ctx, e, NULL, NULL, 0) == PONKO_OK);
+    CHECK(ponko_ctx_model_part_materials(ctx, e, NULL, NULL, 0, &n) == PONKO_OK && n == 0);
+    // Left on for the frames after setup.
+    CHECK(ponko_ctx_set_model_material(ctx, e, gold, true) == PONKO_OK);
+    CHECK(ponko_ctx_set_model_part_materials(ctx, e, numbers, materials, 1) == PONKO_OK);
+}
+static void model_material_overrides(void) {
+    PonkoGame* game = ponko_game_new("overrides", 64, 64); CHECK(game);
+    PonkoWorld* w = NULL;
+    CHECK(ponko_game_run_headless(game, 2, recolor, NULL, &w) == PONKO_OK);
+    CHECK(ponko_world_free(w) == PONKO_OK);
+    CHECK(ponko_ctx_set_model_material(NULL, 0, (PonkoMaterial){0}, true) == PONKO_INVALID_ARGUMENT);
+}
+
 static void lod_helpers(void) {
     float fov = 60 * 3.14159265f / 180;
     float h = ponko_lod_screen_height_at(2, 10, fov);
@@ -748,6 +798,7 @@ int main(void) {
     ribbons_and_decals();
     lod_helpers();
     streamed_worlds();
+    model_material_overrides();
     profiling_c();
     return 0;
 }

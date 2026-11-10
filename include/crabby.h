@@ -3481,6 +3481,10 @@ enum CrabbyStatus crabby_ctx_create_mesh(struct CrabbyCtx *ctx,
                                          struct CrabbyMaterial material,
                                          struct CrabbyMesh *out_mesh);
 
+enum CrabbyStatus crabby_ctx_create_plain_mesh(struct CrabbyCtx *ctx,
+                                               const struct CrabbyMeshData *data,
+                                               struct CrabbyMesh *out_mesh);
+
 enum CrabbyStatus crabby_ctx_create_terrain_tile(struct CrabbyCtx *ctx,
                                                  const float *heights,
                                                  size_t count,
@@ -3572,6 +3576,29 @@ enum CrabbyStatus crabby_ctx_set_shadow_mesh(struct CrabbyCtx *ctx,
                                              uint64_t entity,
                                              struct CrabbyMesh mesh,
                                              bool casts);
+
+enum CrabbyStatus crabby_ctx_set_model_material(struct CrabbyCtx *ctx,
+                                                uint64_t entity,
+                                                struct CrabbyMaterial material,
+                                                bool enabled);
+
+enum CrabbyStatus crabby_ctx_model_material(struct CrabbyCtx *ctx,
+                                            uint64_t entity,
+                                            struct CrabbyMaterial *out_material,
+                                            bool *out_has);
+
+enum CrabbyStatus crabby_ctx_set_model_part_materials(struct CrabbyCtx *ctx,
+                                                      uint64_t entity,
+                                                      const uint32_t *parts,
+                                                      const struct CrabbyMaterial *materials,
+                                                      size_t count);
+
+enum CrabbyStatus crabby_ctx_model_part_materials(struct CrabbyCtx *ctx,
+                                                  uint64_t entity,
+                                                  uint32_t *out_parts,
+                                                  struct CrabbyMaterial *out_materials,
+                                                  size_t capacity,
+                                                  size_t *out_count);
 
 enum CrabbyStatus crabby_ctx_set_mesh_shadows(struct CrabbyCtx *ctx,
                                               struct CrabbyMesh mesh,

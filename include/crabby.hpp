@@ -2922,6 +2922,10 @@ public:
     /// Puts triangles on the GPU as a mesh of one material; draw it with
     /// entities that have a transform3d and a model_of(it).
     mesh create_mesh(const mesh_data& data, material m) { mesh x{}; detail::check(crabby_ctx_create_mesh(raw_, data.raw(), m, &x)); return x; }
+    /// A mesh with no material of its own (Rust `Ctx::create_plain_mesh`):
+    /// create_mesh with the default material, for meshes whose look comes from
+    /// each model (set_model_material).
+    mesh create_plain_mesh(const mesh_data& data) { mesh x{}; detail::check(crabby_ctx_create_plain_mesh(raw_, data.raw(), &x)); return x; }
     /// Loads a glTF model (.glb, or .gltf with its files) from assets/ as
     /// one mesh with its materials; the same file again gives the same mesh.
     mesh load_mesh(const char* path) { mesh x{}; detail::check(crabby_ctx_load_mesh(raw_, path, &x)); return x; }
@@ -2973,6 +2977,40 @@ public:
     void load_reflection_probe(entity e, const std::string& name) { detail::check(crabby_ctx_load_reflection_probe(raw_, e, name.c_str())); }
     /// Whether models showing `m` cast shadows (on at first); off suits grass and pebbles.
     void set_mesh_shadows(mesh m, bool casts) { detail::check(crabby_ctx_set_mesh_shadows(raw_, m, casts)); }
+    /// Draws `e`'s model with `m` instead of the materials its mesh was made
+    /// with, every part (Rust `ModelMaterial`): one uploaded mesh in several
+    /// materials. For plain, skinned and morphing models, LOD groups and
+    /// terrain tiles.
+    void set_model_material(entity e, material m) { detail::check(crabby_ctx_set_model_material(raw_, e, m, true)); }
+    /// `e`'s model draws with its mesh's own materials again.
+    void clear_model_material(entity e) { detail::check(crabby_ctx_set_model_material(raw_, e, material{}, false)); }
+    /// The material set with set_model_material, if any.
+    std::optional<material> model_material(entity e) const {
+        material m{}; bool has = false;
+        detail::check(crabby_ctx_model_material(raw_, e, &m, &has));
+        return has ? std::optional<material>(m) : std::nullopt;
+    }
+    /// Draws the listed parts of `e`'s model with other materials (Rust
+    /// `ModelMaterials`): `{part, material}` pairs, parts numbered from 0 in
+    /// the order the mesh was made with. Parts not listed keep the material of
+    /// set_model_material, or the mesh's own. An empty list takes it off.
+    void set_model_part_materials(entity e, const std::vector<std::pair<std::uint32_t, material>>& parts) {
+        std::vector<std::uint32_t> numbers;
+        std::vector<material> materials;
+        for (const auto& [part, m] : parts) { numbers.push_back(part); materials.push_back(m); }
+        detail::check(crabby_ctx_set_model_part_materials(raw_, e, numbers.data(), materials.data(), parts.size()));
+    }
+    /// The list set with set_model_part_materials, by part number (empty: none).
+    std::vector<std::pair<std::uint32_t, material>> model_part_materials(entity e) const {
+        std::size_t n = 0;
+        detail::check(crabby_ctx_model_part_materials(raw_, e, nullptr, nullptr, 0, &n));
+        std::vector<std::uint32_t> numbers(n);
+        std::vector<material> materials(n);
+        detail::check(crabby_ctx_model_part_materials(raw_, e, numbers.data(), materials.data(), n, &n));
+        std::vector<std::pair<std::uint32_t, material>> parts;
+        for (std::size_t i = 0; i < n && i < numbers.size(); ++i) parts.emplace_back(numbers[i], materials[i]);
+        return parts;
+    }
     /// Draws `m` into the shadow maps for `e` instead of its model (Rust `ShadowMesh`);
     /// without a model, `e` casts only that shadow.
     void set_shadow_mesh(entity e, mesh m) { detail::check(crabby_ctx_set_shadow_mesh(raw_, e, m, true)); }

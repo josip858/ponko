@@ -1050,6 +1050,21 @@ static void plant_meadow(ponko::ctx& ctx, ponko::mesh tuft) {
 }
 // ANCHOR_END: mesh_shadows
 
+// ANCHOR: model_material
+/// One uploaded ball in three looks, and a house with only its roof changed.
+static void recolored(ponko::ctx& ctx, ponko::mesh house, ponko::material gold, ponko::material rust) {
+    auto ball = ctx.create_plain_mesh(ponko::mesh_data::sphere(0.5f, 32));
+    ctx.world().spawn(ponko::transform3d_at({0, 0, 0}), ponko::model_of(ball));  // plain white
+    auto shiny = ctx.world().spawn(ponko::transform3d_at({1, 0, 0}), ponko::model_of(ball));
+    ctx.set_model_material(shiny, gold);
+    auto old = ctx.world().spawn(ponko::transform3d_at({2, 0, 0}), ponko::model_of(ball));
+    ctx.set_model_material(old, rust);
+    // Part 1 only; the other parts keep the materials from the file.
+    auto home = ctx.world().spawn(ponko::transform3d_at({6, 0, 0}), ponko::model_of(house));
+    ctx.set_model_part_materials(home, {{1, rust}});
+}
+// ANCHOR_END: model_material
+
 // ANCHOR: shadow_mesh
 /// A detailed tree with a cheap shadow, a flat sign with none, and a stand-in
 /// shadow for a row of fence pieces that cast none themselves.
@@ -1548,6 +1563,17 @@ static void the_village_has_five_spinning_houses() {
         auto tuft = ctx.create_mesh(ponko::mesh_data::cube(0.1f), ctx.default_material());
         plant_meadow(ctx, tuft);
         yard(ctx, tuft, tuft, tuft, tuft, tuft);
+        recolored(ctx, tuft, ctx.create_material(ponko::material_of(ponko::colors::white)), ctx.default_material());
+        {
+            std::vector<ponko::entity> models;
+            ctx.world().each([&](ponko::entity e, const ponko::model&) { models.push_back(e); });
+            std::size_t overridden = 0, listed = 0;
+            for (auto e : models) {
+                overridden += ctx.model_material(e).has_value();
+                listed += ctx.model_part_materials(e).size();
+            }
+            if (overridden != 2 || listed != 1) { std::fprintf(stderr, "model materials\n"); std::abort(); }
+        }
         auto lod = lod_object(ctx, tuft, tuft);
         cull_hidden(ctx);
         if (!ctx.occlusion_culling()) { std::fprintf(stderr, "occlusion\n"); std::abort(); }
