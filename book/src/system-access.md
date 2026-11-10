@@ -81,7 +81,7 @@ state can be handed out on its own:
 | `Audio` | write: `play_sound`, `play_sound_ex` |
 | `Camera` | read `camera()` / `camera3d()`, write `camera_mut()` / `camera3d_mut()` |
 | `Spatial` | read: `spatial()` |
-| `Physics`, `Physics3D` | read `physics()` (ray casts, overlaps), write `physics_mut()` |
+| `d2::Physics`, `d3::Physics` | read `physics()` (ray casts, overlaps), write `physics_mut()` |
 | `Net` | read `net()`, write `net_mut()` |
 | `Gfx`, `Ui`, `Assets`, `Perf` | not offered |
 

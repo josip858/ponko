@@ -37,7 +37,7 @@ fn setup(ctx: &mut Ctx) {
     let ball = ctx.gfx.create_mesh(&MeshData::sphere(0.15, 16), white);
     ctx.world
         .spawn((Transform::default(), Model::new(ball), tracer, Orbiting));
-    // After a teleport: ctx.world.get_mut::<Trail3D>(entity).unwrap().clear();
+    // After a teleport: ctx.world.get_mut::<d3::Trail>(entity).unwrap().clear();
     // ANCHOR_END: trail
 
     // ANCHOR: line

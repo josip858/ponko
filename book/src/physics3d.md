@@ -14,7 +14,7 @@ ponko = { version = "0.0.1", features = ["physics3d"] }
 With `use ponko::d3::*;` the bodies, colliders and queries are `RigidBody`,
 `Collider`, `Velocity`, `Physics` and `Hit`, the same names as in
 `ponko::d2`; this chapter qualifies them as `d3::RigidBody` and so on. The
-`RigidBody3D`-style names still compile as deprecated aliases
+`RigidBody3D`-style names still compile
 ([Naming and compatibility](naming.md)).
 
 (The C library, `ponko_ffi`, has it on by default.)
@@ -348,7 +348,7 @@ Try it: `cargo run --release --example vehicle --features physics3d`.
   a push in kg × m/s (multiply by `mass(e)` for a speed change); at a point
   it also spins the body.
 
-Every query takes a `QueryFilter3D` (C++ `ponko::filter3d`):
+Every query takes a `d3::QueryFilter` (C++ `ponko::filter3d`):
 `.exclude(e)` looks through one entity (the one asking), `.groups(g)` sees
 what a collider in those groups would touch, and `.with_sensors()` sees
 sensors too (they're skipped by default). Lists go into a `Vec` you keep,
@@ -490,7 +490,7 @@ indices into `axes` and `drives`, and `swing_cone` is negative for none.
 `prismatic(a, b)` leaves only translation along local X free.
 `generic(a, b)` starts with all six axes free. Use `.motion(axis, Free)`,
 `.motion(axis, Locked)` or `.motion(axis, Limited(min, max))` to configure
-each axis. Names are qualified by `JointMotion3D`; axes by `JointAxis3D`.
+each axis. Names are qualified by `d3::JointMotion`; axes by `d3::JointAxis`.
 Distances are meters and angles radians. Limits must be finite and ordered;
 angular ranges must span less than a full turn.
 
@@ -501,8 +501,8 @@ local Y/Z angular motion into a circular cone around X. Local X remains the
 independent twist axis. The cone overrides the Y/Z limits and drives; it is
 not two independent rectangular angular limits.
 
-`.drive(axis, JointDrive3D::velocity(speed, damping))` sets a velocity motor.
-`JointDrive3D::spring(target, stiffness, damping)` drives toward an angle or
+`.drive(axis, d3::JointDrive::velocity(speed, damping))` sets a velocity motor.
+`d3::JointDrive::spring(target, stiffness, damping)` drives toward an angle or
 position. Set its `max_force` to cap force/torque. Drives use Rapier's default
 acceleration model; locked axes ignore drives. For an arbitrary target rotation,
 express the target in the joint's local angular coordinates and drive the
@@ -561,10 +561,10 @@ the rest of the world and the rest of the body.
 
 ## Contact modification
 
-`ContactModifier3D` changes how one body's contacts behave. It is a component:
+`d3::ContactModifier` changes how one body's contacts behave. It is a component:
 put it on an entity that has a collider.
 
-- **One-way surfaces.** `ContactModifier3D::one_way(up)` makes a body solid
+- **One-way surfaces.** `d3::ContactModifier::one_way(up)` makes a body solid
   only from the side `up` points to. A ball thrown up from below passes
   through the platform and lands on top of it. `up` is in the body's own
   frame, so a tilted platform turns it with it. `one_way_angle` (radians,
@@ -572,16 +572,16 @@ put it on an entity that has a collider.
   from `up` and still count as "from above", so a steep slope of the
   surface still holds; narrow it to make only the flat top solid. Something already partly inside the platform
   keeps passing until it is out, so it is never pushed up from within.
-- **Conveyors.** `ContactModifier3D::conveyor(velocity)` makes the surface
+- **Conveyors.** `d3::ContactModifier::conveyor(velocity)` makes the surface
   carry whatever touches it at `velocity`, in metres per second. The
   velocity is in the body's frame, so a belt on a turning body turns its
   direction too. Only the part along the surface counts; the part into it is
   ignored. It works whether the belt or the thing on it comes first in the
   pair.
-- **A custom hook.** `ContactModifier3D::hook()` sends the body's contacts
+- **A custom hook.** `d3::ContactModifier::hook()` sends the body's contacts
   to the function you set with `ctx.physics3d.set_contact_hook(...)`
   (`ctx.set_contact_hook3d(...)` in C++; a null function clears it). The hook
-  gets a `ContactPair3D`: the two entities (`a` and `b`), the contact
+  gets a `d3::ContactPair`: the two entities (`a` and `b`), the contact
   `normal()` and its points, and it can `ignore()` the whole pair, drop one
   `remove_point(i)`, change `set_friction` and `set_restitution`, or
   `set_surface_velocity` in world space.
@@ -611,7 +611,7 @@ contact of every hooked body, every step. In C++ an exception thrown by the
 hook ends the run after that step and comes out of `run` or `run_headless`.
 
 Modified bodies cost a little: their contacts are rebuilt every step instead
-of being kept while the bodies rest. Bodies without a `ContactModifier3D`
+of being kept while the bodies rest. Bodies without a `d3::ContactModifier`
 are not affected, and removing the component makes a body plain again.
 
 ## One-way pushing
