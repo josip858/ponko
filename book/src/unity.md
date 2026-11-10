@@ -247,7 +247,7 @@ let hills = ponko_unity::UnityTerrain::from_object(data)?;
 // In the game (or written to a file the game reads):
 let tile = ctx.gfx.create_terrain_tile(&hills.heights, hills.size, ground);
 let [x, y, z] = hills.corner([0.0, 0.0, 0.0]); // the Unity Terrain's position
-ctx.world.spawn((Transform3D::at(vec3(x, y, z)), tile));
+ctx.world.spawn((ponko::d3::Transform::at(vec3(x, y, z)), tile));
 ```
 
 The weight maps are `Texture2D`s in the same file: read them with

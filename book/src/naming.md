@@ -69,3 +69,71 @@ inventory is allowed. Review inventory changes alongside naming changes.
 Generated aliases are checked separately by `scripts/generate-ponko-header.py
 --check`. CI runs both checks. The Pages workflow builds this guide directly
 from `book/` after changes reach `main`.
+
+## Dimension modules
+
+Start with `use ponko::prelude::*;`, then `use ponko::d2::*;` or
+`use ponko::d3::*;`. Both expose `Transform`, `Camera`, `RigidBody`, `Collider`,
+`Velocity`, `Shape`, `Physics`, and `Hit` (physics features required).
+The modules are aliases for existing types: layout, component identity and saved
+names are unchanged. Context fields remain `camera`/`camera3d` and
+`physics`/`physics3d` so both dimensions can coexist.
+
+| Retained root spelling | Preferred spelling |
+|---|---|
+| `Transform2D`, `Camera2D` | `d2::Transform`, `d2::Camera` |
+| `RigidBody`, `Collider`, `Velocity`, `Shape`, `Physics`, `RayHit` | corresponding `d2` name (`Hit` for `RayHit`) |
+| `AudioListener3D` | `d3::AudioListener` |
+| `AudioSettings3D` | `d3::AudioSettings` |
+| `AudioSource3D` | `d3::AudioSource` |
+| `Camera3D` | `d3::Camera` |
+| `Character3D` | `d3::Character` |
+| `Collider3D` | `d3::Collider` |
+| `ContactModifier3D` | `d3::ContactModifier` |
+| `ContactPair3D` | `d3::ContactPair` |
+| `Decal3D` | `d3::Decal` |
+| `Hit3D` | `d3::Hit` |
+| `Joint3D` | `d3::Joint` |
+| `JointAxis3D` | `d3::JointAxis` |
+| `JointDrive3D` | `d3::JointDrive` |
+| `JointMotion3D` | `d3::JointMotion` |
+| `Line3D` | `d3::Line` |
+| `NavAgent3D` | `d3::NavAgent` |
+| `NavMesh3D` | `d3::NavMesh` |
+| `NavObstacle3D` | `d3::NavObstacle` |
+| `ParticleBlend3D` | `d3::ParticleBlend` |
+| `ParticleEmitter3D` | `d3::ParticleEmitter` |
+| `ParticleSettings3D` | `d3::ParticleSettings` |
+| `ParticleShape3D` | `d3::ParticleShape` |
+| `ParticleSpace3D` | `d3::ParticleSpace` |
+| `Physics3D` | `d3::Physics` |
+| `PointLight3D` | `d3::PointLight` |
+| `QueryFilter3D` | `d3::QueryFilter` |
+| `Ragdoll3D` | `d3::Ragdoll` |
+| `ReflectionProbe3D` | `d3::ReflectionProbe` |
+| `RigidBody3D` | `d3::RigidBody` |
+| `Shape3D` | `d3::Shape` |
+| `SpotLight3D` | `d3::SpotLight` |
+| `Text3D` | `d3::Text` |
+| `TextAlign3D` | `d3::TextAlign` |
+| `Trail3D` | `d3::Trail` |
+| `Transform3D` | `d3::Transform` |
+| `UiPanel3D` | `d3::UiPanel` |
+| `Vehicle3D` | `d3::Vehicle` |
+| `Velocity3D` | `d3::Velocity` |
+| `Wheel3D` | `d3::Wheel` |
+
+Use `physics.cast_ray_filtered(origin, direction, max_distance, filter)` in
+both dimensions and `physics.overlap_ball(center, radius, filter, &mut hits)`
+for circles/spheres. Filters default to solid colliders, can include sensors,
+and can exclude an entity. Both `Hit` types carry `entity`, `point`, `normal`
+and `distance`; vectors have the matching dimension. `apply_impulse` and `mass`
+share the same convention. Existing `cast_ray`, `entities_at`,
+`entities_in_circle` and `overlap_sphere` calls retain their behavior.
+The issue sketch called the common method `cast_ray`; Rust cannot overload
+inherent methods by argument count, so the additive filtered spelling preserves
+the existing three-argument 2D call and four-argument 3D call.
+
+`Ctx::spawn_prefab(path, placement)` also accepts a `Vec3` or `d3::Transform`.
+A 3D transform supplies position, rotation and scale; a 2D position keeps the
+prefab's existing rotation and scale. Saved component names remain unchanged.

@@ -283,6 +283,28 @@ impl Velocity {
     }
 }
 
+/// Which colliders a 2D query sees. Defaults to solid colliders, excluding sensors.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct QueryFilter {
+    /// Entity to look through.
+    pub exclude: Option<Entity>,
+    /// Include sensor colliders.
+    pub sensors: bool,
+}
+impl QueryFilter {
+    /// Excludes one entity.
+    pub fn exclude(self, entity: Entity) -> Self {
+        Self {
+            exclude: Some(entity),
+            ..self
+        }
+    }
+    /// Includes sensors.
+    pub fn with_sensors(self) -> Self {
+        Self { sensors: true, ..self }
+    }
+}
+
 /// What a ray hit.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RayHit {
@@ -395,6 +417,37 @@ impl Physics {
     /// # let _ = world;
     /// ```
     pub fn cast_ray(&self, origin: Vec2, direction: Vec2, max_distance: f32) -> Option<RayHit> {
+        self.cast_ray_filtered(
+            origin,
+            direction,
+            max_distance,
+            QueryFilter {
+                sensors: true,
+                ..Default::default()
+            },
+        )
+    }
+
+    fn query_filter(&self, filter: QueryFilter) -> rp::QueryFilter<'static> {
+        let mut result = rp::QueryFilter::default();
+        if !filter.sensors {
+            result = result.exclude_sensors();
+        }
+        if let Some(link) = filter.exclude.and_then(|entity| self.link(entity)) {
+            result = result.exclude_rigid_body(link.body);
+        }
+        result
+    }
+
+    /// Closest solid hit, with the same explicit filter convention as 3D.
+    /// The three-argument `cast_ray` remains available for source compatibility.
+    pub fn cast_ray_filtered(
+        &self,
+        origin: Vec2,
+        direction: Vec2,
+        max_distance: f32,
+        filter: QueryFilter,
+    ) -> Option<RayHit> {
         let dir = direction.normalize_or_zero();
         if dir == Vec2::ZERO {
             return None;
@@ -402,7 +455,7 @@ impl Physics {
         let ray = rp::Ray::new(to_rp(origin), to_rp(dir));
         let (handle, hit) = self
             .world
-            .cast_ray_and_get_normal(&ray, max_distance, true, rp::QueryFilter::default())?;
+            .cast_ray_and_get_normal(&ray, max_distance, true, self.query_filter(filter))?;
         Some(RayHit {
             entity: self.entity_of(handle)?,
             point: origin + dir * hit.time_of_impact,
@@ -413,18 +466,48 @@ impl Physics {
 
     /// Every entity whose collider contains `point`, into `out` (cleared first).
     pub fn entities_at(&self, point: Vec2, out: &mut Vec<Entity>) {
+        self.overlap_point(
+            point,
+            QueryFilter {
+                sensors: true,
+                ..Default::default()
+            },
+            out,
+        );
+    }
+
+    /// Every collider overlapping a point; clears `out` first.
+    pub fn overlap_point(&self, point: Vec2, filter: QueryFilter, out: &mut Vec<Entity>) {
         out.clear();
-        for (handle, _) in self.world.intersect_point(to_rp(point), rp::QueryFilter::default()) {
+        for (handle, _) in self.world.intersect_point(to_rp(point), self.query_filter(filter)) {
             out.extend(self.entity_of(handle));
         }
     }
 
-    /// Every entity whose collider overlaps the circle, into `out` (cleared first).
+    /// Compatibility wrapper including sensors.
     pub fn entities_in_circle(&self, center: Vec2, radius: f32, out: &mut Vec<Entity>) {
+        self.overlap_circle(
+            center,
+            radius,
+            QueryFilter {
+                sensors: true,
+                ..Default::default()
+            },
+            out,
+        );
+    }
+
+    /// Dimension-neutral ball overlap (a circle in 2D).
+    pub fn overlap_ball(&self, center: Vec2, radius: f32, filter: QueryFilter, out: &mut Vec<Entity>) {
+        self.overlap_circle(center, radius, filter, out);
+    }
+
+    /// Every collider overlapping a circle; clears `out` first.
+    pub fn overlap_circle(&self, center: Vec2, radius: f32, filter: QueryFilter, out: &mut Vec<Entity>) {
         out.clear();
         let ball = rp::Ball::new(radius);
         let pose = rp::Pose::from_translation(to_rp(center));
-        for (handle, _) in self.world.intersect_shape(pose, &ball, rp::QueryFilter::default()) {
+        for (handle, _) in self.world.intersect_shape(pose, &ball, self.query_filter(filter)) {
             out.extend(self.entity_of(handle));
         }
     }

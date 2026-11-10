@@ -54,6 +54,11 @@
 #[cfg(test)]
 extern crate self as ponko;
 
+pub mod d2;
+#[cfg(feature = "3d")]
+pub mod d3;
+pub mod prelude;
+
 mod access;
 mod actions;
 mod alloc_count;
@@ -286,3 +291,6 @@ pub use serde_json::{self, Value, json};
 pub use web_time::Instant;
 
 mod environment;
+
+/// Prefab placement in either dimension.
+pub use scene::Placement;

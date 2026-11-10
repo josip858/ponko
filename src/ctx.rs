@@ -150,12 +150,12 @@ pub struct Ctx {
     /// Simulated once enabled with [`Game::physics`](crate::Game::physics)
     /// (feature `physics`).
     #[cfg(feature = "physics")]
-    pub physics: crate::Physics,
+    pub physics: crate::d2::Physics,
     /// The 3D physics world: ray and shape casts, overlaps, impulses,
     /// collision meshes, gravity. Simulated once enabled with
     /// [`Game::physics3d`](crate::Game::physics3d) (feature `physics3d`).
     #[cfg(feature = "physics3d")]
-    pub physics3d: crate::Physics3D,
+    pub physics3d: crate::d3::Physics,
     /// Lockstep networking: this player's input out, everyone's in. Offline
     /// (one player) unless the game was given a session with
     /// [`Game::lockstep`](crate::Game::lockstep).
@@ -230,7 +230,7 @@ pub struct Ctx {
     /// # }
     /// ```
     #[cfg(feature = "3d")]
-    pub camera3d: crate::Camera3D,
+    pub camera3d: crate::d3::Camera,
     /// The 3D world's sun and ambient light (feature `3d`).
     ///
     /// ```no_run
@@ -446,9 +446,9 @@ impl Ctx {
             commands: Commands::new(),
             spatial: SpatialGrid::default(),
             #[cfg(feature = "physics")]
-            physics: crate::Physics::default(),
+            physics: crate::d2::Physics::default(),
             #[cfg(feature = "physics3d")]
-            physics3d: crate::Physics3D::default(),
+            physics3d: crate::d3::Physics::default(),
             net: crate::Net::default(),
             events: Events::default(),
             seed: crate::random::DEFAULT_SEED,
@@ -463,7 +463,7 @@ impl Ctx {
             quit_requested: false,
             camera: Camera2D::new(window_size),
             #[cfg(feature = "3d")]
-            camera3d: crate::Camera3D::new(window_size),
+            camera3d: crate::d3::Camera::new(window_size),
             #[cfg(feature = "3d")]
             lighting: crate::Lighting::default(),
             #[cfg(feature = "3d")]

@@ -7,7 +7,7 @@
 
 use serde_json::{Value, json};
 
-use crate::{Ctx, Entity, Transform2D, Vec2, WorldReflect};
+use crate::{Ctx, Entity, Vec2, WorldReflect};
 
 /// Loads one asset a scene names (`Assets::scene_asset_field`).
 type SceneAssetLoader = std::rc::Rc<dyn Fn(&mut Ctx, &str) -> Result<(), String>>;
@@ -185,7 +185,7 @@ impl Ctx {
     ///
     /// If the file is missing or isn't a prefab, or a component isn't
     /// reflected or doesn't fit; nothing is spawned then.
-    pub fn spawn_prefab(&mut self, path: &str, at: Vec2) -> Result<Entity, String> {
+    pub fn spawn_prefab(&mut self, path: &str, at: impl Into<Placement>) -> Result<Entity, String> {
         if !self.assets.prefabs.contains_key(path) {
             let (_, text) = self.assets.read_text(path)?;
             let prefab: Value = serde_json::from_str(&text).map_err(|e| format!("{path}: {e}"))?;
@@ -195,7 +195,7 @@ impl Ctx {
             self.assets.prefabs.insert(path.to_string(), components);
         }
         let components = self.assets.prefabs[path].clone();
-        spawn_at(&mut self.world, components, at).map_err(|e| format!("{path}: {e}"))
+        spawn_at(&mut self.world, components, at.into()).map_err(|e| format!("{path}: {e}"))
     }
 }
 
@@ -331,12 +331,50 @@ fn components_of(prefab: &Value) -> Result<Value, String> {
 
 /// Spawns `components` with the position set to `at` (adding a transform if
 /// there's none).
-fn spawn_at(world: &mut crate::World, mut components: Value, at: Vec2) -> Result<Entity, String> {
-    match components.get_mut("Transform2D") {
-        Some(t) => t["position"] = json!([at.x, at.y]),
-        None => components["Transform2D"] = serde_json::to_value(Transform2D::at(at)).map_err(|e| e.to_string())?,
+fn spawn_at(world: &mut crate::World, mut components: Value, at: Placement) -> Result<Entity, String> {
+    match at {
+        Placement::D2(at) => match components.get_mut("Transform2D") {
+            Some(t) => t["position"] = json!([at.position.x, at.position.y]),
+            None => components["Transform2D"] = serde_json::to_value(at).map_err(|e| e.to_string())?,
+        },
+        #[cfg(feature = "3d")]
+        Placement::D3(at) => {
+            components["Transform3D"] = serde_json::to_value(at).map_err(|e| e.to_string())?;
+        }
     }
     world.spawn_json(components).map_err(|e| e.to_string())
+}
+
+/// Dimension-specific placement for prefab spawning. Serialized component names stay stable.
+#[derive(Clone, Copy, Debug)]
+pub enum Placement {
+    /// A 2D position/transform.
+    D2(crate::d2::Transform),
+    /// A 3D position/transform.
+    #[cfg(feature = "3d")]
+    D3(crate::d3::Transform),
+}
+impl From<Vec2> for Placement {
+    fn from(at: Vec2) -> Self {
+        Self::D2(crate::d2::Transform::at(at))
+    }
+}
+impl From<crate::d2::Transform> for Placement {
+    fn from(at: crate::d2::Transform) -> Self {
+        Self::D2(at)
+    }
+}
+#[cfg(feature = "3d")]
+impl From<crate::Vec3> for Placement {
+    fn from(at: crate::Vec3) -> Self {
+        Self::D3(crate::d3::Transform::at(at))
+    }
+}
+#[cfg(feature = "3d")]
+impl From<crate::d3::Transform> for Placement {
+    fn from(at: crate::d3::Transform) -> Self {
+        Self::D3(at)
+    }
 }
 
 /// Loads during a lockstep session: refused where only one peer would load,

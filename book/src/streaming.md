@@ -132,7 +132,7 @@ let levels = vec![
     LodLevel::new(0.05, vec![LodRenderer::new(Mesh::NONE)]),
 ];
 ctx.world.spawn((
-    Transform3D::default(),
+    ponko::d3::Transform::default(),
     LodGroup::new(10.0, levels),
     StreamedLod::new(&["models/tower_lod0.glb", "models/tower_lod1.glb"]),
 ));

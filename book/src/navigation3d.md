@@ -142,7 +142,7 @@ Do not mix opted-out followers into a crowd and expect them to collide.
 
 ```rust
 # use ponko::*;
-let mut agent = NavAgent3D::default();
+let mut agent = ponko::d3::NavAgent::default();
 agent.avoidance = true;
 agent.avoidance_weight = 2.0;
 agent.neighbour_distance = 3.6;
@@ -208,11 +208,11 @@ updates never rasterize source triangles again.
 # use ponko::*;
 # fn add(ctx: &mut Ctx) {
 // Bake with layers: NavBakeSettings { carving: true, ..Default::default() }.
-let mut obstacle = NavObstacle3D::new(vec3(6.0, 1.0, 6.0), Vec3::ONE);
+let mut obstacle = ponko::d3::NavObstacle::new(vec3(6.0, 1.0, 6.0), Vec3::ONE);
 obstacle.carve = true;
 ctx.world.spawn((obstacle,));
 // step_navmesh3d gathers components and rebuilds one cached layer per tick.
-let nav = ctx.world.resource_mut::<NavMesh3D>();
+let nav = ctx.world.resource_mut::<ponko::d3::NavMesh>();
 let steps = nav.update_carving(0).unwrap();
 let pending = nav.carving_pending();
 # let _ = (steps, pending);
