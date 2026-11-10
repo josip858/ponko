@@ -4,7 +4,7 @@
 //!
 //! [`Ctx::stream_texture`] (and, with the `3d` feature,
 //! [`Ctx::stream_mesh`]) never wait: the first call starts decoding the file
-//! on a [`Job`](crate::Job) thread and returns `None`; once decoded, the
+//! on a [`Job`](crate::stream::Job) thread and returns `None`; once decoded, the
 //! asset is uploaded at the start of a frame, within the
 //! [upload budget](crate::Graphics::set_upload_budget). A texture appears first as a
 //! stand-in at most 32 pixels a side and doubles in resolution each upload
@@ -26,7 +26,7 @@ use std::collections::{BTreeMap, VecDeque};
 
 use crate::assets::{self, Origin};
 use crate::residency::ResidencyKind;
-use crate::{Ctx, Job, Texture};
+use crate::{Ctx, Texture, stream::Job};
 
 /// The longest side of a streamed texture's stand-in.
 pub(crate) const STAND_IN: u32 = 32;

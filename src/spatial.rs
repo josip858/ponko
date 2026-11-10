@@ -506,6 +506,11 @@ pub fn rebuild_spatial_grid(ctx: &mut Ctx) {
     ctx.spatial.rebuild(&mut ctx.world);
 }
 
+impl<T> SpatialGrid<T> {
+    /// Simulation ticks between spatial reordering.
+    pub const SORT_EVERY: u64 = SPATIAL_SORT_EVERY;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -550,9 +555,4 @@ mod tests {
         assert_eq!(b.of(11, 20).abs_diff(b.of(10, 20)), 1);
         assert_eq!(b.of(10, 21).abs_diff(b.of(10, 20)), 256);
     }
-}
-
-impl<T> SpatialGrid<T> {
-    /// Simulation ticks between spatial reordering.
-    pub const SORT_EVERY: u64 = SPATIAL_SORT_EVERY;
 }

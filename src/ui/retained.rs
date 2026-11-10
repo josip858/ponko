@@ -480,7 +480,7 @@ pub struct Ui {
     pub(super) names: std::collections::HashMap<String, UiId>,
     /// The immediate widgets (a panel, a label, a button drawn the frame
     /// they are called) and their style. Only the screen's UI (`ctx.ui`)
-    /// shows them; a [`UiPanel3D`](crate::UiPanel3D)'s tree leaves it unused.
+    /// shows them; a [`UiPanel3D`](crate::d3::UiPanel)'s tree leaves it unused.
     pub immediate: super::UiImmediate,
     /// The mouse is over the inspector overlay.
     pub(crate) overlay_has_pointer: bool,
@@ -911,7 +911,7 @@ impl Ui {
     pub(crate) fn set_pointer(&mut self, at: Vec2) {
         self.pointer = at;
     }
-    /// Sets the ray the mouse uses on [`UiPanel3D`](crate::UiPanel3D)s this
+    /// Sets the ray the mouse uses on [`UiPanel3D`](crate::d3::UiPanel)s this
     /// frame and later (origin and direction, in the world), instead of the
     /// camera's ray through the mouse: for a locked cursor, use the camera's
     /// forward ray; for VR, a controller's. `None` goes back to the mouse.

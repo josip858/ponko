@@ -282,7 +282,7 @@ impl Perf {
         if !crate::scope::active() {
             return crate::scope::ScopeGuard::off();
         }
-        crate::scope_named(name).enter()
+        crate::perf::scope_named(name).enter()
     }
 
     /// Each profiling scope's time in the last frame, in the order they
@@ -405,3 +405,9 @@ pub use crate::alloc_count::{AllocCounts, CountingAllocator, alloc_counts, note_
 pub use crate::perf_report::*;
 pub use crate::profiler::{FrameStats, GpuPass};
 pub use crate::scope::{ProfileScope, ScopeGuard, ScopeTiming, scope_named};
+
+/// Named profiling scopes.
+pub use crate::profile_scope;
+
+/// Portable measurement clock (also works in browsers).
+pub use web_time::Instant;

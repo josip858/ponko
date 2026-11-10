@@ -940,7 +940,7 @@ impl Graphics {
 
     /// A mesh whose index ranges each have their own material.
     /// With `skin`, it bends with a skeleton. Its morph targets, if any,
-    /// show `morph_defaults` on models without [`MorphWeights`](crate::MorphWeights).
+    /// show `morph_defaults` on models without [`MorphWeights`](crate::anim::MorphWeights).
     fn mesh_from_parts(
         &mut self,
         data: &MeshData,
@@ -994,7 +994,7 @@ impl Graphics {
     }
 
     /// The index of `mesh`'s morph target called `name`, for
-    /// [`MorphWeights`](crate::MorphWeights); `None` if it has no such
+    /// [`MorphWeights`](crate::anim::MorphWeights); `None` if it has no such
     /// target (or was freed).
     ///
     /// ```

@@ -38,7 +38,7 @@ For looking around a big world, add the ready-made system:
 
 ```rust
 Game::new("Colony", 1280, 720)
-    .system(camera_controls) // right/middle drag pans, wheel zooms
+    .system(ponko::camera::camera_controls) // right/middle drag pans, wheel zooms
 ```
 
 </div>

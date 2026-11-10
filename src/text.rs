@@ -15,7 +15,6 @@ use crate::color::Color;
 ///
 /// ```
 /// # use ponko::prelude::*;
-
 /// # fn hud(ctx: &mut Ctx) {
 /// ctx.gfx.draw_text_ex("Score: 120", vec2(16.0, 16.0), TextParams {
 ///     font: Font::DEFAULT,
@@ -38,7 +37,6 @@ impl Font {
 ///
 /// ```
 /// # use ponko::prelude::*;
-
 /// let title = TextParams { size: 48.0, color: Color::hex(0xffcc00), ..Default::default() };
 /// # let _ = title;
 /// ```

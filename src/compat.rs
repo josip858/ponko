@@ -784,14 +784,7 @@ pub type LodGroup = crate::render::LodGroup;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::LodHysteresis")]
 #[cfg(feature = "3d")]
-pub type LodHysteresis = crate::render::LodHysteresis;
-#[doc(hidden)]
-#[allow(non_snake_case)]
-#[deprecated(note = "use ponko::render::LodHysteresis")]
-#[cfg(feature = "3d")]
-pub fn LodHysteresis(v0: f32) -> crate::render::LodHysteresis {
-    crate::render::LodHysteresis(v0)
-}
+pub use crate::render::LodHysteresis;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::LodLevel")]
 #[cfg(feature = "3d")]
@@ -815,7 +808,7 @@ pub use crate::render::LodShadow;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::Material")]
 #[cfg(feature = "3d")]
-pub type Material = crate::render::Material;
+pub use crate::render::Material;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::MaterialDesc")]
 #[cfg(feature = "3d")]
@@ -839,14 +832,7 @@ pub type Model = crate::render::Model;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::ModelMaterial")]
 #[cfg(feature = "3d")]
-pub type ModelMaterial = crate::render::ModelMaterial;
-#[doc(hidden)]
-#[allow(non_snake_case)]
-#[deprecated(note = "use ponko::render::ModelMaterial")]
-#[cfg(feature = "3d")]
-pub fn Material(v0: crate::render::Material) -> crate::render::ModelMaterial {
-    crate::render::ModelMaterial(v0)
-}
+pub use crate::render::ModelMaterial;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::MorphAnimation")]
 #[cfg(feature = "3d")]
@@ -902,14 +888,7 @@ pub use crate::render::QualityLevel;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::ReceivesDecals")]
 #[cfg(feature = "3d")]
-pub type ReceivesDecals = crate::render::ReceivesDecals;
-#[doc(hidden)]
-#[allow(non_snake_case)]
-#[deprecated(note = "use ponko::render::ReceivesDecals")]
-#[cfg(feature = "3d")]
-pub fn ReceivesDecals(v0: u32) -> crate::render::ReceivesDecals {
-    crate::render::ReceivesDecals(v0)
-}
+pub use crate::render::ReceivesDecals;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::d3::ReflectionProbe")]
 #[cfg(feature = "3d")]
@@ -949,14 +928,7 @@ pub type Skeleton = crate::anim::Skeleton;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::anim::SkinOf")]
 #[cfg(feature = "3d")]
-pub type SkinOf = crate::anim::SkinOf;
-#[doc(hidden)]
-#[allow(non_snake_case)]
-#[deprecated(note = "use ponko::anim::SkinOf")]
-#[cfg(feature = "3d")]
-pub fn SkinOf(v0: crate::ecs_core::Entity) -> crate::anim::SkinOf {
-    crate::anim::SkinOf(v0)
-}
+pub use crate::anim::SkinOf;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::render::Sky")]
 #[cfg(feature = "3d")]
@@ -1147,3 +1119,151 @@ pub const TERRAIN_LAYERS: usize = crate::terrain::TerrainTile::LAYERS;
 #[doc(hidden)]
 #[deprecated(note = "use ponko::spatial::SpatialGrid::<()>::SORT_EVERY")]
 pub const SPATIAL_SORT_EVERY: u64 = crate::spatial::SpatialGrid::<()>::SORT_EVERY;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::perf::alloc_counts")]
+pub fn alloc_counts() -> crate::perf::AllocCounts {
+    crate::perf::alloc_counts()
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::perf::note_allocation")]
+pub fn note_allocation(bytes: usize) {
+    crate::perf::note_allocation(bytes)
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::camera::camera_controls")]
+pub fn camera_controls(ctx: &mut crate::Ctx) {
+    crate::camera::camera_controls(ctx)
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::net::seq_diff")]
+pub const fn seq_diff(a: u16, b: u16) -> i16 {
+    crate::net::seq_diff(a, b)
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::net::seq_newer")]
+pub const fn seq_newer(a: u16, b: u16) -> bool {
+    crate::net::seq_newer(a, b)
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::perf::scope_named")]
+pub fn scope_named(name: &str) -> &'static crate::perf::ProfileScope {
+    crate::perf::scope_named(name)
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::spatial::spatial_key")]
+pub fn spatial_key(position: crate::Vec2, cell_size: f32) -> u64 {
+    crate::spatial::spatial_key(position, cell_size)
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::anim::two_bone_ik")]
+#[cfg(feature = "3d")]
+pub fn two_bone_ik(
+    s: &mut crate::anim::Skeleton,
+    model: &crate::d3::Transform,
+    chain: [usize; 3],
+    target: crate::Vec3,
+    pole: crate::Vec3,
+    w: f32,
+) {
+    crate::anim::two_bone_ik(s, model, chain, target, pole, w)
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::anim::look_at_joint")]
+#[cfg(feature = "3d")]
+#[allow(clippy::too_many_arguments)]
+pub fn look_at_joint(
+    s: &mut crate::anim::Skeleton,
+    model: &crate::d3::Transform,
+    joint: usize,
+    axis: crate::Vec3,
+    target: crate::Vec3,
+    max_angle: f32,
+    w: f32,
+) {
+    crate::anim::look_at_joint(s, model, joint, axis, target, max_angle, w)
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::net::steam_lobby_from_args")]
+#[cfg(feature = "steam")]
+pub fn steam_lobby_from_args() -> Option<crate::net::steam::LobbyId> {
+    crate::net::steam_lobby_from_args()
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::net::steam_wait_for_invite")]
+#[cfg(feature = "steam")]
+pub fn steam_wait_for_invite(
+    client: &crate::net::steam::Client,
+    timeout: std::time::Duration,
+) -> Option<crate::net::steam::LobbyId> {
+    crate::net::steam_wait_for_invite(client, timeout)
+}
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::anim::AnimationClip")]
+#[cfg(feature = "3d")]
+pub type AnimationClip = crate::anim::AnimationClip;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::anim::JointMask")]
+#[cfg(feature = "3d")]
+pub type JointMask = crate::anim::JointMask;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::anim::MorphWeights")]
+#[cfg(feature = "3d")]
+pub use crate::anim::MorphWeights;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::render::ModelMaterials")]
+#[cfg(feature = "3d")]
+pub type ModelMaterials = crate::render::ModelMaterials;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::render::ParticleCurve")]
+#[cfg(feature = "3d")]
+pub type ParticleCurve = crate::render::ParticleCurve;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::render::ParticleGradient")]
+#[cfg(feature = "3d")]
+pub type ParticleGradient = crate::render::ParticleGradient;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::render::ShadowMesh")]
+#[cfg(feature = "3d")]
+pub use crate::render::ShadowMesh;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::stream::CellStreamer")]
+#[cfg(feature = "3d")]
+pub type CellStreamer = crate::stream::CellStreamer;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::stream::Job")]
+pub type Job<T> = crate::stream::Job<T>;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::d3::StreamedLod")]
+#[cfg(feature = "3d")]
+pub type StreamedLod = crate::d3::StreamedLod;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::d3::UiPanel")]
+#[cfg(feature = "3d")]
+pub type UiPanel3D = crate::d3::UiPanel;
+
+#[doc(hidden)]
+#[deprecated(note = "use ponko::net::NetPose")]
+#[cfg(feature = "3d")]
+pub type NetPose = crate::net::NetPose;

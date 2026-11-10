@@ -11,7 +11,7 @@ use crate::{Entity, Vec2, Vec3, World};
 
 /// A convex hull, triangle mesh or heightfield built on the CPU, on any
 /// thread: the slow half of [`Physics3D::heightfield`] and friends. Build
-/// it in a [`Job`](crate::Job) with the rest of a streamed cell, then hand
+/// it in a [`Job`](crate::stream::Job) with the rest of a streamed cell, then hand
 /// it to [`Physics3D::add_mesh`] on the game's thread, which is quick.
 ///
 /// ```

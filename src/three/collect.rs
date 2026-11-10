@@ -1272,11 +1272,11 @@ mod tests {
 
     #[test]
     fn part_lists_lod_groups_and_terrain_get_override_ids() {
-        use crate::ModelMaterials;
         use crate::render::LodLevel;
         use crate::render::LodRenderer;
         use crate::render::Material;
         use crate::render::ModelMaterial;
+        use crate::render::ModelMaterials;
         let mut world = World::new();
         let assets = Assets3D {
             bounds: vec![(Vec3::ZERO, 1.0); 4],

@@ -12,7 +12,7 @@
 use std::time::Instant;
 
 #[allow(unused_imports)]
-use ponko::d3::Transform as Transform3D;
+use ponko::d3::Transform;
 use ponko::prelude::*;
 #[allow(unused_imports)]
 use ponko::render::{Model, Sky};
@@ -20,7 +20,7 @@ use ponko::render::{Model, Sky};
 /// The middle and size of where the scene's models are.
 fn extent(world: &mut World) -> (Vec3, f32) {
     let (mut min, mut max) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
-    world.query::<(&Transform3D, &Model)>().for_each(|(t, _)| {
+    world.query::<(&Transform, &Model)>().for_each(|(t, _)| {
         min = min.min(t.position);
         max = max.max(t.position);
     });

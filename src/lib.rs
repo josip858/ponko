@@ -136,8 +136,6 @@ pub mod ui;
 mod web;
 
 #[doc(hidden)]
-pub use alloc_count::{alloc_counts, note_allocation};
-#[doc(hidden)]
 pub use assets::{AssetSource, Assets, MemorySource};
 #[doc(hidden)]
 pub use attach::Attached;
@@ -145,7 +143,7 @@ pub use attach::Attached;
 pub use audio::{AudioBus, Playing, Sound, SoundParams};
 
 #[doc(hidden)]
-pub use camera::{Rect, camera_controls};
+pub use camera::Rect;
 #[cfg(any(feature = "physics", feature = "physics3d"))]
 #[doc(hidden)]
 pub use collision::{BodyKind, CollisionStarted, CollisionStopped};
@@ -171,16 +169,10 @@ pub use handle::Handle;
 #[doc(hidden)]
 pub use input::{Key, MAX_GAMEPADS, MouseButton};
 
-#[cfg(feature = "3d")]
 #[doc(hidden)]
-pub use net::NetPose;
-#[doc(hidden)]
-pub use net::{Interpolate, MAX_INTEREST_TIERS, seq_diff, seq_newer};
+pub use net::{Interpolate, MAX_INTEREST_TIERS};
 #[doc(hidden)]
 pub use net::{MAX_INPUT_BYTES, MAX_MESSAGE_BYTES, MAX_PLAYERS};
-#[cfg(feature = "steam")]
-#[doc(hidden)]
-pub use net::{steam_lobby_from_args, steam_wait_for_invite};
 
 #[cfg(feature = "physics")]
 #[doc(hidden)]
@@ -199,23 +191,16 @@ pub use scenario::{MAX_SCENARIO_STEPS, MAX_SCENARIO_TICKS, SCENARIO_VERSION};
 #[doc(hidden)]
 pub use schema::ValueSchema;
 #[doc(hidden)]
-pub use scope::scope_named;
-#[doc(hidden)]
 pub use sheet::{Animation, SpriteSheet};
 #[doc(hidden)]
 #[doc(hidden)]
 pub use spatial::RawGridView;
-#[doc(hidden)]
-pub use spatial::spatial_key;
 /// The Steamworks SDK (re-exported `steamworks` crate, feature `steam`):
 /// create the [`steamworks::Client`] for [`Net::steam_host`] here, and use
 /// it for achievements, friends and the rest of Steam.
 #[cfg(feature = "steam")]
 #[doc(hidden)]
 pub use steamworks;
-#[cfg(feature = "3d")]
-pub use stream::CellStreamer;
-pub use stream::Job;
 #[doc(hidden)]
 pub use streaming::DEFAULT_UPLOAD_BUDGET;
 #[allow(deprecated)]
@@ -231,23 +216,11 @@ pub use taffy as ui_layout;
 pub use text::{Font, TextParams};
 #[doc(hidden)]
 pub use texture::{DrawParams, Texture, TextureFilter};
-#[cfg(feature = "3d")]
-#[doc(hidden)]
-pub use three::StreamedLod;
-#[cfg(feature = "3d")]
-#[doc(hidden)]
-pub use three::{
-    AnimationClip, JointMask, ModelMaterials, MorphWeights, ParticleCurve, ParticleGradient, ShadowMesh, look_at_joint,
-    two_bone_ik,
-};
 
 #[doc(hidden)]
 pub use tilemap::TileMap;
 #[doc(hidden)]
 pub use time::{Time, Turns};
-#[cfg(feature = "3d")]
-#[doc(hidden)]
-pub use ui::UiPanel3D;
 
 /// The ECS: entities, components, queries, resources, commands.
 #[doc(hidden)]

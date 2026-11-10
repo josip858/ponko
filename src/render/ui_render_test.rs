@@ -23,7 +23,7 @@ use crate::ui::Ui;
 use crate::ui::UiEvent;
 use crate::ui::UiId;
 use crate::ui::UiInput;
-use crate::{Color, Ctx, UiPanel3D, Vec2, vec2};
+use crate::{Color, Ctx, Vec2, d3::UiPanel as UiPanel3D, vec2};
 
 #[allow(dead_code)]
 #[path = "../../examples/ui_shop.rs"]

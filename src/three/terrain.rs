@@ -313,7 +313,7 @@ impl Graphics {
 }
 
 /// The meshes of a terrain tile at every detail level, made on the CPU
-/// from its heights: build them on a worker thread with a [`Job`](crate::Job),
+/// from its heights: build them on a worker thread with a [`Job`](crate::stream::Job),
 /// then [`Graphics::upload_terrain_tile`](crate::Graphics::upload_terrain_tile) on the game's.
 ///
 /// ```
@@ -512,6 +512,13 @@ impl Heightfield {
     }
 }
 
+impl TerrainTile {
+    /// Available terrain LOD levels.
+    pub const LODS: usize = TERRAIN_LODS;
+    /// Maximum material layers.
+    pub const LAYERS: usize = TERRAIN_LAYERS;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -581,11 +588,4 @@ mod tests {
         assert_eq!(at(f32::NAN), 0);
         assert_eq!(lod_at(50.0, 0.0), 0, "no distance: always the finest");
     }
-}
-
-impl TerrainTile {
-    /// Available terrain LOD levels.
-    pub const LODS: usize = TERRAIN_LODS;
-    /// Maximum material layers.
-    pub const LAYERS: usize = TERRAIN_LAYERS;
 }

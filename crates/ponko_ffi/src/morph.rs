@@ -3,7 +3,7 @@
 //! `Graphics::morph_target`).
 
 use ponko::anim::MorphTarget;
-use ponko::{Ctx, Entity, MorphWeights};
+use ponko::{Ctx, Entity, anim::MorphWeights};
 
 use crate::ctx::{ctx_access, out, text};
 use crate::three::{CrabbyMesh, CrabbyMeshData, CrabbyVec3};
@@ -278,7 +278,7 @@ pub unsafe extern "C" fn crabby_clip_new(
         }
         out(
             output,
-            Box::into_raw(Box::new(crate::CrabbyClip(ponko::AnimationClip::new(
+            Box::into_raw(Box::new(crate::CrabbyClip(ponko::anim::AnimationClip::new(
                 name,
                 &ponko::anim::Skeleton::new(vec![]),
                 vec![],

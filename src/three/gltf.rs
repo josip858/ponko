@@ -1139,7 +1139,7 @@ mod tests {
 
     #[test]
     fn morph_only_gltf_channels_sample_all_interpolations_and_frame_metadata() {
-        use crate::MorphWeights;
+        use crate::anim::MorphWeights;
         use crate::anim::Skeleton;
         for (mode, values, expected) in [
             ("LINEAR", vec![0., 0.2, 1., 0.6], [0.5, 0.4]),

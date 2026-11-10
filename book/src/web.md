@@ -59,7 +59,7 @@ works on the web:
 
 ```rust
 # use ponko::prelude::*;
-let start = Instant::now();
+let start = ponko::perf::Instant::now();
 // ... work ...
 let ms = start.elapsed().as_secs_f64() * 1000.0;
 # let _ = ms;

@@ -958,7 +958,7 @@ impl Ctx {
             return;
         }
         if self.perf.state.on && self.perf.state.hud_due() {
-            let before = crate::alloc_counts();
+            let before = crate::perf::alloc_counts();
             self.perf.entities = self.world.len();
             let report = self.perf.report();
             crate::perf_report::hud_lines(&mut self.perf.state.hud_extra, &report);

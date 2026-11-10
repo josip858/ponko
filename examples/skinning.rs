@@ -6,7 +6,7 @@ use ponko::anim::{
     AnimationTransition, Animator, AttachToJoint, Interpolation, Joint, JointAnimation, Motion, Skeleton, SkinOf,
 };
 #[allow(unused_imports)]
-use ponko::d3::Transform as Transform3D;
+use ponko::d3::Transform;
 use ponko::prelude::*;
 #[allow(unused_imports)]
 use ponko::render::{MaterialDesc, MeshData, Model};
@@ -23,7 +23,7 @@ fn chain() -> Skeleton {
             .map(|i| Joint {
                 name: format!("joint_{i}"),
                 parent: i.checked_sub(1),
-                rest: Transform3D::at(Vec3::Y * if i == 0 { 0.0 } else { STEP }),
+                rest: Transform::at(Vec3::Y * if i == 0 { 0.0 } else { STEP }),
             })
             .collect(),
     )
@@ -94,11 +94,11 @@ fn load_character(ctx: &mut Ctx) {
     let mesh = ctx.gfx.load_mesh("models/character.glb");
     let skeleton = ctx.gfx.load_skeleton("models/character.glb");
     let hand = skeleton.find("hand_r").expect("model needs hand_r");
-    let character = ctx.world.spawn((Transform3D::default(), Model::new(mesh), skeleton));
+    let character = ctx.world.spawn((Transform::default(), Model::new(mesh), skeleton));
     let skeleton = ctx.world.get_mut::<Skeleton>(character).unwrap();
     skeleton.pose[hand].rotation = Quat::from_rotation_y(0.3);
     let local_hand = skeleton.joint_matrix(hand);
-    let transform = ctx.world.get::<Transform3D>(character).unwrap();
+    let transform = ctx.world.get::<Transform>(character).unwrap();
     let world_hand = (transform.matrix() * local_hand).transform_point3(Vec3::ZERO);
     println!("Hand at {world_hand}");
     // ANCHOR_END: skin_load
@@ -219,7 +219,7 @@ fn main() {
             let gold = ctx.gfx.create_material(MaterialDesc::color(Color::hex(0xF2BD50)));
             let white = ctx.gfx.default_material();
             let ground = ctx.gfx.create_mesh(&MeshData::plane(20.0), white);
-            ctx.world.spawn((Transform3D::default(), Model::new(ground)));
+            ctx.world.spawn((Transform::default(), Model::new(ground)));
             // ANCHOR: skin_create
             let skeleton = chain();
             let mesh = ctx.gfx.create_skinned_mesh(&tube(0.0, 3.5, 0.22), green, &skeleton);
@@ -230,7 +230,7 @@ fn main() {
             let bend = bend_clip(&skeleton);
             for i in 0..3 {
                 let tentacle = ctx.world.spawn((
-                    Transform3D::at(vec3((i as f32 - 1.0) * 2.5, 0.0, 0.0)),
+                    Transform::at(vec3((i as f32 - 1.0) * 2.5, 0.0, 0.0)),
                     Model::new(mesh),
                     skeleton.clone(),
                     Sway(i as f32 * 1.8),
@@ -244,12 +244,12 @@ fn main() {
                     ctx.world.spawn((Model::new(band), SkinOf(tentacle)));
                     let tip = skeleton.find("joint_7").unwrap();
                     ctx.world.spawn((
-                        Transform3D::default(),
+                        Transform::default(),
                         Model::new(ball),
                         AttachToJoint {
                             skeleton: tentacle,
                             joint: tip,
-                            offset: Transform3D::at(vec3(0.0, 0.12, 0.0)),
+                            offset: Transform::at(vec3(0.0, 0.12, 0.0)),
                         },
                     ));
                     // ANCHOR_END: skin_parts
@@ -265,7 +265,7 @@ fn main() {
 fn procedural_pose(ctx: &mut Ctx) {
     let target = vec3(0.7, 0.6, 0.2);
     ctx.world
-        .query::<(&Transform3D, &mut Skeleton)>()
+        .query::<(&Transform, &mut Skeleton)>()
         .for_each(|(world, skeleton)| {
             ponko::render::two_bone_ik(skeleton, world, [0, 1, 2], target, Vec3::Z, 1.0);
             // Apply parent first when distributing aim across spine/neck/head.

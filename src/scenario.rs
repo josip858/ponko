@@ -372,8 +372,8 @@ impl InputScenario {
     /// `from_value(&s.to_json())` gives the same scenario back.
     /// ```
     /// use ponko::{Key};use ponko::actions::InputEvent; use ponko::scenario::InputScenario;
-    /// let s = InputScenario::new().at(2, InputEvent::Key(Key::Space, true)).named("tap");
-    /// let again = InputScenario::from_value(&s.to_json()).unwrap();
+    /// let s = ponko::scenario::InputScenario::new().at(2, ponko::actions::InputEvent::Key(Key::Space, true)).named("tap");
+    /// let again = ponko::scenario::InputScenario::from_value(&s.to_json()).unwrap();
     /// assert_eq!(again.to_json(), s.to_json());
     /// ```
     pub fn to_json(&self) -> Value {
@@ -513,7 +513,7 @@ impl ScenarioReport {
     /// Panics with the failing step and tick unless the run passed. For tests.
     /// ```
     /// use ponko::prelude::*;
-    /// let scenario = InputScenario::new().at(1, InputEvent::Key(Key::Space, true));
+    /// let scenario = ponko::scenario::InputScenario::new().at(1, ponko::actions::InputEvent::Key(Key::Space, true));
     /// let (_world, report) = Game::new("t", 1, 1).run_headless_scenario(scenario, |_| {});
     /// report.assert_passed();
     /// ```
@@ -599,7 +599,7 @@ impl crate::input::Input {
     ///     .sim_system(|ctx: &mut Ctx| {
     ///         if ctx.time.sim_tick() == 3 {
     ///             // Started during tick 3, so the scenario's tick 0 is tick 4.
-    ///             let scenario = InputScenario::new().at(0, InputEvent::Key(Key::Space, true));
+    ///             let scenario = ponko::scenario::InputScenario::new().at(0, ponko::actions::InputEvent::Key(Key::Space, true));
     ///             ctx.input.start_scenario(&mut ctx.world, &mut ctx.time, scenario);
     ///         }
     ///     })
@@ -610,7 +610,7 @@ impl crate::input::Input {
     ///         }
     ///     });
     /// let world = game.run_headless(6, |ctx| ctx.world.insert_resource(PressedOn(None)));
-    /// assert_eq!(world.resource::<ScenarioReport>().start_tick, 4);
+    /// assert_eq!(world.resource::<ponko::scenario::ScenarioReport>().start_tick, 4);
     /// assert_eq!(world.resource::<PressedOn>().0, Some(4), "fed before tick 4's systems");
     /// ```
     pub fn start_scenario(&mut self, world: &mut World, time: &mut Time, scenario: InputScenario) {
@@ -639,9 +639,9 @@ impl crate::input::Input {
     ///         assert!(!ctx.key_down(Key::Space)); // released
     ///     }
     /// });
-    /// let scenario = InputScenario::new().at(0, InputEvent::Key(Key::Space, true)).duration(10);
+    /// let scenario = ponko::scenario::InputScenario::new().at(0, ponko::actions::InputEvent::Key(Key::Space, true)).duration(10);
     /// let (world, report) = game.run_headless_scenario(scenario, |_| {});
-    /// assert_eq!(report.status, ScenarioStatus::Cancelled);
+    /// assert_eq!(report.status, ponko::scenario::ScenarioStatus::Cancelled);
     /// ```
     pub fn cancel_scenario(&mut self, world: &mut World, time: &mut Time) -> bool {
         self.cancel_scenario_for(world, time, "cancelled", None)

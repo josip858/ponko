@@ -215,6 +215,7 @@ impl ActionRef for &String {
 ///     assert!(!ctx.input.action_down(act.jump));
 /// });
 /// ```
+#[doc(hidden)]
 #[macro_export]
 macro_rules! actions {
     (

@@ -432,7 +432,7 @@ impl<'p> Importer<'p> {
         }))
     }
 
-    /// The components of a group's entity: `ponko::d3::Transform` and `ponko::render::LodGroup`
+    /// The components of a group's entity: `Transform3D` and `LodGroup`
     /// (from the Unity `LODGroup` of `object`, placed at `world` in
     /// Ponko's space, with the `renderers` of each level); `None` if a
     /// group has nothing to draw or can't be placed.
@@ -534,7 +534,7 @@ impl<'p> Importer<'p> {
     }
 
     /// A collider component's entity (Unity's `world` matrix): its
-    /// `ponko::d3::Transform`, a fixed `ponko::d3::RigidBody` and the `ponko::d3::Collider`; `None`
+    /// `Transform3D`, a fixed `RigidBody3D` and the `Collider3D`; `None`
     /// for other components, and for triggers, disabled colliders and
     /// meshes that can't be read (counted in the report).
     fn collider(&mut self, c: &crate::UnityObject, world: Mat4) -> Result<Option<Json>, Error> {
@@ -822,7 +822,7 @@ impl<'p> Importer<'p> {
 
     /// The mesh as a `.glb`, in glTF's space, a primitive per submesh with
     /// its material. Standalone clips (`animation_clips`) resolve their
-    /// paths from skin node `clip_root` (the ponko::anim::Animator's object), else from
+    /// paths from skin node `clip_root` (the Animator's object), else from
     /// the skin's root bone.
     fn build_glb(&mut self, mesh: &UnityMesh, mats: &[Option<UnityMaterial>], clip_root: Option<usize>) -> Vec<u8> {
         let mut textures: Vec<String> = Vec::new();
@@ -1316,7 +1316,7 @@ fn resolve_bone(scene: &Hierarchy, bone: &Value) -> Option<usize> {
     })
 }
 
-/// The skin node of the object whose ponko::anim::Animator (or legacy Animation)
+/// The skin node of the object whose Animator (or legacy Animation)
 /// plays the clips of skinned renderer `renderer`, the nearest one at or
 /// above it: Unity resolves a clip's paths from there. `None` when there
 /// is none, or the skin has no node for it (reached from a bone by the

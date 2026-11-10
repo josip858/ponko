@@ -5,7 +5,6 @@
 ///
 /// ```
 /// # use ponko::prelude::*;
-
 /// let sky = Color::rgb(0.4, 0.7, 1.0);
 /// let ghost = Color::WHITE.with_alpha(0.5);
 /// let orange = Color::hex(0xFF8800);
@@ -49,7 +48,6 @@ impl Color {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let teal = Color::rgb(0.0, 0.5, 0.5);
     /// ```
     #[must_use]
@@ -61,7 +59,6 @@ impl Color {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let shadow = Color::rgba(0.0, 0.0, 0.0, 0.3);
     /// ```
     #[must_use]
@@ -73,7 +70,6 @@ impl Color {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let crab_orange = Color::hex(0xE8743B);
     /// ```
     #[must_use]
@@ -89,7 +85,6 @@ impl Color {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let faded = Color::RED.with_alpha(0.25);
     /// ```
     #[must_use]

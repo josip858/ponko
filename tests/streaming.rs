@@ -10,7 +10,7 @@ use std::rc::Rc;
 #[allow(unused_imports)]
 use ponko::d2::{Sprite, Transform as Transform2D};
 #[allow(unused_imports)]
-use ponko::d3::Transform as Transform3D;
+use ponko::d3::Transform;
 #[allow(unused_imports)]
 use ponko::inventory::AssetClass;
 use ponko::prelude::*;
@@ -698,7 +698,7 @@ mod meshes {
                 let other = ctx.gfx.create_mesh(&MeshData::cube(1.0), material);
                 assert_ne!(other.id(), held.id());
                 // Showing it is harmless: it draws nothing.
-                ctx.world.spawn((Transform3D::default(), Model::new(held)));
+                ctx.world.spawn((Transform::default(), Model::new(held)));
             }),
             Box::new(move |ctx| {
                 let back = ctx.resident_mesh(&p3[0]);
@@ -771,7 +771,7 @@ mod meshes {
         ];
         let files: Vec<&str> = files.iter().map(String::as_str).collect();
         ctx.world.spawn((
-            Transform3D::default(),
+            Transform::default(),
             LodGroup::new(4.0, levels),
             ponko::d3::StreamedLod::new(&files),
         ))

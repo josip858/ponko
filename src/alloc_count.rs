@@ -91,7 +91,7 @@ pub fn note_allocation(bytes: usize) {
 /// [`note_allocation`].
 ///
 /// ```
-/// use ponko::alloc_counts;
+/// use ponko::perf::alloc_counts;
 /// let before = ponko::alloc_count::alloc_counts();
 /// let after = ponko::alloc_count::alloc_counts();
 /// assert!(after.count >= before.count);

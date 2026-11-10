@@ -279,8 +279,8 @@ application messages. Host migration requires creating a new endpoint.
 
 ```rust,no_run
 use ponko::prelude::*;
-let client = steamworks::Client::init_app(480).unwrap();
-let lobby_id = steam_lobby_from_args();
+let client = ponko::net::steam::Client::init_app(480).unwrap();
+let lobby_id = ponko::net::steam_lobby_from_args();
 let mut net = match lobby_id {
     Some(id) => ponko::net::NetMessages::steam_join(&client, id)?,
     None => ponko::net::NetMessages::steam_host(&client, 3)?,
@@ -320,7 +320,7 @@ application (or the C API's first call with an app id), never by fake relay test
 
 ```rust,no_run
 use ponko::prelude::*;
-let client = steamworks::Client::init_app(480).unwrap();
+let client = ponko::net::steam::Client::init_app(480).unwrap();
 let mut lobby = ponko::net::SteamLobby::create(&client, ponko::net::SteamLobbyVisibility::Public, 4)?;
 lobby.poll()?;
 if lobby.id().is_some() {

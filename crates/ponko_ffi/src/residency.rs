@@ -9,7 +9,7 @@ use ponko::residency::ResidencyKind;
 use ponko::residency::ResidencyStats;
 use ponko::streaming::AssetState;
 use ponko::streaming::UploadStats;
-use ponko::{Handle, StreamedLod};
+use ponko::{Handle, d3::StreamedLod};
 
 use crate::ctx::{ctx_access, out, text};
 use crate::three::CrabbyMesh;

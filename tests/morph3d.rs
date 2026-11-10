@@ -8,7 +8,7 @@ use ponko::anim::{
     LayerBlend, MorphAnimation, MorphFrame, MorphTarget, Motion, MotionChild, Skeleton, SkinOf,
 };
 #[allow(unused_imports)]
-use ponko::d3::Transform as Transform3D;
+use ponko::d3::Transform;
 use ponko::prelude::*;
 #[allow(unused_imports)]
 use ponko::render::{MeshData, Model};
@@ -57,7 +57,7 @@ fn morph(ctx: &mut Ctx) {
         }]);
     expression.sample(0.5, &mut skeleton);
     ctx.world
-        .spawn((Transform3D::default(), Model::new(mesh), weights, skeleton));
+        .spawn((Transform::default(), Model::new(mesh), weights, skeleton));
     ctx.gfx.write_animated_morphs(&mut ctx.world);
 }
 // ANCHOR_END: morph

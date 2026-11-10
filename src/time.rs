@@ -118,7 +118,6 @@ struct SimClock {
 ///
 /// ```
 /// use ponko::prelude::*;
-
 ///
 /// struct Pos(f32);
 ///
@@ -249,7 +248,6 @@ impl Time {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn update(ctx: &mut Ctx, pos: &mut Vec2) {
     /// pos.x += 200.0 * ctx.time.dt(); // 200 pixels per second
     /// # }
@@ -265,7 +263,6 @@ impl Time {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn fade(ctx: &mut Ctx, alpha: &mut f32) {
     /// *alpha = (*alpha - ctx.time.frame_dt()).max(0.0); // real time, even in a sim system
     /// # }
@@ -283,7 +280,6 @@ impl Time {
     ///
     /// ```
     /// use ponko::prelude::*;
-
     ///
     /// fn slow(ctx: &mut Ctx) {
     ///     assert_eq!(ctx.time.sim_dt(), 4.0 * ctx.time.fixed_dt());
@@ -304,7 +300,6 @@ impl Time {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn update(ctx: &mut Ctx, vel: &mut Vec2, pos: &mut Vec2) {
     /// for _ in 0..ctx.time.fixed_steps() {
     ///     vel.y += 980.0 * ctx.time.fixed_dt(); // gravity
@@ -321,7 +316,6 @@ impl Time {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn update(ctx: &mut Ctx) {
     /// let steps_per_second = 1.0 / ctx.time.fixed_dt();
     /// # }
@@ -337,7 +331,6 @@ impl Time {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn update(ctx: &mut Ctx, prev: Vec2, curr: Vec2) {
     /// let draw_pos = prev.lerp(curr, ctx.time.fixed_alpha());
     /// # }
@@ -352,7 +345,6 @@ impl Time {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn update(ctx: &mut Ctx) {
     /// let blink_on = (ctx.time.elapsed() * 2.0) as u64 % 2 == 0;
     /// # }
@@ -366,7 +358,6 @@ impl Time {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn update(ctx: &mut Ctx) {
     /// if ctx.time.frame() % 60 == 0 { println!("fps: {:.0}", ctx.time.fps()); }
     /// # }
@@ -380,7 +371,6 @@ impl Time {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn update(ctx: &mut Ctx) {
     /// println!("{:.0} fps", ctx.time.fps());
     /// # }
@@ -395,7 +385,6 @@ impl Time {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// fn slow_ai(ctx: &mut Ctx) {
     ///     if ctx.time.sim_tick() % 10 != 0 {
     ///         return; // think 6 times per second instead of 60
@@ -418,7 +407,6 @@ impl Time {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// fn controls(ctx: &mut Ctx) {
     ///     if ctx.key_pressed(Key::Space) {
     ///         if ctx.time.is_paused() { ctx.time.resume() } else { ctx.time.pause() }
@@ -459,7 +447,6 @@ impl Time {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn f(ctx: &mut Ctx) {
     /// ctx.time.set_speed(16.0); // fast-forward
     /// # }
@@ -486,7 +473,6 @@ impl Time {
     ///
     /// ```
     /// use ponko::prelude::*;
-
     ///
     /// struct Brain { plans: u32 }
     ///
@@ -531,7 +517,6 @@ impl Turns {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn f(ctx: &mut Ctx, e: Entity) {
     /// if ctx.time.turns(8).includes(e) { /* expensive update */ }
     /// # }
@@ -546,7 +531,6 @@ impl Turns {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn f(ctx: &mut Ctx) {
     /// let turn = ctx.time.turns(4);
     /// assert_eq!(turn.dt(), ctx.time.dt() * 4.0);

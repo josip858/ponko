@@ -15,7 +15,6 @@ use crate::texture::Texture;
 ///
 /// ```
 /// # use ponko::prelude::*;
-
 /// let t = ponko::d2::Transform::at(vec2(100.0, 50.0)).rotated(0.5);
 /// assert_eq!(t.position, vec2(100.0, 50.0));
 /// ```
@@ -69,7 +68,6 @@ impl Transform2D {
 ///
 /// ```
 /// # use ponko::prelude::*;
-
 /// # fn setup(ctx: &mut Ctx) {
 /// let crab = ctx.load_texture("crab.png");
 /// ctx.world.spawn((
@@ -110,7 +108,6 @@ impl Sprite {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn f(tiles: Texture) {
     /// let grass = ponko::d2::Sprite::new(tiles).with_region(Rect::new(16.0, 0.0, 16.0, 16.0));
     /// # }
@@ -149,7 +146,6 @@ impl Sprite {
 ///
 /// ```no_run
 /// # use ponko::prelude::*;
-
 /// fn my_draw(ctx: &mut Ctx) { /* ... */ }
 ///
 /// Game::new("Custom", 800, 600)

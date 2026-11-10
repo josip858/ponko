@@ -243,7 +243,7 @@ impl Net {
 ///
 /// ```
 /// // Not launched from an invite here.
-/// assert!(ponko::steam_lobby_from_args().is_none());
+/// assert!(ponko::net::steam_lobby_from_args().is_none());
 /// ```
 pub fn steam_lobby_from_args() -> Option<LobbyId> {
     let args: Vec<String> = std::env::args().collect();

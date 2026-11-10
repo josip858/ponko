@@ -3,7 +3,7 @@
 #[allow(unused_imports)]
 use ponko::d2::{Sprite, Transform as Transform2D};
 #[allow(unused_imports)]
-use ponko::d3::{Decal as Decal3D, PointLight as PointLight3D, SpotLight as SpotLight3D, Transform as Transform3D};
+use ponko::d3::{Decal, PointLight, SpotLight, Transform};
 use ponko::prelude::*;
 #[allow(unused_imports)]
 use ponko::reflect::ReflectError;

@@ -20,7 +20,9 @@ use ponko::net::SnapshotPush;
 use ponko::net::SnapshotState;
 use ponko::net::SnapshotStream;
 use ponko::net::UpdateStamp;
-use ponko::{MAX_INTEREST_TIERS, Vec3, seq_diff, seq_newer};
+use ponko::net::seq_diff;
+use ponko::net::seq_newer;
+use ponko::{MAX_INTEREST_TIERS, Vec3};
 
 use crate::ctx::{collect, out};
 use crate::three::{CrabbyQuat, CrabbyVec3, quat_from_c, quat_to_c};

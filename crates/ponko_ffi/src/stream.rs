@@ -4,7 +4,7 @@
 
 use ponko::terrain::FarTerrain;
 use ponko::terrain::TerrainTileData;
-use ponko::{CellStreamer, vec3};
+use ponko::{stream::CellStreamer, vec3};
 
 use crate::ctx::{ctx_access, out};
 use crate::three::{CrabbyMaterial, CrabbyMesh, CrabbyTerrainTile, CrabbyVec3, square_grid};

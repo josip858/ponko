@@ -107,11 +107,6 @@ pub struct Decal3D {
     pub layers: u32,
 }
 
-impl Decal3D {
-    /// `image` and `normal_image` value that selects no image.
-    pub const NO_IMAGE: u32 = u32::MAX;
-}
-
 impl Default for Decal3D {
     fn default() -> Self {
         Self {
@@ -475,6 +470,18 @@ fn visit(lo: [usize; 3], hi: [usize; 3], mut f: impl FnMut(usize)) {
     }
 }
 
+impl Decal3D {
+    /// Maximum decals in one frame.
+    pub const MAX: usize = MAX_DECALS;
+    /// Maximum decals affecting one cluster.
+    pub const MAX_PER_CLUSTER: usize = MAX_DECALS_PER_CLUSTER;
+}
+
+impl Decal3D {
+    /// `image` and `normal_image` value that selects no image.
+    pub const NO_IMAGE: u32 = u32::MAX;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -684,11 +691,4 @@ mod tests {
         assert_eq!(receiver_mask(Some(&ReceivesDecals(0xFFFF_0002))), 2.0);
         assert_eq!(ReceivesDecals::default(), ReceivesDecals::ALL);
     }
-}
-
-impl Decal3D {
-    /// Maximum decals in one frame.
-    pub const MAX: usize = MAX_DECALS;
-    /// Maximum decals affecting one cluster.
-    pub const MAX_PER_CLUSTER: usize = MAX_DECALS_PER_CLUSTER;
 }

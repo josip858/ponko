@@ -25,7 +25,6 @@ fn mix(mut z: u64) -> u64 {
 ///
 /// ```
 /// use ponko::prelude::*;
-
 ///
 /// let mut rng = Rng::new(42);
 /// let x = rng.range(-1.0, 1.0);
@@ -42,7 +41,6 @@ impl Rng {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let mut a = Rng::new(1);
     /// let mut b = Rng::new(2);
     /// assert_ne!(a.u64(), b.u64());
@@ -60,7 +58,6 @@ impl Rng {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let bits = Rng::new(7).u64();
     /// # let _ = bits;
     /// ```
@@ -82,7 +79,6 @@ impl Rng {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let x = Rng::new(7).f32();
     /// assert!((0.0..1.0).contains(&x));
     /// ```
@@ -95,7 +91,6 @@ impl Rng {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let speed = Rng::new(7).range(20.0, 40.0);
     /// assert!((20.0..40.0).contains(&speed));
     /// ```
@@ -108,7 +103,6 @@ impl Rng {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let pick = Rng::new(7).below(6); // a die roll, 0..=5
     /// assert!(pick < 6);
     /// ```
@@ -122,7 +116,6 @@ impl Rng {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let mut rng = Rng::new(7);
     /// assert!(!rng.chance(0.0));
     /// assert!(rng.chance(1.0));
@@ -136,7 +129,6 @@ impl Rng {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let heading = Rng::new(7).angle();
     /// assert!((0.0..std::f32::consts::TAU).contains(&heading));
     /// ```
@@ -149,7 +141,6 @@ impl Rng {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// let dir = Rng::new(7).unit_vec2();
     /// assert!((dir.length() - 1.0).abs() < 1e-5);
     /// ```
@@ -182,7 +173,6 @@ impl Random {
     ///
     /// ```
     /// use ponko::prelude::*;
-
     ///
     /// struct Wander(f32);
     ///
@@ -205,7 +195,6 @@ impl Random {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn f(ctx: &mut Ctx) {
     /// let bits: u64 = ctx.random().to_bits();
     /// # let _ = bits;
@@ -221,7 +210,6 @@ impl Random {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn f(ctx: &mut Ctx) {
     /// let mut rng = ctx.random().stream(0);
     /// let spawn_at = vec2(rng.range(0.0, 800.0), rng.range(0.0, 600.0));

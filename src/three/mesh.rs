@@ -47,7 +47,7 @@ pub struct MeshData {
     pub weights: Vec<[f32; 4]>,
     /// Shapes the mesh can blend toward (blend shapes: a smile, a blink, a
     /// dent), each as offsets from these corners. A model's
-    /// [`MorphWeights`](crate::MorphWeights) say how much of each to add.
+    /// [`MorphWeights`](crate::anim::MorphWeights) say how much of each to add.
     /// Empty for meshes that don't change shape.
     pub morph_targets: Vec<MorphTarget>,
     /// Optional piecewise linear channels. Each entry links a target's deltas

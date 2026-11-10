@@ -12,7 +12,7 @@ use super::PeerId;
 /// than half the range (32768) apart are ambiguous; that exact distance
 /// yields `i16::MIN`.
 /// ```
-/// use ponko::seq_diff;
+/// use ponko::net::seq_diff;
 /// assert_eq!(ponko::net::seq_diff(5, 3), 2);
 /// assert_eq!(ponko::net::seq_diff(3, 5), -2);
 /// assert_eq!(ponko::net::seq_diff(1, 65535), 2); // wrapped
@@ -24,7 +24,7 @@ pub const fn seq_diff(a: u16, b: u16) -> i16 {
 /// Is `a` newer than `b`, with 16-bit wrap-around? Equal numbers are not
 /// newer. Exactly half the range apart (32768) is ambiguous: neither is newer.
 /// ```
-/// use ponko::seq_newer;
+/// use ponko::net::seq_newer;
 /// assert!(ponko::net::seq_newer(2, 1));
 /// assert!(!ponko::net::seq_newer(1, 2));
 /// assert!(!ponko::net::seq_newer(7, 7));

@@ -151,7 +151,7 @@ pub unsafe extern "C" fn crabby_steam_lobby_from_args(out_lobby: *mut u64) -> Cr
         }
         #[cfg(feature = "steam")]
         {
-            let lobby = ponko::steam_lobby_from_args().map_or(0, |l| l.raw());
+            let lobby = ponko::net::steam_lobby_from_args().map_or(0, |l| l.raw());
             // SAFETY: checked non-null; caller supplies writable storage.
             unsafe { out(out_lobby, lobby) }
         }
@@ -182,7 +182,7 @@ pub unsafe extern "C" fn crabby_steam_wait_for_invite(
         {
             let client = client::get(app_id)?;
             let wait = std::time::Duration::from_millis(timeout_ms.into());
-            let lobby = ponko::steam_wait_for_invite(&client, wait).map_or(0, |l| l.raw());
+            let lobby = ponko::net::steam_wait_for_invite(&client, wait).map_or(0, |l| l.raw());
             // SAFETY: checked non-null; caller supplies writable storage.
             unsafe { out(out_lobby, lobby) }
         }

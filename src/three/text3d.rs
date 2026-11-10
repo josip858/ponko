@@ -29,7 +29,7 @@ pub enum TextAlign3D {
 /// fonts; use several entities for that.
 ///
 /// The text block is centered on the entity, in its XY plane, read from
-/// +Z (like [`UiPanel3D`](crate::UiPanel3D)), and scaled by its transform.
+/// +Z (like [`UiPanel3D`](crate::d3::UiPanel)), and scaled by its transform.
 /// With `billboard` it turns to face the camera instead, keeping upright.
 /// It's see-through where there's no text and is drawn with the particles,
 /// after solid models; it casts no shadow.

@@ -161,8 +161,8 @@ from the prelude so games can define them freely.
 Specialized root types remain as deprecated compatibility aliases for at least
 one minor release. `use ponko::*;` still compiles; new code uses the prelude.
 Canonical modules export the original types, so identity, layouts, saves and
-flat C/C++ names do not change. Traits and enums keep compatibility reexports: stable Rust has no trait aliases,
-and type aliases would break existing enum-variant imports. Their compatibility
+flat C/C++ names do not change. Traits, enums and public tuple structs keep compatibility reexports: stable Rust has no trait aliases,
+and type aliases would break existing enum-variant imports and tuple patterns. Their compatibility
 exports carry the deprecation note; rustc only diagnoses the type aliases. Compatibility exports are hidden
 from the root rustdoc page; module docs are the discovery path.
 

@@ -10,7 +10,7 @@ How a block is compiled (the same idea as rustdoc, kept deliberately small):
   hides them, the checker keeps them (minus the `# `). Use them for context the
   reader doesn't need: `# struct Health(f32);`, `# let steer = Vec2::ZERO;`.
   `##` at the start of a line stands for a literal `#`.
-- `use ponko::*;` is in scope, and the body sits in
+- `use ponko::prelude::*;` is in scope, and the body sits in
   `fn snippet(ctx: &mut Ctx, world: &mut World) -> Result<(), Box<dyn Error>>`,
   so snippets can use `ctx`, `world` and `?` without setup. A block that
   defines its own `fn main` is used as it is, without the wrapper.
@@ -105,11 +105,11 @@ def generate(out_src, features):
             has_main = any(re.search(r"\bfn\s+main\s*\(", l) for l in code)
             allow = "#![allow(warnings)] #![deny(deprecated)]"
             if has_main:
-                header = f"mod b{start} {{ {allow} use ponko::*;"
+                header = f"mod b{start} {{ {allow} use ponko::prelude::*;"
                 footer = "}"
             else:
                 header = (
-                    f"mod b{start} {{ {allow} use ponko::*; "
+                    f"mod b{start} {{ {allow} use ponko::prelude::*; "
                     "fn snippet(ctx: &mut Ctx, world: &mut World) -> Result<(), Box<dyn std::error::Error>> {"
                 )
                 footer = ";Ok(()) } }"

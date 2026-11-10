@@ -134,7 +134,7 @@ let levels = vec![
 ctx.world.spawn((
     ponko::d3::Transform::default(),
     ponko::render::LodGroup::new(10.0, levels),
-    StreamedLod::new(&["models/tower_lod0.glb", "models/tower_lod1.glb"]),
+    ponko::d3::StreamedLod::new(&["models/tower_lod0.glb", "models/tower_lod1.glb"]),
 ));
 # }
 ```

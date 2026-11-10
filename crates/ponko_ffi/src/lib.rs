@@ -116,7 +116,7 @@ pub use vehicle3d::*;
 
 use ponko::d2::Sprite;
 use ponko::d2::Transform as Transform2D;
-use ponko::spatial_key;
+use ponko::spatial::spatial_key;
 use ponko_ecs::{ComponentId, Entity, World};
 use std::alloc::Layout;
 use std::any::TypeId;

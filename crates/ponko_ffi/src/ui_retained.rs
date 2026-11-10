@@ -31,7 +31,7 @@ use ponko::ui_layout::{
     Position, Rect as Edges, RepetitionCount, Size, Style, TrackSizingFunction,
     style_helpers::{TaffyGridLine, TaffyGridSpan},
 };
-use ponko::{Color, Entity, UiPanel3D};
+use ponko::{Color, Entity, d3::UiPanel as UiPanel3D};
 
 use crate::ctx::{ctx_access, out, text};
 use crate::media::{font_from_c, font_to_c};

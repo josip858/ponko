@@ -90,8 +90,8 @@ impl ComputePass {
     ///
     /// ```no_run
     /// # use ponko::prelude::*;
-    /// # fn f(ctx: &mut Ctx, c: Compute, t: Texture) {
-    /// ctx.compute_passes.push(ComputePass::new(c, t));
+    /// # fn f(ctx: &mut Ctx, c: ponko::render::Compute, t: Texture) {
+    /// ctx.compute_passes.push(ponko::render::ComputePass::new(c, t));
     /// # }
     /// ```
     #[must_use]
@@ -109,8 +109,8 @@ impl ComputePass {
     ///
     /// ```no_run
     /// # use ponko::prelude::*;
-    /// # fn f(c: Compute, t: Texture, m: Material) {
-    /// let pass = ComputePass::new(c, t).with_material(m);
+    /// # fn f(c: ponko::render::Compute, t: Texture, m: ponko::render::Material) {
+    /// let pass = ponko::render::ComputePass::new(c, t).with_material(m);
     /// # }
     /// ```
     #[must_use]
@@ -208,7 +208,7 @@ impl Graphics {
     ///             return c.value * max(1.0 - 2.0 * frame.time.y, 0.0);
     ///         }");
     ///     let target = ctx.gfx.create_render_target(64, 64);
-    ///     ctx.compute_passes.push(ComputePass::new(fade, target));
+    ///     ctx.compute_passes.push(ponko::render::ComputePass::new(fade, target));
     /// });
     /// ```
     ///
@@ -407,7 +407,7 @@ impl Graphics {
     /// invalid handles or count.
     /// ```no_run
     /// # use ponko::prelude::*;
-    /// # fn f(ctx: &mut Ctx, mesh: Mesh) {
+    /// # fn f(ctx: &mut Ctx, mesh: ponko::render::Mesh) {
     /// let b = ctx.gfx.create_gpu_buffer(100, &[]);
     /// ctx.gfx.set_mesh_gpu_buffer(mesh, b, 100);
     /// ctx.gfx.set_mesh_gpu_bounds(mesh, Vec3::ZERO, 10.0);
@@ -435,7 +435,7 @@ impl Graphics {
     /// # use ponko::prelude::*;
     /// Game::new("b", 1, 1).run_headless(0, |ctx| {
     ///     let material = ctx.gfx.default_material();
-    ///     let mesh = ctx.gfx.create_mesh(&MeshData::cube(0.1), material);
+    ///     let mesh = ctx.gfx.create_mesh(&ponko::render::MeshData::cube(0.1), material);
     ///     ctx.gfx.set_mesh_gpu_bounds(mesh, Vec3::Y * 5.0, 6.0);
     /// });
     /// ```

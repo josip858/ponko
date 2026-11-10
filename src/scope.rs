@@ -177,6 +177,7 @@ pub fn scope_named(name: &str) -> &'static ProfileScope {
 /// }
 /// # Game::new("t", 1, 1).sim_system(ai).run_headless(1, |_| {});
 /// ```
+#[doc(hidden)]
 #[macro_export]
 macro_rules! profile_scope {
     ($name:expr) => {

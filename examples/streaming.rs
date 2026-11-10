@@ -12,7 +12,7 @@
 use std::collections::HashMap;
 
 #[allow(unused_imports)]
-use ponko::d3::Transform as Transform3D;
+use ponko::d3::Transform;
 use ponko::prelude::*;
 #[allow(unused_imports)]
 use ponko::render::{Material, MaterialDesc, Sky};
@@ -160,7 +160,7 @@ fn main() {
                 {
                     let start = ponko::Instant::now();
                     let made = ctx.gfx.upload_terrain_tile(&data, ground);
-                    let entity = ctx.world.spawn((Transform3D::at(cells.corner(cell)), made));
+                    let entity = ctx.world.spawn((Transform::at(cells.corner(cell)), made));
                     let took = start.elapsed().as_secs_f64() * 1000.0;
                     upload_time += took;
                     worst_upload = worst_upload.max(took);

@@ -11,7 +11,6 @@ use crate::color::Color;
 ///
 /// ```
 /// # use ponko::prelude::*;
-
 /// # fn setup(ctx: &mut Ctx) {
 /// let crab = ctx.load_texture("crab.png");
 /// println!("{} x {}", crab.width(), crab.height());
@@ -34,7 +33,6 @@ impl Texture {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn f(tex: Texture) {
     /// let w = tex.width();
     /// # }
@@ -48,7 +46,6 @@ impl Texture {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn f(tex: Texture) {
     /// let h = tex.height();
     /// # }
@@ -62,7 +59,6 @@ impl Texture {
     ///
     /// ```
     /// # use ponko::prelude::*;
-
     /// # fn f(tex: Texture) {
     /// let half = tex.size() / 2.0;
     /// # }
@@ -89,7 +85,6 @@ pub enum TextureFilter {
 ///
 /// ```
 /// # use ponko::prelude::*;
-
 /// # fn update(ctx: &mut Ctx, tex: Texture) {
 /// ctx.gfx.draw_ex(&tex, vec2(100.0, 100.0), DrawParams {
 ///     rotation: 0.5,

@@ -9,7 +9,7 @@
 //! source) the next time they are asked for.
 //!
 //! Which cells of a world to ask for is up to the game, for example with a
-//! [`CellStreamer`](crate::CellStreamer); the budget then caps the memory
+//! [`CellStreamer`](crate::stream::CellStreamer); the budget then caps the memory
 //! however many cells are near.
 
 // Without the `3d` feature only textures use the sets.

@@ -538,6 +538,13 @@ impl Graphics {
     }
 }
 
+impl GraphicsQuality {
+    /// Lowest supported internal resolution scale.
+    pub const MIN_RENDER_SCALE: f32 = super::MIN_RENDER_SCALE;
+    /// Highest supported internal resolution scale.
+    pub const MAX_RENDER_SCALE: f32 = super::MAX_RENDER_SCALE;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -787,11 +794,4 @@ mod tests {
             );
         }
     }
-}
-
-impl GraphicsQuality {
-    /// Lowest supported internal resolution scale.
-    pub const MIN_RENDER_SCALE: f32 = super::MIN_RENDER_SCALE;
-    /// Highest supported internal resolution scale.
-    pub const MAX_RENDER_SCALE: f32 = super::MAX_RENDER_SCALE;
 }

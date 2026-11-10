@@ -474,6 +474,15 @@ fn visit(lo: [usize; 3], hi: [usize; 3], mut f: impl FnMut(usize)) {
     }
 }
 
+impl PointLight3D {
+    /// Maximum simultaneous shadow views.
+    pub const MAX_SHADOW_VIEWS: usize = MAX_LIGHT_SHADOW_VIEWS;
+    /// Default local shadow resolution.
+    pub const SHADOW_SIZE: u32 = LIGHT_SHADOW_SIZE;
+    /// Default local shadow atlas resolution.
+    pub const SHADOW_ATLAS_SIZE: u32 = LIGHT_SHADOW_ATLAS_SIZE;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -844,13 +853,4 @@ mod tests {
         let edge = light + (Vec3::NEG_Y + Vec3::X * 0.5f32.tan()) * 5.0;
         assert!(m.project_point3(edge).x.abs() < 1.0);
     }
-}
-
-impl PointLight3D {
-    /// Maximum simultaneous shadow views.
-    pub const MAX_SHADOW_VIEWS: usize = MAX_LIGHT_SHADOW_VIEWS;
-    /// Default local shadow resolution.
-    pub const SHADOW_SIZE: u32 = LIGHT_SHADOW_SIZE;
-    /// Default local shadow atlas resolution.
-    pub const SHADOW_ATLAS_SIZE: u32 = LIGHT_SHADOW_ATLAS_SIZE;
 }

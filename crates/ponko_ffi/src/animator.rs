@@ -19,7 +19,7 @@ use ponko::anim::LayerBlend;
 use ponko::anim::Motion;
 use ponko::anim::MotionChild;
 use ponko::anim::Skeleton;
-use ponko::{Ctx, Entity, JointMask, Vec2};
+use ponko::{Ctx, Entity, Vec2, anim::JointMask};
 
 use crate::ctx::{ctx_access, out, text};
 use crate::skin::CrabbyClip;

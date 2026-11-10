@@ -12,7 +12,7 @@ use ponko::audio::AudioEffects;
 #[allow(unused_imports)]
 use ponko::d2::{Sprite, Transform as Transform2D};
 #[allow(unused_imports)]
-use ponko::d3::{AudioListener as AudioListener3D, ReflectionProbe as ReflectionProbe3D, Transform as Transform3D};
+use ponko::d3::{AudioListener, ReflectionProbe, Transform};
 use ponko::prelude::*;
 #[allow(unused_imports)]
 use ponko::render::{ComputePass, GraphicsQuality, MaterialDesc, Mesh, MeshData, QualityLevel};
@@ -248,7 +248,7 @@ fn the_default_listener_is_the_camera_as_the_running_system_found_it() {
         // The camera the system started with is where the ears are...
         assert_eq!(ctx.audio.listener().position, ctx.camera3d.position);
         // ...and a listener of the game's own replaces it at once.
-        let ears = AudioListener3D {
+        let ears = AudioListener {
             position: vec3(1.0, 2.0, 3.0),
             rotation: Quat::IDENTITY,
         };
@@ -542,11 +542,11 @@ mod three {
     #[allow(unused_imports)]
     use ponko::d2::Transform as Transform2D;
     #[allow(unused_imports)]
-    use ponko::d3::AudioListener as AudioListener3D;
+    use ponko::d3::AudioListener;
     #[allow(unused_imports)]
-    use ponko::d3::ReflectionProbe as ReflectionProbe3D;
+    use ponko::d3::ReflectionProbe;
     #[allow(unused_imports)]
-    use ponko::d3::Transform as Transform3D;
+    use ponko::d3::Transform;
     use ponko::prelude::*;
     #[allow(unused_imports)]
     use ponko::render::ComputePass;
@@ -593,10 +593,10 @@ mod three {
     #[test]
     fn the_calls_that_touch_entities_take_the_world() {
         Game::new("t", 1, 1).run_headless(0, |ctx| {
-            let probe = ctx.world.spawn((Transform3D::default(), ReflectionProbe3D::default()));
+            let probe = ctx.world.spawn((Transform::default(), ReflectionProbe::default()));
             ctx.gfx.bake_reflection_probe(&mut ctx.world, probe).unwrap();
-            assert_ne!(ctx.world.get::<ReflectionProbe3D>(probe).unwrap().content, 0);
-            let bare = ctx.world.spawn((Transform3D::default(),));
+            assert_ne!(ctx.world.get::<ReflectionProbe>(probe).unwrap().content, 0);
+            let bare = ctx.world.spawn((Transform::default(),));
             assert!(ctx.gfx.bake_reflection_probe(&mut ctx.world, bare).is_err());
             ctx.gfx.write_animated_morphs(&mut ctx.world);
         });
@@ -634,7 +634,7 @@ mod three {
     fn the_pointer_ray_for_world_panels_is_set_on_the_ui() {
         Game::new("t", 800, 600).run_headless(1, |ctx| {
             let (panel, model) = ctx.gfx.create_ui_panel(64, 64, vec2(1.0, 1.0));
-            ctx.world.spawn((Transform3D::at(vec3(0.0, 0.0, -2.0)), model, panel));
+            ctx.world.spawn((Transform::at(vec3(0.0, 0.0, -2.0)), model, panel));
             ctx.ui.set_pointer_ray(Some((Vec3::ZERO, -Vec3::Z)));
             ctx.ui.set_pointer_ray(None);
         });

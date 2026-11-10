@@ -492,6 +492,13 @@ impl GiFrame {
     }
 }
 
+impl GlobalIllumination {
+    /// Maximum resident probes.
+    pub const MAX_PROBES: u32 = MAX_GI_PROBES;
+    /// Probe update budget per frame.
+    pub const MAX_PROBES_PER_FRAME: u32 = MAX_GI_PROBES_PER_FRAME;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -593,11 +600,4 @@ mod tests {
         probes.plan([2, 2, 2], 2.0, Vec3::ZERO, 4, &mut out);
         assert!(out.iter().all(|u| u.keep == 0.0));
     }
-}
-
-impl GlobalIllumination {
-    /// Maximum resident probes.
-    pub const MAX_PROBES: u32 = MAX_GI_PROBES;
-    /// Probe update budget per frame.
-    pub const MAX_PROBES_PER_FRAME: u32 = MAX_GI_PROBES_PER_FRAME;
 }

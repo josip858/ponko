@@ -67,7 +67,7 @@ impl FarTerrain {
     /// Far ground from `heights`, `columns` per row, the first at `corner`
     /// (x, z) and the rest `spacing` apart, drawn with `material` (the
     /// terrain material, or any other); cut away a cell at a time for
-    /// tiles `cell_size` wide (the [`CellStreamer`](crate::CellStreamer)'s
+    /// tiles `cell_size` wide (the [`CellStreamer`](crate::stream::CellStreamer)'s
     /// cells). Nothing is made until [`FarTerrain::update`].
     ///
     /// ```

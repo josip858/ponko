@@ -23,7 +23,7 @@ use crate::{Ctx, Entity, Events, Vec2, World};
 /// let crate_body = ponko::d2::RigidBody::dynamic();
 /// let wall = ponko::d2::RigidBody::fixed();
 /// assert_eq!(crate_body.gravity_scale, 1.0);
-/// assert_eq!(wall.kind, ponko::collision::BodyKind::Fixed);
+/// assert_eq!(wall.kind, ponko::d2::BodyKind::Fixed);
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]

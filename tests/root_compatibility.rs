@@ -13,10 +13,18 @@ fn old_glob_and_public_constructors_keep_their_identity() {
 #[test]
 fn old_3d_glob_preserves_component_layout_and_tuple_construction() {
     let _: d3::Transform = Transform3D::default();
+    Game::new("legacy materials", 1, 1).run_headless(0, |ctx| {
+        let material = ctx.gfx.default_material();
+        let ModelMaterial(actual) = ModelMaterial(material);
+        assert_eq!(actual, material);
+    });
     let _: render::LodHysteresis = LodHysteresis(0.5);
     assert_eq!(std::mem::size_of::<Transform3D>(), std::mem::size_of::<d3::Transform>());
     assert_eq!(std::mem::align_of::<Transform3D>(), 16);
     let _: d3::ReceivesDecals = ReceivesDecals(1);
+    let LodHysteresis(value) = LodHysteresis(0.5);
+    let ReceivesDecals(mask) = ReceivesDecals(1);
+    assert_eq!((value, mask), (0.5, 1));
 }
 #[cfg(feature = "physics3d")]
 #[test]

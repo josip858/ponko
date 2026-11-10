@@ -2,7 +2,7 @@
 //! `Ctx::live_counts` for every resource kind, in headless runs.
 
 #[allow(unused_imports)]
-use ponko::d3::Transform as Transform3D;
+use ponko::d3::Transform;
 use ponko::prelude::*;
 #[allow(unused_imports)]
 use ponko::render::{
@@ -252,10 +252,10 @@ mod three {
                 ctx.effects.push(ScreenEffect::new(effect).with_material(material));
                 ctx.compute_passes.push(ComputePass::new(compute, target));
                 ctx.target_cameras.push(TargetCamera::new(ctx.camera3d, target));
-                ctx.world.spawn((Transform3D::default(), Model::new(mesh)));
+                ctx.world.spawn((Transform::default(), Model::new(mesh)));
                 // Drawn with the material as an override too (ModelMaterial).
                 ctx.world.spawn((
-                    Transform3D::at(vec3(2.0, 0.0, 0.0)),
+                    Transform::at(vec3(2.0, 0.0, 0.0)),
                     Model::new(other),
                     ModelMaterial(material),
                 ));
@@ -331,7 +331,7 @@ mod three {
                 ..Default::default()
             });
             let block = ctx.gfx.create_mesh(&MeshData::cube(1.0), wall);
-            ctx.world.spawn((Transform3D::default(), Model::new(block)));
+            ctx.world.spawn((Transform::default(), Model::new(block)));
             // Going out of range: free what the cell made. The model still
             // draws (untextured), until its entity is despawned too.
             ctx.free(bricks);

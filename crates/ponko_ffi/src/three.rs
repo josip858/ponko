@@ -42,10 +42,7 @@ use ponko::terrain::TerrainMaterialDesc;
 use ponko::terrain::TerrainTile;
 use ponko::terrain::TextureArray;
 use ponko::terrain::TextureKind;
-use ponko::{
-    Color, MAX_GI_PROBES_PER_FRAME, MAX_LIGHT_SHADOW_VIEWS, MAX_RENDER_SCALE, MIN_RENDER_SCALE, Quat, TERRAIN_LAYERS,
-    TERRAIN_LODS, Vec2, Vec3, Vec4,
-};
+use ponko::{Color, Quat, Vec2, Vec3, Vec4};
 
 use crate::ctx::{ctx_access, out, text};
 use crate::types::*;
@@ -122,7 +119,7 @@ pub struct CrabbyPointLight3D {
     /// Same as Rust `PointLight3D::range`.
     pub range: f32,
     /// Cast shadows (Rust `PointLight3D::shadows`): six of the frame's
-    /// `MAX_LIGHT_SHADOW_VIEWS` shadow views, nearest lights first.
+    /// `ponko::d3::PointLight::MAX_SHADOW_VIEWS` shadow views, nearest lights first.
     pub shadows: bool,
     /// Each shadow view's size in the shadow atlas, in texels (Rust
     /// `PointLight3D::shadow_resolution`): 0 sizes it by how big the light
@@ -224,7 +221,7 @@ pub struct CrabbyTerrainTile {
 
 /// How many detail levels a `CrabbyTerrainTile` has.
 pub const CRABBY_TERRAIN_LODS: usize = 4;
-const _: () = assert!(CRABBY_TERRAIN_LODS == TERRAIN_LODS);
+const _: () = assert!(CRABBY_TERRAIN_LODS == ponko::terrain::TerrainTile::LODS);
 
 /// A compute pass shader (`crabby_ctx_load_compute`, `crabby_ctx_create_compute`).
 /// ```
@@ -444,7 +441,7 @@ pub struct CrabbyTerrainMaterialDesc {
 
 /// The most ground layers a terrain material blends.
 pub const CRABBY_TERRAIN_LAYERS: usize = 8;
-const _: () = assert!(CRABBY_TERRAIN_LAYERS == TERRAIN_LAYERS);
+const _: () = assert!(CRABBY_TERRAIN_LAYERS == ponko::terrain::TerrainTile::LAYERS);
 /// `crabby_ctx_create_texture_array` kinds (Rust `TextureKind`): colors, stored as sRGB.
 pub const CRABBY_TEXTURE_COLOR: u32 = 0;
 /// Numbers read as stored: normal maps, masks, weights.
@@ -2356,7 +2353,7 @@ pub unsafe extern "C" fn crabby_ctx_set_lighting(ctx: *mut CrabbyCtx, lighting: 
             }
             if !(256..=4096).contains(&l.shadow_resolution)
                 || !(128..=2048).contains(&l.light_shadow_resolution)
-                || l.light_shadow_views > MAX_LIGHT_SHADOW_VIEWS as u32
+                || l.light_shadow_views > ponko::d3::PointLight::MAX_SHADOW_VIEWS as u32
             {
                 return Err(invalid(
                     "shadow_resolution must be 256 to 4096, light_shadow_resolution 128 to 2048 and light_shadow_views 0 to 24",
@@ -2371,7 +2368,7 @@ pub unsafe extern "C" fn crabby_ctx_set_lighting(ctx: *mut CrabbyCtx, lighting: 
                     && extent.min_element() > 0.0
                     && l.gi_spacing.is_finite()
                     && l.gi_spacing > 0.0
-                    && (1..=MAX_GI_PROBES_PER_FRAME).contains(&l.gi_probes_per_frame)
+                    && (1..=ponko::render::GlobalIllumination::MAX_PROBES_PER_FRAME).contains(&l.gi_probes_per_frame)
                     && l.gi_intensity.is_finite()
                     && l.gi_intensity >= 0.0)
             {
@@ -2616,7 +2613,10 @@ pub unsafe extern "C" fn crabby_ctx_set_post(ctx: *mut CrabbyCtx, post: *const C
                     "chromatic_aberration must be 0 to 1, lens_distortion -1 to 1 and lens_scale above zero",
                 ));
             }
-            if !(MIN_RENDER_SCALE..=MAX_RENDER_SCALE).contains(&p.render_scale) || !(0.0..=1.0).contains(&p.sharpen) {
+            if !(ponko::render::GraphicsQuality::MIN_RENDER_SCALE..=ponko::render::GraphicsQuality::MAX_RENDER_SCALE)
+                .contains(&p.render_scale)
+                || !(0.0..=1.0).contains(&p.sharpen)
+            {
                 return Err(invalid("render_scale must be 0.25 to 2 and sharpen 0 to 1"));
             }
             let tonemap = match p.tonemap {
@@ -2767,7 +2767,10 @@ fn quality_from_c(q: &CrabbyGraphicsQuality) -> Result<GraphicsQuality, crate::F
         3 => AntiAliasing::Taa,
         _ => return Err(invalid("anti_aliasing must be 0 to 3")),
     };
-    if !(MIN_RENDER_SCALE..=MAX_RENDER_SCALE).contains(&q.render_scale) || !(0.0..=1.0).contains(&q.sharpen) {
+    if !(ponko::render::GraphicsQuality::MIN_RENDER_SCALE..=ponko::render::GraphicsQuality::MAX_RENDER_SCALE)
+        .contains(&q.render_scale)
+        || !(0.0..=1.0).contains(&q.sharpen)
+    {
         return Err(invalid("render_scale must be 0.25 to 2 and sharpen 0 to 1"));
     }
     if !q.shadow_distance.is_finite() || q.shadow_distance < 0.0 || !(1..=4).contains(&q.shadow_cascades) {
@@ -2777,7 +2780,7 @@ fn quality_from_c(q: &CrabbyGraphicsQuality) -> Result<GraphicsQuality, crate::F
     }
     if !(256..=4096).contains(&q.shadow_resolution)
         || !(128..=2048).contains(&q.light_shadow_resolution)
-        || q.light_shadow_views > MAX_LIGHT_SHADOW_VIEWS as u32
+        || q.light_shadow_views > ponko::d3::PointLight::MAX_SHADOW_VIEWS as u32
     {
         return Err(invalid(
             "shadow_resolution must be 256 to 4096, light_shadow_resolution 128 to 2048 and light_shadow_views 0 to 24",
@@ -3075,7 +3078,8 @@ pub unsafe extern "C" fn crabby_ctx_set_shadow_mesh(
             if !c.world.is_alive(entity) {
                 return Err(invalid("no such entity"));
             }
-            c.world.insert(entity, ponko::ShadowMesh(casts.then(|| to_c(mesh))));
+            c.world
+                .insert(entity, ponko::render::ShadowMesh(casts.then(|| to_c(mesh))));
             Ok(())
         })
     })
@@ -3179,7 +3183,7 @@ pub unsafe extern "C" fn crabby_ctx_set_model_part_materials(
                 return Err(invalid("no such entity"));
             }
             if count == 0 {
-                c.world.remove::<ponko::ModelMaterials>(entity);
+                c.world.remove::<ponko::render::ModelMaterials>(entity);
                 return Ok(());
             }
             if parts.is_null() || materials.is_null() {
@@ -3195,7 +3199,7 @@ pub unsafe extern "C" fn crabby_ctx_set_model_part_materials(
                 .zip(materials)
                 .map(|(&part, &m)| (part as usize, to_c(m)))
                 .collect();
-            c.world.insert(entity, ponko::ModelMaterials::new(&list));
+            c.world.insert(entity, ponko::render::ModelMaterials::new(&list));
             Ok(())
         })
     })
@@ -3228,7 +3232,7 @@ pub unsafe extern "C" fn crabby_ctx_model_part_materials(
             if out_count.is_null() {
                 return Err(invalid("output is null"));
             }
-            let Some(list) = c.world.get::<ponko::ModelMaterials>(entity) else {
+            let Some(list) = c.world.get::<ponko::render::ModelMaterials>(entity) else {
                 return out(out_count, 0);
             };
             if !out_parts.is_null() && !out_materials.is_null() {

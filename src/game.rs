@@ -69,10 +69,10 @@ pub enum Phase {
 ///
 /// struct Score;
 /// impl Plugin for Score {
-///     fn build(&ponko::serde_json::self, game: Game) -> Game {
+///     fn build(&self, game: Game) -> Game {
 ///         game.add(Phase::AfterPhysics, |ctx| *ctx.world.resource_mut::<u32>() += 1)
 ///     }
-///     fn setup(&ponko::serde_json::self, ctx: &mut Ctx) {
+///     fn setup(&self, ctx: &mut Ctx) {
 ///         ctx.world.insert_resource(0u32);
 ///     }
 /// }
@@ -409,7 +409,7 @@ fn forget_seen_removals<'a>(ctx: &mut Ctx, systems: impl Iterator<Item = &'a Sys
 fn run_one(s: &mut System, ctx: &mut Ctx, timing_index: usize) {
     #[cfg(feature = "profiling")]
     puffin::profile_scope!("system", s.name);
-    let allocs_before = ctx.perf.state.on.then(crate::alloc_counts);
+    let allocs_before = ctx.perf.state.on.then(crate::perf::alloc_counts);
     let start = Instant::now();
     ctx.system_index = timing_index;
     ctx.events.reader = s.id;
@@ -442,7 +442,7 @@ fn run_one(s: &mut System, ctx: &mut Ctx, timing_index: usize) {
     ctx.world.set_changes_since(crate::Tick::default());
     ctx.perf.timings[timing_index].last_ms += start.elapsed().as_secs_f32() * 1000.0;
     if let Some(before) = allocs_before {
-        let made = crate::alloc_counts().count.saturating_sub(before.count);
+        let made = crate::perf::alloc_counts().count.saturating_sub(before.count);
         ctx.perf.state.add_system_allocs(timing_index, made);
     }
 }
@@ -1830,7 +1830,7 @@ mod tests {
     #[cfg(feature = "3d")]
     #[test]
     fn late_system_sees_automatic_animation_pose() {
-        use crate::AnimationClip;
+        use crate::anim::AnimationClip;
         use crate::anim::AnimationGraph;
         use crate::anim::AnimationState;
         use crate::anim::Animator;

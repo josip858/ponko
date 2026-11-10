@@ -1,9 +1,6 @@
 //! CPU billboards: `cargo run --features 3d --example particles`.
 #[allow(unused_imports)]
-use ponko::d3::{
-    ParticleBlend as ParticleBlend3D, ParticleEmitter as ParticleEmitter3D, ParticleSettings as ParticleSettings3D,
-    ParticleShape as ParticleShape3D, Transform as Transform3D,
-};
+use ponko::d3::{ParticleBlend, ParticleEmitter, ParticleSettings, ParticleShape, Transform};
 use ponko::prelude::*;
 
 // ANCHOR: particles
@@ -11,12 +8,12 @@ fn setup(ctx: &mut Ctx) {
     ctx.camera3d.position = vec3(0.0, 2.0, 7.0);
     ctx.camera3d.look_at(vec3(0.0, 1.0, 0.0));
     ctx.sky.atmosphere = false;
-    let emitter = ParticleEmitter3D::new(ParticleSettings3D {
+    let emitter = ParticleEmitter::new(ParticleSettings {
         rate: 120.0,
         burst: 40,
         lifetime: (0.7, 1.4),
         speed: (2.0, 4.0),
-        shape: ParticleShape3D::Cone { angle: 0.45 },
+        shape: ParticleShape::Cone { angle: 0.45 },
         gravity: vec3(0.0, -3.0, 0.0),
         drag: 0.2,
         size: (0.05, 0.13),
@@ -26,12 +23,12 @@ fn setup(ctx: &mut Ctx) {
             (0.0, Color::rgba(1.0, 0.7, 0.2, 1.0)),
             (1.0, Color::rgba(1.0, 0.1, 0.0, 0.0)),
         ]),
-        blend: ParticleBlend3D::Additive,
+        blend: ParticleBlend::Additive,
         max_particles: 512,
         seed: 42,
         ..Default::default()
     });
-    ctx.world.spawn((Transform3D::default(), emitter));
+    ctx.world.spawn((Transform::default(), emitter));
 }
 // ANCHOR_END: particles
 

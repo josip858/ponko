@@ -522,7 +522,7 @@ pub struct JointMask(Vec<usize>);
 impl JointMask {
     /// Select explicit joint indices (duplicates are removed).
     /// ```
-    /// use ponko::JointMask;
+    /// use ponko::anim::JointMask;
     /// assert!(ponko::anim::JointMask::new(vec![3, 3]).contains(3));
     /// ```
     pub fn new(mut joints: Vec<usize>) -> Self {
@@ -547,7 +547,7 @@ impl JointMask {
     }
     /// Whether the joint index is selected.
     /// ```
-    /// use ponko::JointMask;
+    /// use ponko::anim::JointMask;
     /// assert!(!ponko::anim::JointMask::new(vec![1]).contains(0));
     /// ```
     pub fn contains(&self, joint: usize) -> bool {

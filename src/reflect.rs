@@ -810,9 +810,9 @@ pub trait WorldReflect {
     /// let mut world = World::new();
     /// world.reflect::<Health>();
     /// world
-    ///     .describe_component("Health", ValueSchema::object([
-    ///         ("current", ValueSchema::Number),
-    ///         ("max", ValueSchema::Number),
+    ///     .describe_component("Health", ponko::reflect::ValueSchema::object([
+    ///         ("current", ponko::reflect::ValueSchema::Number),
+    ///         ("max", ponko::reflect::ValueSchema::Number),
     ///     ]))
     ///     .unwrap();
     /// ```
@@ -1555,7 +1555,7 @@ struct ShadowMeshJson {
 }
 
 #[cfg(feature = "3d")]
-fn shadow_mesh_json(world: &World, s: &crate::ShadowMesh) -> Option<Result<Value, String>> {
+fn shadow_mesh_json(world: &World, s: &crate::render::ShadowMesh) -> Option<Result<Value, String>> {
     let mesh = match s.0 {
         Some(mesh) => Some(world.get_resource::<MeshNames>()?.name(mesh.id)?),
         None => None,
@@ -1564,16 +1564,16 @@ fn shadow_mesh_json(world: &World, s: &crate::ShadowMesh) -> Option<Result<Value
 }
 
 #[cfg(feature = "3d")]
-fn shadow_mesh_from_json(world: &World, value: Value) -> Result<crate::ShadowMesh, String> {
+fn shadow_mesh_from_json(world: &World, value: Value) -> Result<crate::render::ShadowMesh, String> {
     let json: ShadowMeshJson = serde_json::from_value(value).map_err(|err| err.to_string())?;
     let Some(name) = json.mesh else {
-        return Ok(crate::ShadowMesh(None));
+        return Ok(crate::render::ShadowMesh(None));
     };
     let mesh = world
         .get_resource::<MeshNames>()
         .and_then(|t| t.get(&name))
         .ok_or_else(|| format!("mesh \"{name}\" isn't loaded: ctx.gfx.load_mesh(\"{name}\") first"))?;
-    Ok(crate::ShadowMesh(Some(mesh)))
+    Ok(crate::render::ShadowMesh(Some(mesh)))
 }
 
 /// The materials of meshes loaded from files (`Ctx::load_mesh`), so a
@@ -1701,7 +1701,7 @@ fn model_material_from_json(world: &World, value: Value) -> Result<crate::render
     Ok(crate::render::ModelMaterial(material))
 }
 
-/// [`ModelMaterials`](crate::ModelMaterials) as JSON: `{ "parts": [{ "part":
+/// [`ModelMaterials`](crate::render::ModelMaterials) as JSON: `{ "parts": [{ "part":
 /// 1, "mesh": "door.glb", "material": "Glass" }] }`.
 #[cfg(feature = "3d")]
 #[derive(Serialize, serde::Deserialize, Default)]
@@ -1722,7 +1722,7 @@ struct PartMaterialJson {
 /// `None` when one of its materials was made in code: a list saved in part
 /// would draw something else when loaded.
 #[cfg(feature = "3d")]
-fn model_materials_json(world: &World, m: &crate::ModelMaterials) -> Option<Result<Value, String>> {
+fn model_materials_json(world: &World, m: &crate::render::ModelMaterials) -> Option<Result<Value, String>> {
     let names = world.get_resource::<MaterialNames>()?;
     let parts = m
         .parts()
@@ -1735,7 +1735,7 @@ fn model_materials_json(world: &World, m: &crate::ModelMaterials) -> Option<Resu
 }
 
 #[cfg(feature = "3d")]
-fn model_materials_from_json(world: &World, value: Value) -> Result<crate::ModelMaterials, String> {
+fn model_materials_from_json(world: &World, value: Value) -> Result<crate::render::ModelMaterials, String> {
     let json: ModelMaterialsJson = serde_json::from_value(value).map_err(|err| err.to_string())?;
     let none = MaterialNames::default();
     let names = world.get_resource::<MaterialNames>().unwrap_or(&none);
@@ -1750,7 +1750,7 @@ fn model_materials_from_json(world: &World, value: Value) -> Result<crate::Model
             Ok((p.part, names.find(&named)?))
         })
         .collect::<Result<Vec<_>, String>>()?;
-    Ok(crate::ModelMaterials::new(&parts))
+    Ok(crate::render::ModelMaterials::new(&parts))
 }
 
 /// A mesh's file name, or an error naming what to load first.
@@ -1922,10 +1922,10 @@ pub(crate) fn lod_mesh_names(json: &Value, out: &mut Vec<String>) {
 }
 
 /// Reflects [`Model`](crate::render::Model) as `"Model"`,
-/// [`ShadowMesh`](crate::ShadowMesh) as `"ShadowMesh"` and
+/// [`ShadowMesh`](crate::render::ShadowMesh) as `"ShadowMesh"` and
 /// [`LodGroup`](crate::render::LodGroup) as `"LodGroup"`, their meshes saved by file
 /// name (see [`MeshNames`]), and [`ModelMaterial`](crate::render::ModelMaterial) and
-/// [`ModelMaterials`](crate::ModelMaterials), their materials saved by file
+/// [`ModelMaterials`](crate::render::ModelMaterials), their materials saved by file
 /// and name (see [`MaterialNames`]).
 #[cfg(feature = "3d")]
 pub(crate) fn reflect_model(world: &mut World) {
@@ -1966,8 +1966,11 @@ pub(crate) fn reflect_model(world: &mut World) {
     reg.by_name.insert("ShadowMesh".into(), reg.list.len());
     reg.list.push(Reflected {
         name: "ShadowMesh".into(),
-        type_name: std::any::type_name::<crate::ShadowMesh>().into(),
-        get: Arc::new(|w: &World, e| w.get::<crate::ShadowMesh>(e).and_then(|s| shadow_mesh_json(w, s))),
+        type_name: std::any::type_name::<crate::render::ShadowMesh>().into(),
+        get: Arc::new(|w: &World, e| {
+            w.get::<crate::render::ShadowMesh>(e)
+                .and_then(|s| shadow_mesh_json(w, s))
+        }),
         set: Arc::new(|w: &mut World, e, v| {
             let shadow = shadow_mesh_from_json(w, v)?;
             w.insert(e, shadow);
@@ -1982,7 +1985,7 @@ pub(crate) fn reflect_model(world: &mut World) {
             Ok(w.spawn_at(e, (shadow,)))
         }),
         check: Arc::new(check::<ShadowMeshJson>),
-        remove: Arc::new(remove::<crate::ShadowMesh>),
+        remove: Arc::new(remove::<crate::render::ShadowMesh>),
     });
     reg.by_name.insert("ModelMaterial".into(), reg.list.len());
     reg.list.push(Reflected {
@@ -2011,9 +2014,9 @@ pub(crate) fn reflect_model(world: &mut World) {
     reg.by_name.insert("ModelMaterials".into(), reg.list.len());
     reg.list.push(Reflected {
         name: "ModelMaterials".into(),
-        type_name: std::any::type_name::<crate::ModelMaterials>().into(),
+        type_name: std::any::type_name::<crate::render::ModelMaterials>().into(),
         get: Arc::new(|w: &World, e| {
-            w.get::<crate::ModelMaterials>(e)
+            w.get::<crate::render::ModelMaterials>(e)
                 .and_then(|m| model_materials_json(w, m))
         }),
         set: Arc::new(|w: &mut World, e, v| {
@@ -2030,7 +2033,7 @@ pub(crate) fn reflect_model(world: &mut World) {
             Ok(w.spawn_at(e, (materials,)))
         }),
         check: Arc::new(check::<ModelMaterialsJson>),
-        remove: Arc::new(remove::<crate::ModelMaterials>),
+        remove: Arc::new(remove::<crate::render::ModelMaterials>),
     });
     reg.by_name.insert("LodGroup".into(), reg.list.len());
     reg.list.push(Reflected {

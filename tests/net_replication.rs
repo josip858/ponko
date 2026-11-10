@@ -437,7 +437,7 @@ fn interest_decides_what_each_peer_is_sent() {
 fn net_pose_moves_a_transform_from_buffered_snapshots() {
     use ponko::d3::Transform as Transform3D;
     use ponko::systems::apply_net_poses;
-    use ponko::{Game, NetPose};
+    use ponko::{Game, net::NetPose};
     // Snapshots a second apart; the headless run's clock advances 1/60 s per tick.
     let mut world = Game::new("remote", 1, 1)
         .fixed_hz(60)

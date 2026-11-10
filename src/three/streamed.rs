@@ -9,7 +9,7 @@ use super::{LodGroup, LodPick, Mesh, Transform3D, gltf};
 use crate::assets::{self, Origin};
 use crate::residency::ResidencyKind;
 use crate::streaming::{AssetState, StreamedAsset, StreamedMesh};
-use crate::{Ctx, Job};
+use crate::{Ctx, stream::Job};
 
 /// A decoded glTF file waiting for the game thread.
 pub(crate) enum LoadedFile {

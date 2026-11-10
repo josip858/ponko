@@ -8,7 +8,7 @@
 //! panel its ray hits, in the panel's pixels, unless the screen's UI has it.
 
 use ponko::render::Model;
-use ponko::{Ctx, UiPanel3D, Vec3};
+use ponko::{Ctx, Vec3, d3::UiPanel as UiPanel3D};
 
 use crate::ctx::{ctx_access, out};
 use crate::particles::entity;
