@@ -1,6 +1,6 @@
 //! wgpu setup, textures, and the instanced sprite pass.
 
-use crate::render::traffic::{Counted, NewBuffer, Upload};
+use crate::render::traffic::{self, Counted, NewBuffer, Upload};
 use std::sync::Arc;
 
 use glam::Mat4;
@@ -39,6 +39,9 @@ pub(crate) struct Renderer {
 
     pipeline: wgpu::RenderPipeline,
     camera_buffer: wgpu::Buffer,
+    /// What `camera_buffer` and `ui_camera_buffer` hold: a camera that
+    /// didn't move isn't uploaded again.
+    camera_mirrors: [traffic::Mirror; 2],
     camera_bind_group: wgpu::BindGroup,
     /// Window-pixel projection for screen-space drawing (UI, text).
     ui_camera_buffer: wgpu::Buffer,
@@ -567,6 +570,7 @@ impl Renderer {
             image_view_formats,
             pipeline,
             camera_buffer,
+            camera_mirrors: Default::default(),
             camera_bind_group,
             ui_camera_buffer,
             ui_camera_bind_group,
@@ -1380,8 +1384,7 @@ impl Renderer {
             self.stats.collect_ms = self.collect_ms;
         }
 
-        if total > self.instance_capacity {
-            self.instance_capacity = total.next_power_of_two();
+        if traffic::outgrown(&mut self.instance_capacity, total) {
             self.instance_buffer = Self::create_instance_buffer(&self.device, self.instance_capacity);
         }
         if !world.is_empty() {
@@ -1433,15 +1436,22 @@ impl Renderer {
                 format,
             ));
         }
-        self.queue.uploading(Upload::Uniforms).write_buffer(
+        let [world_mirror, ui_mirror] = &mut self.camera_mirrors;
+        let world_camera = world_view.to_cols_array();
+        world_mirror.upload(
+            &self.queue,
+            Upload::Uniforms,
             &self.camera_buffer,
             0,
-            bytemuck::cast_slice(&world_view.to_cols_array()),
+            bytemuck::cast_slice(&world_camera),
         );
-        self.queue.uploading(Upload::Uniforms).write_buffer(
+        let ui_camera = ui_view.to_cols_array();
+        ui_mirror.upload(
+            &self.queue,
+            Upload::Uniforms,
             &self.ui_camera_buffer,
             0,
-            bytemuck::cast_slice(&ui_view.to_cols_array()),
+            bytemuck::cast_slice(&ui_camera),
         );
         // World sprites first, then the UI on top.
         let layers = [

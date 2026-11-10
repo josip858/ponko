@@ -9,6 +9,8 @@ pub(super) struct Environment {
     source_group: wgpu::BindGroup,
     sky_group: wgpu::BindGroup,
     buffers: Vec<wgpu::Buffer>,
+    /// What `buffers[0]` (the sky settings) holds: only changes are uploaded.
+    settings_mirror: crate::render::traffic::Mirror,
     groups: Vec<wgpu::BindGroup>,
     cube: wgpu::RenderPipeline,
     filter: wgpu::RenderPipeline,
@@ -214,6 +216,7 @@ impl Environment {
             source_group,
             sky_group,
             buffers,
+            settings_mirror: Default::default(),
             groups,
             brdf_pending: AtomicBool::new(true),
             dirty: AtomicBool::new(true),
@@ -238,11 +241,10 @@ impl Environment {
             self.dirty.store(true, Ordering::Relaxed);
             self.key = Some(key);
         }
-        queue.uploading(Upload::Uniforms).write_buffer(
-            &self.buffers[0],
-            0,
-            bytemuck::cast_slice(&[[0.0, f32::from(atmosphere), intensity, 0.0], sky, ground, equator]),
-        );
+        let settings = [[0.0, f32::from(atmosphere), intensity, 0.0], sky, ground, equator];
+        let settings = bytemuck::cast_slice(&settings);
+        self.settings_mirror
+            .upload(queue, Upload::Uniforms, &self.buffers[0], 0, settings);
     }
     fn draw(
         encoder: &mut wgpu::CommandEncoder,

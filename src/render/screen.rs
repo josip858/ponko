@@ -26,6 +26,8 @@ pub(super) struct Ao {
     /// Denoising into the screen-space reflections' image.
     blur_wide_pipeline: wgpu::RenderPipeline,
     uniform: wgpu::Buffer,
+    /// What `uniform` holds: only what changed is uploaded.
+    uniform_mirror: crate::render::traffic::Mirror,
     previous: Option<Mat4>,
     frame: u32,
     pub half: bool,
@@ -135,6 +137,7 @@ impl Ao {
             spatial_wide_pipeline,
             blur_wide_pipeline,
             uniform,
+            uniform_mirror: Default::default(),
             previous: None,
             frame: 0,
             half: false,
@@ -172,10 +175,7 @@ impl Ao {
         );
         let valid = self.signature == Some(signature);
         self.signature = Some(signature);
-        queue.uploading(Upload::Uniforms).write_buffer(
-            &self.uniform,
-            0,
-            bytemuck::bytes_of(&Settings {
+        self.uniform_mirror.upload(queue, Upload::Uniforms, &self.uniform, 0, bytemuck::bytes_of(&Settings {
                 inverse: view_proj.inverse().to_cols_array_2d(),
                 projection: view_proj.to_cols_array_2d(),
                 previous: self.previous.unwrap_or(view_proj).to_cols_array_2d(),
@@ -193,8 +193,7 @@ impl Ao {
                     ao.steps.clamp(1, 16) as f32,
                 ],
                 sun: sun.0.normalize_or_zero().extend(sun.1).to_array(),
-            }),
-        );
+            }));
         self.previous = Some(view_proj);
         self.frame = self.frame.wrapping_add(1);
     }

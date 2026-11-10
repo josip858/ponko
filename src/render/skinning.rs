@@ -7,7 +7,7 @@
 //! Where the GPU can't run compute shaders (WebGL2), the CPU poses them
 //! instead.
 
-use crate::render::traffic::{Counted, NewBuffer, Upload};
+use crate::render::traffic::{self, Counted, NewBuffer, Upload};
 
 use super::Vertex;
 use crate::three::SkinFrame;
@@ -245,13 +245,11 @@ impl Skinning {
             return;
         }
         let matrices = skins.matrices.len().max(1);
-        if matrices > self.joint_capacity {
-            self.joint_capacity = matrices.next_power_of_two();
+        if traffic::outgrown(&mut self.joint_capacity, matrices) {
             self.joints = joint_buffer(device, self.joint_capacity);
             self.generation += 1;
         }
-        if skins.weights.len() > self.weight_capacity {
-            self.weight_capacity = skins.weights.len().next_power_of_two();
+        if traffic::outgrown(&mut self.weight_capacity, skins.weights.len()) {
             self.weights = weight_buffer(device, self.weight_capacity);
             self.generation += 1;
         }
@@ -268,8 +266,7 @@ impl Skinning {
                 .uploading(Upload::Skins)
                 .write_buffer(&self.weights, 0, bytemuck::cast_slice(&skins.weights));
         }
-        if self.draws.len() > self.param_capacity {
-            self.param_capacity = self.draws.len().next_power_of_two();
+        if traffic::outgrown(&mut self.param_capacity, self.draws.len()) {
             self.params = param_buffer(device, self.stride, self.param_capacity);
             for slot in self.slots.iter_mut().flatten() {
                 slot.group = None;
@@ -301,6 +298,7 @@ impl Skinning {
             });
             if slot.capacity < count {
                 slot.capacity = count.next_power_of_two();
+                traffic::reallocated();
                 slot.buffer = slot_buffer(device, slot.capacity, usage);
                 slot.group = None;
             }

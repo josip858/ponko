@@ -9,7 +9,7 @@
 //! be resolved up to the output's size; for now the renderer uses one size
 //! for both.
 
-use crate::render::traffic::{Counted, NewBuffer, Upload};
+use crate::render::traffic::{NewBuffer, Upload};
 use glam::Mat4;
 
 use super::gpu3d::HDR_FORMAT;
@@ -84,6 +84,8 @@ pub(super) struct Taa {
     layout: wgpu::BindGroupLayout,
     pipeline: wgpu::RenderPipeline,
     uniform: wgpu::Buffer,
+    /// What `uniform` holds: only what changed is uploaded.
+    uniform_mirror: crate::render::traffic::Mirror,
     sampler: wgpu::Sampler,
 }
 
@@ -232,6 +234,7 @@ impl Taa {
             layout,
             pipeline,
             uniform,
+            uniform_mirror: Default::default(),
             sampler,
         }
     }
@@ -310,15 +313,12 @@ impl Taa {
         }
     }
 
-    pub fn prepare(&self, queue: &wgpu::Queue, resolve: &Resolve) {
+    pub fn prepare(&mut self, queue: &wgpu::Queue, resolve: &Resolve) {
         let size = |(w, h): (u32, u32)| {
             let (w, h) = (w.max(1) as f32, h.max(1) as f32);
             [w, h, 1.0 / w, 1.0 / h]
         };
-        queue.uploading(Upload::Uniforms).write_buffer(
-            &self.uniform,
-            0,
-            bytemuck::bytes_of(&TaaUniform {
+        self.uniform_mirror.upload(queue, Upload::Uniforms, &self.uniform, 0, bytemuck::bytes_of(&TaaUniform {
                 inv_view_proj: resolve.jittered.inverse().to_cols_array_2d(),
                 view_proj: resolve.current.to_cols_array_2d(),
                 previous_view_proj: resolve.previous.to_cols_array_2d(),
@@ -330,8 +330,7 @@ impl Taa {
                     f32::from(resolve.reset),
                     0.0,
                 ],
-            }),
-        );
+            }));
     }
 
     /// Resolves the input and `read` history into history `1 - read` and

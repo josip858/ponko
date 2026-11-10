@@ -25,7 +25,7 @@
 //! Sprites and UI are drawn on top afterwards, without tone mapping.
 
 mod draw_order;
-use crate::render::traffic::{Counted, NewBuffer, Upload};
+use crate::render::traffic::{self, Counted, Mirror, NewBuffer, Synced, Upload};
 mod instances;
 mod passes;
 mod pipeline_cache;
@@ -232,6 +232,16 @@ struct FrameUniform {
     jitter: [f32; 4],
     /// Global illumination's probe grid (see `gi.wgsl`); all zero without.
     gi: [[f32; 4]; 3],
+}
+
+/// The most writes a frame's motion records take (see `Mirror::sync_capped`).
+const MOVED_WRITES: usize = 32;
+
+/// Writes a frame uniform at `at` in `buffer`, whose contents there
+/// `mirror` knows: only the vec4s that changed since the last frame (the
+/// time, the camera when it moved), not the whole uniform for every view.
+fn sync_frame(queue: &wgpu::Queue, buffer: &wgpu::Buffer, at: u64, mirror: &mut Mirror, uniform: &FrameUniform) {
+    mirror.upload(queue, Upload::Uniforms, buffer, at, bytemuck::bytes_of(uniform));
 }
 
 #[path = "skinning.rs"]
@@ -796,6 +806,8 @@ struct ViewTarget {
     depth: wgpu::TextureView,
     resolve: wgpu::TextureView,
     frame_buffer: wgpu::Buffer,
+    /// What `frame_buffer` holds (see `sync_frame`).
+    frame_mirror: Mirror,
     frame_bind_group: wgpu::BindGroup,
     lights: LightTextures,
 }
@@ -870,8 +882,9 @@ pub(crate) struct Renderer3D {
     #[cfg(test)]
     history_reset: HistoryReset,
     /// Models that moved: their instances (see `MovedInstance`) and runs.
-    moved: wgpu::Buffer,
-    moved_capacity: usize,
+    /// Written a vec4 at a time: a model that only moved (and didn't turn)
+    /// changes two of its record's nine, the rest are as the last frame's.
+    moved: Synced,
     moved_runs: Vec<Run>,
     ao: Option<super::screen::Ao>,
     ao_enabled: bool,
@@ -896,6 +909,7 @@ pub(crate) struct Renderer3D {
     bloom_down: wgpu::RenderPipeline,
     bloom_up: wgpu::RenderPipeline,
     post_buffer: wgpu::Buffer,
+    post_mirror: Mirror,
     linear_clamp: wgpu::Sampler,
     /// Bound as the bloom input of the bloom steps themselves.
     black: wgpu::TextureView,
@@ -903,6 +917,8 @@ pub(crate) struct Renderer3D {
     lut: u32,
     bloom: bool,
     frame_buffer: wgpu::Buffer,
+    /// What `frame_buffer` holds (see `sync_frame`).
+    frame_mirror: Mirror,
     /// The physical sky: made into `sky_view` each frame, then drawn behind
     /// everything. Only with an atmosphere.
     sky_view: wgpu::TextureView,
@@ -949,6 +965,8 @@ pub(crate) struct Renderer3D {
     /// the shadow map it draws into): one copy per cascade, each with its
     /// `caster_view_proj`, `shadow_stride` bytes apart.
     shadow_frames: wgpu::Buffer,
+    /// What each copy in `shadow_frames` holds.
+    shadow_mirrors: Vec<Mirror>,
     shadow_stride: u64,
     shadow_bind_group: wgpu::BindGroup,
     /// Each cascade's layer of the shadow map, drawn into.
@@ -980,7 +998,7 @@ pub(crate) struct Renderer3D {
     materials: Vec<GpuMaterial>,
     instances: wgpu::Buffer,
     /// What `instances` holds, so each frame uploads only what changed.
-    instance_mirror: super::traffic::Mirror,
+    instance_mirror: Mirror,
     /// Capacity of `instances`, in instances.
     capacity: usize,
     targets: Option<Targets>,
@@ -1756,8 +1774,14 @@ impl Renderer3D {
             history_camera: None,
             #[cfg(test)]
             history_reset: HistoryReset::default(),
-            moved: Self::moved_buffer(device, 16),
-            moved_capacity: 16,
+            moved: Synced::new(
+                device,
+                "3d moved instances",
+                wgpu::BufferUsages::VERTEX,
+                16 * size_of::<MovedInstance>(),
+                Upload::Instances,
+                (16, 0),
+            ),
             moved_runs: Vec::new(),
             ao: None,
             ao_enabled: false,
@@ -1775,6 +1799,7 @@ impl Renderer3D {
             bloom_down,
             bloom_up,
             post_buffer,
+            post_mirror: Mirror::default(),
             linear_clamp,
             black,
             lut: white,
@@ -1811,6 +1836,7 @@ impl Renderer3D {
             computes: Vec::new(),
             views: Vec::new(),
             shadow_frames,
+            shadow_mirrors: (0..=MAX_SHADOW_VIEWS).map(|_| Mirror::default()).collect(),
             shadow_stride,
             shadow_bind_group,
             shadow_layers,
@@ -1826,6 +1852,7 @@ impl Renderer3D {
             materials: Vec::new(),
             instances: Self::instance_buffer(device, capacity),
             instance_mirror: Default::default(),
+            frame_mirror: Mirror::default(),
             capacity,
             targets: None,
             white,
@@ -1989,6 +2016,7 @@ impl Renderer3D {
             depth: target("3d target camera depth", DEPTH_FORMAT),
             resolve: texture.create_view(&Default::default()),
             frame_buffer,
+            frame_mirror: Mirror::default(),
             frame_bind_group,
             lights,
         };
@@ -2302,15 +2330,6 @@ impl Renderer3D {
     pub fn add_texture_array(&mut self, texture: &wgpu::Texture) -> u32 {
         self.arrays.push(array_view(texture));
         self.arrays.len() as u32 - 1
-    }
-
-    fn moved_buffer(device: &wgpu::Device, capacity: usize) -> wgpu::Buffer {
-        device.new_buffer(&wgpu::BufferDescriptor {
-            label: Some("3d moved instances"),
-            size: (capacity * size_of::<MovedInstance>()) as u64,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        })
     }
 
     fn instance_buffer(device: &wgpu::Device, capacity: usize) -> wgpu::Buffer {
@@ -2903,11 +2922,10 @@ impl Renderer3D {
         // The scene is drawn at `size` and scaled to the window's `window`.
         let size = scaled_size(window, post.render_scale, device.limits().max_texture_dimension_2d);
         let upscaled = size != window;
-        queue.uploading(Upload::Uniforms).write_buffer(
-            &self.post_buffer,
-            0,
-            bytemuck::bytes_of(&PostUniform::new(post, lut.map(|(_, n)| n)).scaled(post, size, window)),
-        );
+        let post_uniform = PostUniform::new(post, lut.map(|(_, n)| n)).scaled(post, size, window);
+        let post_uniform = bytemuck::bytes_of(&post_uniform);
+        self.post_mirror
+            .upload(queue, Upload::Uniforms, &self.post_buffer, 0, post_uniform);
         self.lut = lut.map_or(self.white, |(id, _)| id);
         self.bloom = post.bloom > 0.0;
         // Temporal antialiasing needs compute-class devices; the others get FXAA.
@@ -3165,8 +3183,7 @@ impl Renderer3D {
         {
             return;
         }
-        if total > self.capacity {
-            self.capacity = total.next_power_of_two();
+        if traffic::outgrown(&mut self.capacity, total) {
             self.instances = Self::instance_buffer(device, self.capacity);
             self.instance_mirror.forget();
         }
@@ -3193,13 +3210,10 @@ impl Renderer3D {
         }
         if self.velocity_on && !frame.motion.runs.is_empty() {
             let moved = &frame.motion.instances;
-            if moved.len() > self.moved_capacity {
-                self.moved_capacity = moved.len().next_power_of_two();
-                self.moved = Self::moved_buffer(device, self.moved_capacity);
-            }
-            queue
-                .uploading(Upload::Instances)
-                .write_buffer(&self.moved, 0, bytemuck::cast_slice(moved));
+            // Bound when drawn: a new buffer needs no rebinding.
+            let moved = bytemuck::cast_slice(moved);
+            self.moved.reserve(device, moved.len());
+            self.moved.write_capped(queue, 0, moved, MOVED_WRITES);
             self.moved_runs.extend_from_slice(&frame.motion.runs);
         }
         let scaled = |c, k: f32| {
@@ -3360,9 +3374,7 @@ impl Renderer3D {
         self.environment.bakes.clear();
         self.environment.bakes.extend_from_slice(&frame.probe_bakes);
         self.environment.prepare_bakes(device, &self.render_targets);
-        queue
-            .uploading(Upload::Uniforms)
-            .write_buffer(&self.frame_buffer, 0, bytemuck::bytes_of(&uniform));
+        sync_frame(queue, &self.frame_buffer, 0, &mut self.frame_mirror, &uniform);
         // Each target camera's frame: the same, seen from it.
         for view in &frame.views {
             let Some(target) = self.view_targets.iter().position(|&(id, _)| id == view.target) else {
@@ -3398,16 +3410,13 @@ impl Renderer3D {
                 1.0 / view.size.1.max(1) as f32,
             ];
             theirs.sky_light[3] = (view.camera.y / 1000.0).max(0.0);
-            queue.uploading(Upload::Uniforms).write_buffer(
-                &self.view_targets[target].1.frame_buffer,
-                0,
-                bytemuck::bytes_of(&theirs),
-            );
+            let target = &mut self.view_targets[target].1;
+            sync_frame(queue, &target.frame_buffer, 0, &mut target.frame_mirror, &theirs);
         }
         // Global illumination's probe views: the same, from each probe, lit
         // by their own sun shadow map (one cascade around the grid, not
         // fading out), without point and spot light shadows.
-        if let (Some(g), Some(gi)) = (gi_frame, &self.gi) {
+        if let (Some(g), Some(gi)) = (gi_frame, &mut self.gi) {
             let mut theirs = uniform;
             theirs.cluster_depth = cluster_depth(&g.capture);
             theirs.cluster_view_proj = g.capture_view_proj.to_cols_array_2d();
@@ -3426,9 +3435,7 @@ impl Renderer3D {
                 theirs.previous_view_proj = theirs.view_proj;
                 theirs.camera = probe.extend(1.0).to_array();
                 theirs.sky_light[3] = (probe.y / 1000.0).max(0.0);
-                queue
-                    .uploading(Upload::Uniforms)
-                    .write_buffer(&gi.face_buffers[i], 0, bytemuck::bytes_of(&theirs));
+                sync_frame(queue, &gi.face_buffers[i], 0, &mut gi.face_mirrors[i], &theirs);
             }
         }
         // Copy 0 also serves the sky texture's pass. `camera.w` 0 tells
@@ -3436,26 +3443,35 @@ impl Renderer3D {
         uniform.camera[3] = 0.0;
         for i in 0..frame.cascades.max(1) {
             uniform.caster_view_proj = uniform.sun_view_proj[i.min(MAX_CASCADES - 1)];
-            queue.uploading(Upload::Uniforms).write_buffer(
+            let mirror = &mut self.shadow_mirrors[i];
+            sync_frame(
+                queue,
                 &self.shadow_frames,
                 self.shadow_stride * i as u64,
-                bytemuck::bytes_of(&uniform),
+                mirror,
+                &uniform,
             );
         }
         for i in 0..frame.light_views {
             uniform.caster_view_proj = uniform.light_view_proj[i];
-            queue.uploading(Upload::Uniforms).write_buffer(
+            let (at, mirror) = (MAX_CASCADES + i, &mut self.shadow_mirrors[MAX_CASCADES + i]);
+            sync_frame(
+                queue,
                 &self.shadow_frames,
-                self.shadow_stride * (MAX_CASCADES + i) as u64,
-                bytemuck::bytes_of(&uniform),
+                self.shadow_stride * at as u64,
+                mirror,
+                &uniform,
             );
         }
         if let Some(g) = gi_frame {
             uniform.caster_view_proj = g.sun_view_proj.to_cols_array_2d();
-            queue.uploading(Upload::Uniforms).write_buffer(
+            let mirror = &mut self.shadow_mirrors[MAX_SHADOW_VIEWS];
+            sync_frame(
+                queue,
                 &self.shadow_frames,
                 self.shadow_stride * MAX_SHADOW_VIEWS as u64,
-                bytemuck::bytes_of(&uniform),
+                mirror,
+                &uniform,
             );
         }
         // Targets made for settings that have since changed (a different
@@ -3647,7 +3663,7 @@ impl Renderer3D {
             // No camera of the last frame: the first frame with TAA, or
             // the history was just forgotten.
             let reset = self.taa_previous.is_none();
-            if let Some(taa) = &self.taa {
+            if let Some(taa) = &mut self.taa {
                 taa.prepare(
                     queue,
                     &taa::Resolve {
@@ -4337,7 +4353,7 @@ impl Renderer3D {
                     });
                     pass.set_bind_group(0, &self.frame_bind_group, &[]);
                     pass.set_bind_group(2, &self.no_scene, &[]);
-                    self.draw_models(&mut pass, &self.moved_runs, Kind::Velocity, &self.moved);
+                    self.draw_models(&mut pass, &self.moved_runs, Kind::Velocity, self.moved.buffer());
                 }
                 if self.ao_enabled {
                     self.ao
