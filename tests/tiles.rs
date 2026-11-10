@@ -1,6 +1,7 @@
 //! Sprite sheets, animation and tilemaps, checked headless. The built-in
 //! drawing systems are plain functions, so tests call them directly.
 
+use ponko::d2::Animation;
 #[allow(unused_imports)]
 use ponko::d2::{Sprite, Transform as Transform2D};
 use ponko::prelude::*;

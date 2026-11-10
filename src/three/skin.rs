@@ -36,7 +36,7 @@ pub struct Joint {
 /// models whose [`SkinOf`] points at it): each joint's `pose` is where it
 /// sits relative to its parent this frame, and the mesh's corners follow
 /// the joints they're weighted to. Loaded from a glTF file with
-/// [`Graphics::load_skeleton`](crate::Graphics::load_skeleton), or made in code with
+/// [`Graphics::load_skeleton`](crate::gfx::Graphics::load_skeleton), or made in code with
 /// [`Skeleton::new`]. Cloning one is cheap: the joints are shared.
 ///
 /// A skinned model without a skeleton draws in the pose it was modelled in.

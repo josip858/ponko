@@ -5,8 +5,8 @@ use super::Material;
 use crate::Texture;
 use crate::gfx::Graphics;
 
-/// A screen effect shader, made with [`Graphics::load_effect`](crate::Graphics::load_effect) or
-/// [`Graphics::create_effect`](crate::Graphics::create_effect); a cheap handle. Run it by adding a
+/// A screen effect shader, made with [`Graphics::load_effect`](crate::gfx::Graphics::load_effect) or
+/// [`Graphics::create_effect`](crate::gfx::Graphics::create_effect); a cheap handle. Run it by adding a
 /// [`ScreenEffect`] to [`Ctx::effects`](crate::Ctx::effects).
 ///
 /// ```no_run
@@ -73,7 +73,7 @@ impl ScreenEffect {
     }
 
     /// The same, reading its values and textures from `material`; change
-    /// them with [`Graphics::update_material`](crate::Graphics::update_material) to animate the effect.
+    /// them with [`Graphics::update_material`](crate::gfx::Graphics::update_material) to animate the effect.
     ///
     /// ```no_run
     /// # use ponko::prelude::*;
@@ -108,7 +108,7 @@ impl ScreenEffect {
 /// - materials, target cameras and compute passes, which run earlier, see the
 ///   one from the frame before (all 0 at first).
 ///
-/// **Resources.** `target` must be made by [`Graphics::create_render_target`](crate::Graphics::create_render_target);
+/// **Resources.** `target` must be made by [`Graphics::create_render_target`](crate::gfx::Graphics::create_render_target);
 /// other textures are skipped. Its whole contents are replaced each frame. The
 /// game owns it and keeps it until it stops using it; the engine only writes
 /// it. An entry whose material samples its own `target` can't run (one pass
@@ -128,7 +128,7 @@ impl ScreenEffect {
 pub struct TargetEffect {
     /// The shader, made like a screen effect's.
     pub effect: Effect,
-    /// What it writes: made by [`Graphics::create_render_target`](crate::Graphics::create_render_target).
+    /// What it writes: made by [`Graphics::create_render_target`](crate::gfx::Graphics::create_render_target).
     pub target: Texture,
     /// Where its values and textures come from. `None`: the default
     /// material (all custom values 0).
@@ -194,12 +194,12 @@ impl Graphics {
     /// If the file can't be read or doesn't compile (the message says where).
     /// With hot reload on, a file that doesn't compile doesn't panic: it
     /// gets a stand-in and stays watched until a saved fix compiles
-    /// ([`ShaderOutcome::Failed`](crate::render::ShaderOutcome::Failed), [`Graphics::shader_status`](crate::Graphics::shader_status)).
+    /// ([`ShaderOutcome::Failed`](crate::render::ShaderOutcome::Failed), [`Graphics::shader_status`](crate::gfx::Graphics::shader_status)).
     pub fn load_effect(&mut self, path: &str) -> Effect {
         self.try_load_effect(path).unwrap_or_else(|e| panic!("ponko: {e}"))
     }
 
-    /// [`Graphics::load_effect`](crate::Graphics::load_effect) that returns errors (for the C API).
+    /// [`Graphics::load_effect`](crate::gfx::Graphics::load_effect) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_load_effect(&mut self, path: &str) -> Result<Effect, String> {
         let found = match self
@@ -234,7 +234,7 @@ impl Graphics {
     }
 
     /// Makes a screen effect shader from WGSL source; `name` is for error
-    /// messages. See [`Graphics::load_effect`](crate::Graphics::load_effect) for what it defines.
+    /// messages. See [`Graphics::load_effect`](crate::gfx::Graphics::load_effect) for what it defines.
     ///
     /// ```no_run
     /// # use ponko::prelude::*;
@@ -255,7 +255,7 @@ impl Graphics {
             .unwrap_or_else(|e| panic!("ponko: {e}"))
     }
 
-    /// [`Graphics::create_effect`](crate::Graphics::create_effect) that returns errors (for the C API).
+    /// [`Graphics::create_effect`](crate::gfx::Graphics::create_effect) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_create_effect(&mut self, name: &str, source: &str) -> Result<Effect, String> {
         let id = self.assets3d.effects;

@@ -43,7 +43,7 @@ pub use crate::input::{Key, MouseButton};
 pub use crate::random::{Random, Rng};
 pub use crate::reflect::WorldReflect;
 pub use crate::scene::Placement;
-pub use crate::sheet::{Animation, SpriteSheet};
+pub use crate::sheet::SpriteSheet;
 pub use crate::text::{Font, TextParams};
 pub use crate::texture::{DrawParams, Texture, TextureFilter};
 pub use crate::time::{Time, Turns};

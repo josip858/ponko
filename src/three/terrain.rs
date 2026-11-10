@@ -11,8 +11,8 @@ pub const TERRAIN_LAYERS: usize = 8;
 
 /// What a terrain material is made from: ground layers (grass, dirt, rock,
 /// ...) and a weight map saying how much of each shows where. Made into a
-/// [`Material`] with [`Graphics::create_terrain_material`](crate::Graphics::create_terrain_material) and used for
-/// [`Graphics::create_terrain_tile`](crate::Graphics::create_terrain_tile).
+/// [`Material`] with [`Graphics::create_terrain_material`](crate::gfx::Graphics::create_terrain_material) and used for
+/// [`Graphics::create_terrain_tile`](crate::gfx::Graphics::create_terrain_tile).
 ///
 /// The layers' textures are lined up with the world, not with each tile,
 /// so they run on across tile edges; each repeats every
@@ -125,7 +125,7 @@ impl TerrainMaterialDesc {
 pub const TERRAIN_LODS: usize = 4;
 
 /// A square of terrain from a grid of heights, made with
-/// [`Graphics::create_terrain_tile`](crate::Graphics::create_terrain_tile). Spawn it with a [`Transform3D`](crate::d3::Transform)
+/// [`Graphics::create_terrain_tile`](crate::gfx::Graphics::create_terrain_tile). Spawn it with a [`Transform3D`](crate::d3::Transform)
 /// at the tile's corner, instead of a [`Model`](crate::render::Model). The renderer
 /// picks a detail level by how far the camera is: the full grid nearer than
 /// `lod_distance`, then every 2nd height to twice that, every 4th to four
@@ -184,7 +184,7 @@ pub(crate) fn lod_at(distance: f32, lod_distance: f32) -> usize {
 impl Graphics {
     /// Makes a material for terrain from ground layers and a weight map
     /// (see [`TerrainMaterialDesc`]). It's an ordinary [`Material`]: give
-    /// it to [`Graphics::create_terrain_tile`](crate::Graphics::create_terrain_tile), or to any mesh.
+    /// it to [`Graphics::create_terrain_tile`](crate::gfx::Graphics::create_terrain_tile), or to any mesh.
     ///
     /// ```no_run
     /// # use ponko::prelude::*;
@@ -204,7 +204,7 @@ impl Graphics {
             .unwrap_or_else(|e| panic!("ponko: create_terrain_material: {e}"))
     }
 
-    /// [`Graphics::create_terrain_material`](crate::Graphics::create_terrain_material) that returns errors (for the C API).
+    /// [`Graphics::create_terrain_material`](crate::gfx::Graphics::create_terrain_material) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_create_terrain_material(&mut self, desc: &TerrainMaterialDesc) -> Result<Material, String> {
         desc.check()?;
@@ -269,7 +269,7 @@ impl Graphics {
     }
 
     /// Puts a tile's meshes, made by [`TerrainTileData::new`] (on any
-    /// thread), on the GPU: the fast half of [`Graphics::create_terrain_tile`](crate::Graphics::create_terrain_tile),
+    /// thread), on the GPU: the fast half of [`Graphics::create_terrain_tile`](crate::gfx::Graphics::create_terrain_tile),
     /// for tiles streamed in while the game runs.
     ///
     /// ```
@@ -294,7 +294,7 @@ impl Graphics {
     }
 
     /// Frees the GPU memory of every detail level of `tile` (see
-    /// [`Graphics::free_mesh`](crate::Graphics::free_mesh)); despawn its entity too.
+    /// [`Graphics::free_mesh`](crate::gfx::Graphics::free_mesh)); despawn its entity too.
     ///
     /// ```
     /// # use ponko::prelude::*;
@@ -314,7 +314,7 @@ impl Graphics {
 
 /// The meshes of a terrain tile at every detail level, made on the CPU
 /// from its heights: build them on a worker thread with a [`Job`](crate::stream::Job),
-/// then [`Graphics::upload_terrain_tile`](crate::Graphics::upload_terrain_tile) on the game's.
+/// then [`Graphics::upload_terrain_tile`](crate::gfx::Graphics::upload_terrain_tile) on the game's.
 ///
 /// ```
 /// # use ponko::prelude::*;
@@ -329,7 +329,7 @@ pub struct TerrainTileData {
 
 impl TerrainTileData {
     /// A tile `size` wide from a square grid of heights, as
-    /// [`Graphics::create_terrain_tile`](crate::Graphics::create_terrain_tile) takes them.
+    /// [`Graphics::create_terrain_tile`](crate::gfx::Graphics::create_terrain_tile) takes them.
     ///
     /// ```
     /// # use ponko::prelude::*;
@@ -400,7 +400,7 @@ pub struct Heightfield {
 
 impl Heightfield {
     /// A tile `size` wide from n × n heights, as
-    /// [`Graphics::create_terrain_tile`](crate::Graphics::create_terrain_tile) takes them (NaN for a hole).
+    /// [`Graphics::create_terrain_tile`](crate::gfx::Graphics::create_terrain_tile) takes them (NaN for a hole).
     ///
     /// ```
     /// # use ponko::prelude::*;

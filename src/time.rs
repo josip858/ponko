@@ -20,21 +20,6 @@
 
 use crate::Entity;
 
-/// A point in time for measuring how long something took, like
-/// `std::time::Instant` (which it is, on desktop), but also working in web
-/// builds, where `std::time::Instant::now()` panics. Re-exported from
-/// `web-time`.
-///
-/// ```
-/// use ponko::prelude::*;
-/// let nav = ponko::flow::NavGrid::new(256, 256, 8.0);
-/// let mut field = ponko::flow::FlowField::new();
-/// let start = ponko::time::Instant::now();
-/// field.compute(&nav, &[vec2(40.0, 40.0)]);
-/// println!("flow field in {:.2} ms", start.elapsed().as_secs_f64() * 1000.0);
-/// ```
-pub use web_time::Instant;
-
 /// Longest frame delta the engine will accept, in seconds.
 ///
 /// A stall (dragging the window, a breakpoint, a slow asset load) would otherwise

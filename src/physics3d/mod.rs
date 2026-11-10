@@ -739,7 +739,7 @@ impl Physics3D {
     }
 
     /// Ground for a terrain tile, from the same heights and size as
-    /// [`Graphics::create_terrain_tile`](crate::Graphics::create_terrain_tile) (n × n
+    /// [`Graphics::create_terrain_tile`](crate::gfx::Graphics::create_terrain_tile) (n × n
     /// heights, row by row along +Z, each row along +X; NaN for a hole), so
     /// the collider matches the drawn ground triangle for triangle. Give it
     /// to a [`TerrainCollider`] on the tile's entity (or a fixed body at the

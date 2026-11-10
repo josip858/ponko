@@ -356,7 +356,7 @@ pub struct NetMessages {
     links: BTreeMap<PeerId, Link>,
     next_peer: u64,
     now: Duration,
-    last_poll: crate::time::Instant,
+    last_poll: crate::perf::Instant,
     timeout: Duration,
     events: VecDeque<MessageEvent>,
     event_bytes: usize,
@@ -395,7 +395,7 @@ impl NetMessages {
             links: BTreeMap::new(),
             next_peer: 1,
             now: Duration::ZERO,
-            last_poll: crate::time::Instant::now(),
+            last_poll: crate::perf::Instant::now(),
             timeout: Duration::from_secs(10),
             events: VecDeque::new(),
             event_bytes: 0,
@@ -575,7 +575,7 @@ impl NetMessages {
     /// nets[0].poll_elapsed(std::time::Duration::from_millis(16)).unwrap();
     /// ```
     pub fn poll_elapsed(&mut self, elapsed: Duration) -> io::Result<()> {
-        self.last_poll = crate::time::Instant::now();
+        self.last_poll = crate::perf::Instant::now();
         self.now = self.now.saturating_add(elapsed);
         if self.events.len() >= EVENT_LIMIT || self.event_bytes >= CHANNEL_MEMORY {
             return Err(io::Error::new(

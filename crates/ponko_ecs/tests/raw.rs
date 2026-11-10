@@ -50,3 +50,31 @@ fn a_shared_raw_view_hands_out_borrows_of_the_world() {
     let tables = world.raw_ref().archetypes();
     assert!(!tables.is_empty());
 }
+
+#[test]
+#[allow(deprecated)]
+fn the_old_unsafe_world_spellings_spawn_and_insert_through_the_raw_view() {
+    let mut world = World::new();
+    world.spawn((0u32, 0u64));
+    let small = world.component_id::<u32>().unwrap();
+    let big = world.component_id::<u64>().unwrap();
+    let (a, b, c) = (5u32, 6u64, 7u32);
+    // SAFETY: each pointer points to a valid value of its component, which
+    // needs no drop, so the world may take a copy.
+    let spawned = unsafe { world.spawn_dynamic(&[(small, (&a as *const u32).cast())]) };
+    assert_eq!(world.get::<u32>(spawned), Some(&5));
+    // SAFETY: as above.
+    assert!(unsafe { world.insert_dynamic(spawned, big, (&b as *const u64).cast()) });
+    assert_eq!(world.get::<u64>(spawned), Some(&6));
+    let saved = ponko_ecs::Entity::from_bits(9 | 3 << 32);
+    // SAFETY: as above.
+    assert!(unsafe { world.spawn_at_dynamic(saved, &[(small, (&c as *const u32).cast())]) });
+    assert_eq!(world.get::<u32>(saved), Some(&7));
+    // SAFETY: as above; the slot is taken now, so nothing is spawned.
+    assert!(!unsafe { world.spawn_at_dynamic(saved, &[(small, (&c as *const u32).cast())]) });
+    // A dead entity takes nothing.
+    world.despawn(spawned);
+    // SAFETY: as above.
+    assert!(!unsafe { world.insert_dynamic(spawned, small, (&a as *const u32).cast()) });
+    assert_eq!(world.len(), 2);
+}

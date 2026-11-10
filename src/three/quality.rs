@@ -362,7 +362,7 @@ impl GraphicsQuality {
     /// where they're unavailable; shadow maps and the light shadow atlas
     /// shrink to the largest texture the GPU allows. Asking for more is
     /// never a GPU error (the renderer falls back by itself); fitting makes
-    /// [`Graphics::quality`](crate::Graphics::quality) say what is drawn, for an options menu.
+    /// [`Graphics::quality`](crate::gfx::Graphics::quality) say what is drawn, for an options menu.
     /// ```
     /// use ponko::prelude::*;
     /// let q = ponko::render::GraphicsQuality::ultra().fitted_to(&ponko::render::GpuTier::WebGl2.report());

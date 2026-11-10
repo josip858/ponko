@@ -128,13 +128,13 @@ fn main() {
         let side = (n as f32 / 20_000.0).sqrt() * 1280.0;
         let bounds = Vec2::splat(side);
         let ticks = env_number("TICKS", 300.0) as u64;
-        let mut start = ponko::time::Instant::now();
+        let mut start = ponko::perf::Instant::now();
         let world = Game::new("boids", 1, 1)
             .sim_system(flocking(bounds))
             // The two-argument form may borrow a local, here the timer.
             .run_headless(ticks, |ctx| {
                 spawn_boids(ctx, n, bounds);
-                start = ponko::time::Instant::now();
+                start = ponko::perf::Instant::now();
             });
         let secs = start.elapsed().as_secs_f64();
         println!(

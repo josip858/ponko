@@ -409,5 +409,17 @@ pub use crate::scope::{ProfileScope, ScopeGuard, ScopeTiming, scope_named};
 /// Named profiling scopes.
 pub use crate::profile_scope;
 
-/// Portable measurement clock (also works in browsers).
+/// A point in time for measuring how long something took, like
+/// `std::time::Instant` (which it is, on desktop), but also working in web
+/// builds, where `std::time::Instant::now()` panics. Re-exported from
+/// `web-time`.
+///
+/// ```
+/// use ponko::prelude::*;
+/// let nav = ponko::flow::NavGrid::new(256, 256, 8.0);
+/// let mut field = ponko::flow::FlowField::new();
+/// let start = ponko::perf::Instant::now();
+/// field.compute(&nav, &[vec2(40.0, 40.0)]);
+/// println!("flow field in {:.2} ms", start.elapsed().as_secs_f64() * 1000.0);
+/// ```
 pub use web_time::Instant;

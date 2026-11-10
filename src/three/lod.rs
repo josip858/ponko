@@ -80,7 +80,7 @@ impl LodRenderer {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub enum LodShadow {
     /// Its own meshes cast the shadow (those with shadows turned on, see
-    /// [`Graphics::set_mesh_shadows`](crate::Graphics::set_mesh_shadows)).
+    /// [`Graphics::set_mesh_shadows`](crate::gfx::Graphics::set_mesh_shadows)).
     #[default]
     Same,
     /// These meshes cast the shadow instead and are not drawn for the

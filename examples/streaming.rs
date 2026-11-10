@@ -155,7 +155,7 @@ fn main() {
                 if let Tile::Building(job) = tile
                     && let Some(data) = job.take()
                 {
-                    let start = ponko::time::Instant::now();
+                    let start = ponko::perf::Instant::now();
                     let made = ctx.gfx.upload_terrain_tile(&data, ground);
                     let entity = ctx.world.spawn((Transform::at(cells.corner(cell)), made));
                     let took = start.elapsed().as_secs_f64() * 1000.0;

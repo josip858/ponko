@@ -258,8 +258,5 @@ pub use crate::ui::UiPanel3D as UiPanel;
 #[cfg(any(feature = "physics", feature = "physics3d"))]
 #[doc(inline)]
 pub use crate::collision::{BodyKind, CollisionStarted, CollisionStopped};
-#[cfg(feature = "physics3d")]
-#[doc(inline)]
-pub use crate::physics3d::{interpolate_physics3d as interpolate_physics, step_physics3d as step_physics};
 #[doc(inline)]
 pub use crate::three::StreamedLod;

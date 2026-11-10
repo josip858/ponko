@@ -131,7 +131,7 @@ pub mod texture;
 #[cfg(feature = "3d")]
 mod three;
 pub mod tilemap;
-pub mod time;
+mod time;
 pub mod ui;
 #[cfg(all(target_arch = "wasm32", feature = "window"))]
 mod web;
@@ -174,7 +174,7 @@ pub use reflect::{FieldType, WorldReflect};
 #[doc(hidden)]
 pub use schema::ValueSchema;
 #[doc(hidden)]
-pub use sheet::{Animation, SpriteSheet};
+pub use sheet::SpriteSheet;
 #[doc(hidden)]
 pub use spatial::RawGridView;
 /// The Steamworks SDK (re-exported `steamworks` crate, feature `steam`):
@@ -207,9 +207,13 @@ pub use ponko_ecs::{
     Added, Changed, Commands, Component, Entity, Or, Query, QueryFilter, Tick, ViewQuery, With, Without, World,
 };
 
-/// The full ECS crate, for advanced use (C path, chunks, archetypes).
-#[doc(hidden)]
-pub use ponko_ecs as ecs_core;
+/// The whole ECS crate ([`ponko_ecs`]), for advanced use: component ids,
+/// read-only world views, the dynamic and C path ([`World::raw`]), chunks
+/// and archetypes. Games normally need only the ECS types in the prelude.
+pub mod ecs_core {
+    #[doc(no_inline)]
+    pub use ponko_ecs::*;
+}
 
 /// 3D and 4D vectors, rotation and 4x4 matrix, for 3D (re-exported from `glam`).
 #[cfg(feature = "3d")]

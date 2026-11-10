@@ -91,7 +91,7 @@ pub struct RenderStats {
     /// 3D pipeline variants built while drawing (crossfading level-of-detail
     /// models, buffer-driven instances), each the first time a frame needed
     /// it. Each one costs several milliseconds inside its frame; call
-    /// [`Graphics::warm_render_pipelines`](crate::Graphics::warm_render_pipelines)
+    /// [`Graphics::warm_render_pipelines`](crate::gfx::Graphics::warm_render_pipelines)
     /// while loading to build them up front. Always 0 without the `3d` feature.
     pub pipelines_built: usize,
     /// What the renderer sent to the GPU since the frame before: bytes

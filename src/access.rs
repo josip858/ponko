@@ -40,7 +40,7 @@
 //! 1. **View systems enforce it.** A system registered with
 //!    [`Game::add_view`](crate::Game::add_view) gets a
 //!    [`SystemView`](crate::system_view::SystemView) instead of `&mut Ctx`: a restricted
-//!    [`WorldView`](crate::WorldView) of its declared components and
+//!    [`WorldView`](crate::ecs_core::WorldView) of its declared components and
 //!    resources, and checked access to its events, commands and services,
 //!    in every build. Nothing else is reachable, so such a system can't go
 //!    beyond its declaration. Only view systems may ever share a parallel

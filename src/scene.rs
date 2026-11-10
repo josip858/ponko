@@ -56,7 +56,7 @@ impl Ctx {
     /// | 2D and 3D physics | Bodies, characters and joints are removed at once (queries find nothing), then built from the new components at the next physics step, from rest unless the scene has a velocity component. Gravity, collision meshes, contact hooks and settings are kept. |
     /// | [`spatial`](Self::spatial) neighbor grid | Refilled at the start of the next simulation tick. |
     /// | 3D navigation (`NavMesh3D`, with the `navmesh` feature) | The baked mesh, a resource, is kept. Crowd agents are components, so they go with their entities; `step_navmesh3d` frees the old agents' crowd slots at its next step, and agents added to the new scene's entities (even with the same ids) start from where they are. |
-    /// | [`Attached`](crate::Attached) | Reflected: the scene's attachments, to the scene's entities. [`follow_attachments`](crate::follow_attachments) places them at its next run and despawns those whose entity isn't in the scene. |
+    /// | [`Attached`](crate::d2::Attached) | Reflected: the scene's attachments, to the scene's entities. [`follow_attachments`](crate::systems::follow_attachments) places them at its next run and despawns those whose entity isn't in the scene. |
     /// | Skeletons, joint attachments, skinned and morphing models | Components: gone with their entities unless the game adds them again. The engine's skinning scratch is rebuilt every frame from the world as it is. |
     /// | Assets | Textures, meshes and collision files the scene names are loaded first and stay cached. Loaded assets are never unloaded by a load. |
     /// | Prefabs | Kept: files [`spawn_prefab`](Self::spawn_prefab) read stay cached, so spawning one after a load doesn't read it again. |
@@ -362,8 +362,17 @@ fn spawn_at(world: &mut crate::World, mut components: Value, at: Placement) -> R
     world.spawn_json(components).map_err(|e| e.to_string())
 }
 
-/// Dimension-specific placement for prefab spawning. Serialized component names stay stable.
+/// Where [`Ctx::spawn_prefab`](crate::Ctx::spawn_prefab) puts a prefab: a
+/// `Vec2` or `Vec3` moves it and keeps its saved rotation and scale; a
+/// `d2::Transform` or `d3::Transform` sets all three. Serialized component
+/// names stay stable. Variants depend on features (`3d`), so the enum is
+/// `#[non_exhaustive]`: build one with `.into()` or `Placement::from`.
+///
+/// `spawn_prefab` takes `impl Into<Placement>`, so an argument whose type the
+/// compiler used to infer as `Vec2` (`Default::default()`, `(x, y).into()`)
+/// now needs its type written out: `Vec2::ZERO`, `vec2(x, y)`.
 #[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
 pub enum Placement {
     /// Repositions a 2D prefab, preserving saved rotation and scale.
     Position2(crate::Vec2),

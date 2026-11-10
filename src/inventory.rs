@@ -17,10 +17,10 @@ use crate::ctx::Ctx;
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum AssetClass {
-    /// Images from [`Graphics::create_texture`](crate::Graphics::create_texture) and [`Ctx::load_texture`]
+    /// Images from [`Graphics::create_texture`](crate::gfx::Graphics::create_texture) and [`Ctx::load_texture`]
     /// (fonts and UI images too). Never freed.
     Texture,
-    /// 3D: textures cameras draw into ([`Graphics::create_render_target`](crate::Graphics::create_render_target)). Never freed.
+    /// 3D: textures cameras draw into ([`Graphics::create_render_target`](crate::gfx::Graphics::create_render_target)). Never freed.
     RenderTarget,
     /// 3D: [`TextureArray`](crate::terrain::TextureArray)s. Never freed.
     TextureArray,
@@ -28,7 +28,7 @@ pub enum AssetClass {
     Material,
     /// 3D: material [`Shader`](crate::render::Shader)s. Never freed.
     Shader,
-    /// 3D: [`Mesh`](crate::render::Mesh)es, freed with [`Graphics::free_mesh`](crate::Graphics::free_mesh).
+    /// 3D: [`Mesh`](crate::render::Mesh)es, freed with [`Graphics::free_mesh`](crate::gfx::Graphics::free_mesh).
     Mesh,
     /// 3D: [`GpuBuffer`](crate::render::GpuBuffer)s, freed with [`Ctx::free`](crate::Ctx::free).
     GpuBuffer,

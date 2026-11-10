@@ -35,7 +35,7 @@ use crate::gfx::Graphics;
 pub struct TargetCamera {
     /// Where it looks from. Its aspect ratio follows the target's size.
     pub camera: Camera3D,
-    /// Made by [`Graphics::create_render_target`](crate::Graphics::create_render_target); other textures are skipped.
+    /// Made by [`Graphics::create_render_target`](crate::gfx::Graphics::create_render_target); other textures are skipped.
     pub target: Texture,
     /// Only what lies on the front of this plane is drawn: `(normal, d)`,
     /// keeping points where `normal.dot(p) + d >= 0`. For reflections,
@@ -145,7 +145,7 @@ impl Graphics {
             .unwrap_or_else(|e| panic!("ponko: {e}"))
     }
 
-    /// [`Graphics::create_render_target`](crate::Graphics::create_render_target) that returns errors (for the C API).
+    /// [`Graphics::create_render_target`](crate::gfx::Graphics::create_render_target) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_create_render_target(&mut self, width: u32, height: u32) -> Result<Texture, String> {
         let texture = self.make_render_target(width, height)?;
@@ -153,7 +153,7 @@ impl Graphics {
         Ok(texture)
     }
 
-    /// [`Graphics::try_create_render_target`](crate::Graphics::try_create_render_target) for the engine's own targets
+    /// [`Graphics::try_create_render_target`](crate::gfx::Graphics::try_create_render_target) for the engine's own targets
     /// (reflection probe faces): not the game's to free or count.
     pub(crate) fn make_render_target(&mut self, width: u32, height: u32) -> Result<Texture, String> {
         if width == 0 || height == 0 {

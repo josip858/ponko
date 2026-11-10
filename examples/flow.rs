@@ -46,7 +46,7 @@ struct Paths {
 
 impl Paths {
     fn set_goal(&mut self, goal: Vec2) {
-        let start = ponko::time::Instant::now();
+        let start = ponko::perf::Instant::now();
         self.goal = goal;
         self.flow.compute(&self.nav, &[goal]);
         self.compute_ms = start.elapsed().as_secs_f32() * 1000.0;
@@ -268,7 +268,7 @@ fn main() {
     let agents = env_number("AGENTS", 20_000.0) as usize;
     if env_number("HEADLESS", 0.0) != 0.0 {
         let ticks = env_number("TICKS", 600.0) as u64;
-        let mut start = ponko::time::Instant::now();
+        let mut start = ponko::perf::Instant::now();
         let mut rng = Rng::new(99);
         let mut field_ms = Vec::new();
         Game::new("flow", 1, 1)
@@ -291,7 +291,7 @@ fn main() {
             // The two-argument form may borrow a local, here the timer.
             .run_headless(ticks, |ctx| {
                 setup(ctx, agents, None);
-                start = ponko::time::Instant::now();
+                start = ponko::perf::Instant::now();
             });
         let secs = start.elapsed().as_secs_f64();
         println!(

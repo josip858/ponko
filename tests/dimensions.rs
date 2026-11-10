@@ -1,14 +1,18 @@
 //! Dimension modules preserve component identity, serialized names and query behavior.
 use ponko::prelude::*;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 mod common;
 
 #[cfg(feature = "physics")]
 #[test]
 fn filtered_2d_queries_exclude_entities_and_sensors_without_changing_legacy_calls() {
     use ponko::d2::*;
+    let ran = Arc::new(AtomicBool::new(false));
+    let checked = ran.clone();
     Game::new("queries", 1, 1)
         .physics(Vec2::ZERO)
-        .sim_system(|ctx| {
+        .sim_system(move |ctx| {
             let solid = ctx.world.resource::<Entity>();
             let hit: Hit = ctx
                 .physics
@@ -41,6 +45,22 @@ fn filtered_2d_queries_exclude_entities_and_sensors_without_changing_legacy_call
             assert!(found.is_empty());
             assert!(ctx.physics.mass(*solid).is_some());
             assert!(ctx.physics.apply_impulse(*solid, Vec2::ZERO));
+            // Degenerate queries behave as in 3D: no hit from a non-finite
+            // origin, and a negative or NaN radius is a tiny circle.
+            let nan = vec2(f32::NAN, 0.0);
+            assert!(
+                ctx.physics
+                    .cast_ray_filtered(nan, Vec2::X, 100.0, QueryFilter::default())
+                    .is_none()
+            );
+            assert!(ctx.physics.cast_ray(vec2(f32::INFINITY, 0.0), Vec2::X, 100.0).is_none());
+            ctx.physics
+                .overlap_ball(vec2(10.0, 0.0), -1.0, QueryFilter::default(), &mut found);
+            assert_eq!(found, vec![*solid]);
+            ctx.physics
+                .overlap_circle(vec2(10.0, 0.0), f32::NAN, QueryFilter::default(), &mut found);
+            assert_eq!(found, vec![*solid]);
+            checked.store(true, Ordering::Relaxed);
         })
         .run_headless(1, |ctx| {
             let solid = ctx.world.spawn((
@@ -55,6 +75,7 @@ fn filtered_2d_queries_exclude_entities_and_sensors_without_changing_legacy_call
                 Collider::circle(1.0).sensor(),
             ));
         });
+    assert!(ran.load(Ordering::Relaxed), "the query system ran and checked");
 }
 
 #[cfg(feature = "physics3d")]
@@ -62,9 +83,11 @@ fn filtered_2d_queries_exclude_entities_and_sensors_without_changing_legacy_call
 fn filtered_3d_queries_use_the_same_spelling_and_hit_fields() {
     #[cfg(feature = "3d")]
     use ponko::d3::*;
+    let ran = Arc::new(AtomicBool::new(false));
+    let checked = ran.clone();
     Game::new("queries", 1, 1)
         .physics3d(Vec3::ZERO)
-        .sim_system(|ctx| {
+        .sim_system(move |ctx| {
             let solid = *ctx.world.resource::<Entity>();
             let hit: Hit = ctx
                 .physics3d
@@ -98,6 +121,7 @@ fn filtered_3d_queries_use_the_same_spelling_and_hit_fields() {
             assert_eq!(found.len(), 1);
             assert!(ctx.physics3d.mass(solid).is_some());
             assert!(ctx.physics3d.apply_impulse(solid, Vec3::ZERO));
+            checked.store(true, Ordering::Relaxed);
         })
         .run_headless(1, |ctx| {
             let solid = ctx.world.spawn((
@@ -112,6 +136,7 @@ fn filtered_3d_queries_use_the_same_spelling_and_hit_fields() {
                 Collider::sphere(1.0).sensor(),
             ));
         });
+    assert!(ran.load(Ordering::Relaxed), "the query system ran and checked");
 }
 
 #[cfg(feature = "3d")]

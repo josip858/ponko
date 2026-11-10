@@ -525,7 +525,7 @@ impl Ctx {
 
     /// Uploads queued assets in order, within the budget.
     fn upload_step(&mut self) {
-        let start = crate::time::Instant::now();
+        let start = crate::perf::Instant::now();
         let budget = self.gfx.streaming.budget.unwrap_or(u64::MAX);
         let (mut spent, mut uploads) = (0u64, 0u32);
         let mut later = Vec::new();

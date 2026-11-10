@@ -294,6 +294,7 @@ pub struct QueryFilter {
 }
 impl QueryFilter {
     /// Excludes one entity.
+    #[must_use]
     pub fn exclude(self, entity: Entity) -> Self {
         Self {
             exclude: Some(entity),
@@ -301,6 +302,7 @@ impl QueryFilter {
         }
     }
     /// Includes sensors.
+    #[must_use]
     pub fn with_sensors(self) -> Self {
         Self { sensors: true, ..self }
     }
@@ -442,6 +444,7 @@ impl Physics {
 
     /// Closest solid hit, with the same explicit filter convention as 3D.
     /// The three-argument `cast_ray` remains available for source compatibility.
+    /// A zero direction or a non-finite origin hits nothing, as in 3D.
     pub fn cast_ray_filtered(
         &self,
         origin: Vec2,
@@ -450,7 +453,7 @@ impl Physics {
         filter: QueryFilter,
     ) -> Option<RayHit> {
         let dir = direction.normalize_or_zero();
-        if dir == Vec2::ZERO {
+        if dir == Vec2::ZERO || !origin.is_finite() {
             return None;
         }
         let ray = rp::Ray::new(to_rp(origin), to_rp(dir));
@@ -503,10 +506,11 @@ impl Physics {
         self.overlap_circle(center, radius, filter, out);
     }
 
-    /// Every collider overlapping a circle; clears `out` first.
+    /// Every collider overlapping a circle; clears `out` first. A radius
+    /// below `f32::EPSILON` (or NaN) is treated as that tiny circle, as in 3D.
     pub fn overlap_circle(&self, center: Vec2, radius: f32, filter: QueryFilter, out: &mut Vec<Entity>) {
         out.clear();
-        let ball = rp::Ball::new(radius);
+        let ball = rp::Ball::new(radius.max(f32::EPSILON));
         let pose = rp::Pose::from_translation(to_rp(center));
         for (handle, _) in self.world.intersect_shape(pose, &ball, self.query_filter(filter)) {
             out.extend(self.entity_of(handle));

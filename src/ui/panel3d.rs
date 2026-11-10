@@ -19,7 +19,7 @@ use crate::{Ctx, Entity, MouseButton, Texture};
 /// plane, centered on it, facing +Z (what [`mesh`](Self::mesh) makes). The
 /// mouse uses the nearest panel the camera ray through it hits, unless the
 /// screen's own UI has it; the panel clicked last also gets the keyboard.
-/// [`Graphics::create_ui_panel`](crate::Graphics::create_ui_panel) makes the texture, material and mesh at once.
+/// [`Graphics::create_ui_panel`](crate::gfx::Graphics::create_ui_panel) makes the texture, material and mesh at once.
 ///
 /// ```
 /// # use ponko::prelude::*;
@@ -35,7 +35,7 @@ pub struct UiPanel3D {
     /// Its widgets, events, focus and screens.
     pub ui: Ui,
     /// What it's drawn into each frame: a render target
-    /// ([`Graphics::create_render_target`](crate::Graphics::create_render_target)) whose size is the panel's in pixels.
+    /// ([`Graphics::create_render_target`](crate::gfx::Graphics::create_render_target)) whose size is the panel's in pixels.
     pub texture: Texture,
     /// Its size in the world, in meters.
     pub size: Vec2,
@@ -193,7 +193,7 @@ impl Graphics {
             .unwrap_or_else(|message| panic!("{message}"))
     }
 
-    /// [`Graphics::create_ui_panel`](crate::Graphics::create_ui_panel) that returns errors (for the C API).
+    /// [`Graphics::create_ui_panel`](crate::gfx::Graphics::create_ui_panel) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_create_ui_panel(
         &mut self,

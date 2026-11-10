@@ -669,8 +669,8 @@ impl Assets {
     /// Adds a place to load named assets from. Added sources are asked in
     /// the order they were added, all before the `assets/` folder.
     ///
-    /// Every load by name goes through it: [`load_texture`](crate::Graphics::load_texture),
-    /// [`load_font`](crate::Graphics::load_font), [`load_resource`](Self::load_resource),
+    /// Every load by name goes through it: [`load_texture`](crate::gfx::Graphics::load_texture),
+    /// [`load_font`](crate::gfx::Graphics::load_font), [`load_resource`](Self::load_resource),
     /// [`load_scene`](crate::Ctx::load_scene), [`spawn_prefab`](crate::Ctx::spawn_prefab)
     /// (and the textures their scenes name), [`load_sound`](crate::audio::Audio::load),
     /// [`load_with`](Self::load_with) and, with the `3d` feature,

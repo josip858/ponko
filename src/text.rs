@@ -10,7 +10,7 @@ use glam::Vec2;
 
 use crate::color::Color;
 
-/// A loaded font. Get one from [`Graphics::load_font`](crate::Graphics::load_font);
+/// A loaded font. Get one from [`Graphics::load_font`](crate::gfx::Graphics::load_font);
 /// [`Font::DEFAULT`] is always there.
 ///
 /// ```
@@ -33,7 +33,7 @@ impl Font {
     pub const DEFAULT: Font = Font(0);
 }
 
-/// Optional settings for [`Graphics::draw_text_ex`](crate::Graphics::draw_text_ex).
+/// Optional settings for [`Graphics::draw_text_ex`](crate::gfx::Graphics::draw_text_ex).
 ///
 /// ```
 /// # use ponko::prelude::*;

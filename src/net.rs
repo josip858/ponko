@@ -22,7 +22,7 @@ use std::time::Duration;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-use crate::time::Instant;
+use crate::perf::Instant;
 use crate::{World, WorldReflect};
 
 #[cfg(test)]

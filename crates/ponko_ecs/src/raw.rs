@@ -191,6 +191,10 @@ impl<'a> RawWorld<'a> {
     }
 
     /// The archetype tables, for tools such as the inspector.
+    ///
+    /// The slice borrows this view, so it can't outlive a temporary
+    /// `world.raw()`. To keep it, take it from the shared view instead:
+    /// `let tables = world.raw_ref().archetypes();` borrows the world itself.
     #[must_use]
     #[inline]
     pub fn archetypes(&self) -> &[Archetype] {

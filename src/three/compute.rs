@@ -6,8 +6,8 @@ use super::Material;
 use crate::gfx::Graphics;
 use crate::{Texture, Vec3};
 
-/// A compute pass shader, made with [`Graphics::load_compute`](crate::Graphics::load_compute) or
-/// [`Graphics::create_compute`](crate::Graphics::create_compute); a cheap handle. Run it by adding a
+/// A compute pass shader, made with [`Graphics::load_compute`](crate::gfx::Graphics::load_compute) or
+/// [`Graphics::create_compute`](crate::gfx::Graphics::create_compute); a cheap handle. Run it by adding a
 /// [`ComputePass`] to [`Ctx::compute_passes`](crate::Ctx::compute_passes).
 ///
 /// ```no_run
@@ -58,7 +58,7 @@ impl Compute {
 pub struct ComputePass {
     /// The shader.
     pub compute: Compute,
-    /// What it updates: made by [`Graphics::create_render_target`](crate::Graphics::create_render_target); other
+    /// What it updates: made by [`Graphics::create_render_target`](crate::gfx::Graphics::create_render_target); other
     /// textures are skipped.
     pub target: Texture,
     /// Storage buffer target, instead of `target`, when present.
@@ -105,7 +105,7 @@ impl ComputePass {
     }
 
     /// The same, reading its values and textures from `material`; change
-    /// them with [`Graphics::update_material`](crate::Graphics::update_material) to steer the simulation.
+    /// them with [`Graphics::update_material`](crate::gfx::Graphics::update_material) to steer the simulation.
     ///
     /// ```no_run
     /// # use ponko::prelude::*;
@@ -151,12 +151,12 @@ impl Graphics {
     /// If the file can't be read or doesn't compile (the message says where).
     /// With hot reload on, a file that doesn't compile doesn't panic: it
     /// gets a stand-in and stays watched until a saved fix compiles
-    /// ([`crate::render::ShaderOutcome::Failed`], [`Graphics::shader_status`](crate::Graphics::shader_status)).
+    /// ([`crate::render::ShaderOutcome::Failed`], [`Graphics::shader_status`](crate::gfx::Graphics::shader_status)).
     pub fn load_compute(&mut self, path: &str) -> Compute {
         self.try_load_compute(path).unwrap_or_else(|e| panic!("ponko: {e}"))
     }
 
-    /// [`Graphics::load_compute`](crate::Graphics::load_compute) that returns errors (for the C API).
+    /// [`Graphics::load_compute`](crate::gfx::Graphics::load_compute) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_load_compute(&mut self, path: &str) -> Result<Compute, String> {
         let found = match self
@@ -197,7 +197,7 @@ impl Graphics {
     }
 
     /// Makes a compute pass shader from WGSL source; `name` is for error
-    /// messages. See [`Graphics::load_compute`](crate::Graphics::load_compute) for what it defines.
+    /// messages. See [`Graphics::load_compute`](crate::gfx::Graphics::load_compute) for what it defines.
     ///
     /// ```
     /// # use ponko::prelude::*;
@@ -220,7 +220,7 @@ impl Graphics {
             .unwrap_or_else(|e| panic!("ponko: {e}"))
     }
 
-    /// [`Graphics::create_compute`](crate::Graphics::create_compute) that returns errors (for the C API).
+    /// [`Graphics::create_compute`](crate::gfx::Graphics::create_compute) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_create_compute(&mut self, name: &str, source: &str) -> Result<Compute, String> {
         let id = self.assets3d.computes;
@@ -402,7 +402,7 @@ impl Graphics {
     /// The entity is culled by the mesh's bounds, which don't know where the
     /// shader puts the instances: give the whole simulation's extent (in the
     /// entity's space, around the entity) with
-    /// [`Graphics::set_mesh_gpu_bounds`](crate::Graphics::set_mesh_gpu_bounds). Disable occlusion culling for
+    /// [`Graphics::set_mesh_gpu_bounds`](crate::gfx::Graphics::set_mesh_gpu_bounds). Disable occlusion culling for
     /// shader-displaced geometry. Unsupported GPUs draw nothing. Panics for
     /// invalid handles or count.
     /// ```no_run
@@ -427,7 +427,7 @@ impl Graphics {
     }
     /// Grows `mesh`'s culling bounds to also hold the sphere at `center`
     /// with `radius`, in the mesh's space: where a buffer-driven
-    /// simulation (see [`Graphics::set_mesh_gpu_buffer`](crate::Graphics::set_mesh_gpu_buffer)) can put its instances.
+    /// simulation (see [`Graphics::set_mesh_gpu_buffer`](crate::gfx::Graphics::set_mesh_gpu_buffer)) can put its instances.
     /// The result is the mesh's own bounds united with the sphere; calling it
     /// again replaces the sphere. Panics for a freed mesh or a negative or
     /// non-finite radius.

@@ -59,6 +59,7 @@ system (on by default, all cores) advances it every frame:
 <div>
 
 ```rust
+# use ponko::d2::Animation;
 # let pos = vec2(100.0, 100.0);
 # let sheet = SpriteSheet::new(ctx.load_texture("units.png"), 32, 32);
 ctx.world.spawn((

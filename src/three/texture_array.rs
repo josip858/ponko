@@ -18,7 +18,7 @@ pub enum TextureKind {
 
 /// Several images of the same size in one texture, for materials that use
 /// many: terrain layers, foliage variants. Made with
-/// [`Graphics::create_texture_array`](crate::Graphics::create_texture_array) or [`Graphics::load_texture_array`](crate::Graphics::load_texture_array); a cheap
+/// [`Graphics::create_texture_array`](crate::gfx::Graphics::create_texture_array) or [`Graphics::load_texture_array`](crate::gfx::Graphics::load_texture_array); a cheap
 /// handle. Custom shaders read one through
 /// [`MaterialDesc::custom_arrays`](crate::render::MaterialDesc::custom_arrays), and
 /// it gets mipmaps.
@@ -103,7 +103,7 @@ impl Graphics {
             .unwrap_or_else(|e| panic!("ponko: {e}"))
     }
 
-    /// [`Graphics::create_texture_array`](crate::Graphics::create_texture_array) that returns errors (for the C API).
+    /// [`Graphics::create_texture_array`](crate::gfx::Graphics::create_texture_array) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_create_texture_array(
         &mut self,
@@ -173,7 +173,7 @@ impl Graphics {
             .unwrap_or_else(|e| panic!("ponko: {e}"))
     }
 
-    /// [`Graphics::load_texture_array`](crate::Graphics::load_texture_array) that returns errors (for the C API).
+    /// [`Graphics::load_texture_array`](crate::gfx::Graphics::load_texture_array) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_load_texture_array(&mut self, paths: &[&str], kind: TextureKind) -> Result<TextureArray, String> {
         let mut images = Vec::with_capacity(paths.len());
@@ -256,7 +256,7 @@ impl Graphics {
             .unwrap_or_else(|e| panic!("ponko: {e}"))
     }
 
-    /// [`Graphics::set_decal_textures`](crate::Graphics::set_decal_textures) that returns errors (for the C API).
+    /// [`Graphics::set_decal_textures`](crate::gfx::Graphics::set_decal_textures) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_set_decal_textures(&mut self, array: Option<TextureArray>) -> Result<(), String> {
         if let Some(a) = array {

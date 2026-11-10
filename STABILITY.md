@@ -69,13 +69,24 @@ them interoperable meanwhile.
 The module/prelude migration keeps the original compatibility coverage of
 existing root exports and dynamic `World` methods, including those now hidden
 from the landing page or typed API documentation. Hiding an existing API is
-not permission to remove it in a compatible release. Deprecated root type
-aliases, constants and system forwarders preserve identity and values; enums,
-traits and public tuple structs retain reexports so existing variant imports,
-tuple constructors and implementations keep compiling. Those reexports carry
-`#[deprecated]`, but rustc does not warn through a reexport, so the
-[naming chapter](book/src/naming.md) and the CHANGELOG list them as deprecated
-instead. C/C++ names and layouts remain flat and unchanged.
+not permission to remove it in a compatible release. The root re-exports the
+prelude's items undeprecated, and every other moved root name is a re-export
+of the original item (never a type alias), so identity, layouts, enum-variant
+imports, unit and tuple struct values, and the combination of the root glob
+with the prelude or a module glob all keep working. Those re-exports carry
+`#[deprecated]`, but rustc does not warn through a re-export, so the
+[naming chapter](book/src/naming.md#the-root-glob-and-deprecated-root-spellings)
+and the CHANGELOG list each of them instead. Root constants that became
+associated constants, the root forwarders of the built-in systems and the
+dynamic `World` methods (now behind `World::raw`) are separate items and do
+warn. C/C++ names and layouts remain flat and unchanged.
+
+The root glob also brings in the root modules (`audio`, `input`, `net`,
+`render`, `ui`, ...). A glob-imported module takes precedence over a
+dependency of the same name, so a game that writes `use ponko::*;` and
+depends on a same-named crate must spell the crate `::name::...` (or import
+`ponko::prelude::*` instead). A new root module is therefore a source change
+for such games: the CHANGELOG names every root module a release adds.
 
 Nothing is removed without warning. Before an item is removed in the next
 major release, at least one minor release ships it marked `#[deprecated]`

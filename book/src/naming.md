@@ -87,12 +87,12 @@ names are unchanged. Context fields remain `camera`/`camera3d` and
 
 | Retained root spelling | Preferred spelling |
 |---|---|
-| `Transform2D`, `Camera2D` | `d2::Transform`, `d2::Camera` |
+| `Transform2D`, `Camera2D` (prelude names, not deprecated) | `d2::Transform`, `d2::Camera` in 2D-only code |
 | `RigidBody`, `Collider`, `Velocity`, `Shape`, `Physics`, `RayHit` | corresponding `d2` name (`Hit` for `RayHit`) |
 | `AudioListener3D` | `d3::AudioListener` |
 | `AudioSettings3D` | `d3::AudioSettings` |
 | `AudioSource3D` | `d3::AudioSource` |
-| `Camera3D` | `d3::Camera` |
+| `Camera3D` (prelude name, not deprecated) | `d3::Camera` in 3D-only code |
 | `Character3D` | `d3::Character` |
 | `Collider3D` | `d3::Collider` |
 | `ContactModifier3D` | `d3::ContactModifier` |
@@ -123,7 +123,7 @@ names are unchanged. Context fields remain `camera`/`camera3d` and
 | `Text3D` | `d3::Text` |
 | `TextAlign3D` | `d3::TextAlign` |
 | `Trail3D` | `d3::Trail` |
-| `Transform3D` | `d3::Transform` |
+| `Transform3D` (prelude name, not deprecated) | `d3::Transform` in 3D-only code |
 | `UiPanel3D` | `d3::UiPanel` |
 | `Vehicle3D` | `d3::Vehicle` |
 | `Velocity3D` | `d3::Velocity` |
@@ -164,27 +164,106 @@ from the prelude so games can define them freely.
 | Reflection JSON | `reflect::json` |
 | Advanced ECS and native storage | `ecs_core` |
 
-Specialized root types remain as deprecated compatibility aliases for at least
-one minor release. `use ponko::*;` still compiles; new code uses the prelude.
+### The root glob and deprecated root spellings
+
+`use ponko::*;` still compiles and keeps every name it had. The root also
+re-exports exactly what the prelude holds, as the same items and without
+deprecation, so `use ponko::*;` next to `use ponko::prelude::*;` (the
+midpoint of a migration) is never ambiguous. The other root names are
+re-exports of the *original* items, so `use ponko::*;` next to `use
+ponko::d2::*;`, `use ponko::d3::*;` or a service module's glob is ambiguous
+only where the two names really are different things:
+
+- `Collider`, `RigidBody`, `Velocity`, `Shape` and `Physics` at the root are
+  the 2D ones; `d3` has the 3D ones under the same names.
+- `QueryFilter` at the root is the ECS query-filter trait; `d2` and `d3`
+  have the physics query filters.
+- `Joint` at the root is the skeleton joint (`anim::Joint`); `d3::Joint` is
+  the physics joint (`Joint3D`).
+- The root's deprecated built-in system forwarders (`step_physics`,
+  `draw_sprites`, ...) are functions of their own, so they clash with a
+  `systems::*` glob.
+
+The way out is the same for each: drop `use ponko::*;` for
+`use ponko::prelude::*;`, or import the module rather than its glob
+(`use ponko::d3;` then `d3::Collider`), or name the one item
+(`use ponko::d3::Collider;`, which wins over both globs).
+
 Canonical modules export the original types, so identity, layouts, saves and
-flat C/C++ names do not change. Traits, enums and public tuple structs keep compatibility reexports: stable Rust has no trait aliases,
-and type aliases would break existing enum-variant imports and tuple patterns. Their compatibility
-exports carry the deprecation note; rustc only diagnoses the type aliases. Compatibility exports are hidden
-from the root rustdoc page; module docs are the discovery path.
+flat C/C++ names do not change. Compatibility exports are hidden from the root
+rustdoc page; module docs are the discovery path.
+
+The deprecated root spellings below are re-exports. They carry
+`#[deprecated]`, but **rustc does not warn through a re-export**, so this list
+is where the deprecation is recorded. A type alias would warn, but it is a
+different item from the original, which would make the root glob clash with
+every module glob, and it would break enum-variant imports
+(`use ponko::TextAlign3D::Center;`) and unit or tuple struct values
+(`static A: CountingAllocator = CountingAllocator;`). They stay until the next
+major release:
+
+- `access`: `AccessConflict`, `AccessReport`, `ReportedPair`, `ReportedSystem`, `Service`, `SystemAccess`.
+- `actions`: `InputEvent`, `UnknownAction`.
+- `alloc_count`: `AllocCounts`, `CountingAllocator`.
+- `anim`: `AnimationClip`, `AnimationCondition`, `AnimationEvent`, `AnimationGraph`, `AnimationLayer`, `AnimationParameter`, `AnimationState`, `AnimationTrack`, `AnimationTransition`, `Animator`, `AttachToJoint`, `Blend`, `Interpolation`, `Joint`, `JointAnimation`, `JointMask`, `LayerBlend`, `look_at_joint`, `MorphAnimation`, `MorphFrame`, `MorphTarget`, `MorphWeights`, `Motion`, `MotionChild`, `RootMotion`, `Skeleton`, `SkinOf`, `two_bone_ik`.
+- `audio`: `Audio`, `AudioEffects`, `AudioRolloff`.
+- `camera`: `camera_controls`.
+- `d2`: `Animation`, `Attached`, `Collider`, `Physics`, `RayHit` (`d2::Hit`), `RigidBody`, `Shape`, `TileMap`, `Velocity`.
+- `d3`: `AudioListener3D` (`d3::AudioListener`), `AudioSettings3D` (`d3::AudioSettings`), `AudioSource3D` (`d3::AudioSource`), `Character3D` (`d3::Character`), `Collider3D` (`d3::Collider`), `ContactModifier3D` (`d3::ContactModifier`), `ContactPair3D` (`d3::ContactPair`), `Decal3D` (`d3::Decal`), `Hit3D` (`d3::Hit`), `Joint3D` (`d3::Joint`), `JointAxis3D` (`d3::JointAxis`), `JointDrive3D` (`d3::JointDrive`), `JointMotion3D` (`d3::JointMotion`), `Line3D` (`d3::Line`), `NavAgent3D` (`d3::NavAgent`), `NavMesh3D` (`d3::NavMesh`), `NavObstacle3D` (`d3::NavObstacle`), `ParticleBlend3D` (`d3::ParticleBlend`), `ParticleEmitter3D` (`d3::ParticleEmitter`), `ParticleSettings3D` (`d3::ParticleSettings`), `ParticleShape3D` (`d3::ParticleShape`), `ParticleSpace3D` (`d3::ParticleSpace`), `Physics3D` (`d3::Physics`), `PointLight3D` (`d3::PointLight`), `QueryFilter3D` (`d3::QueryFilter`), `Ragdoll3D` (`d3::Ragdoll`), `ReflectionProbe3D` (`d3::ReflectionProbe`), `RigidBody3D` (`d3::RigidBody`), `Shape3D` (`d3::Shape`), `SpotLight3D` (`d3::SpotLight`), `StreamedLod`, `Text3D` (`d3::Text`), `TextAlign3D` (`d3::TextAlign`), `Trail3D` (`d3::Trail`), `UiPanel3D` (`d3::UiPanel`), `Vehicle3D` (`d3::Vehicle`), `Velocity3D` (`d3::Velocity`), `Wheel3D` (`d3::Wheel`).
+- `diagnostics`: `ArchetypeDiagnostics`, `ComponentDiagnostics`, `ECS_DIAGNOSTICS_VERSION`, `EcsDiagnostics`, `MatchCount`, `SystemDiagnostics`.
+- `ecs_core`: `ComponentId`, `WorldView`.
+- `flow`: `FlowField`, `NavGrid`.
+- `gfx`: `Graphics`.
+- `handle`: `LiveCounts`.
+- `input`: `Gamepad`, `GamepadAxis`, `GamepadButton`, `GamepadStick`, `Input`, `MAX_GAMEPADS`.
+- `inventory`: `AssetClass`, `AssetCount`, `AssetGrowth`, `AssetInventory`, `GpuResidency`.
+- `nav`: `NavBakeError`, `NavBakeSettings`, `NavSource`.
+- `net`: `Authority`, `AuthorityCheck`, `ClockSync`, `Desync`, `Interest`, `InterestChange`, `InterestChangeKind`, `InterestConfig`, `InterestEntity`, `InterestEntry`, `InterestTier`, `InterestViewer`, `Lane`, `LatestWins`, `MAX_INPUT_BYTES`, `MAX_INTEREST_TIERS`, `MAX_MESSAGE_BYTES`, `MAX_PLAYERS`, `MessageEvent`, `MessageStats`, `Net`, `NetMessages`, `NetPose`, `NetState`, `NetStats`, `PeerId`, `Pose`, `seq_diff`, `seq_newer`, `SnapshotBuffer`, `SnapshotConfig`, `SnapshotPush`, `SnapshotSample`, `SnapshotState`, `SnapshotStream`, `steam_lobby_from_args`, `steam_wait_for_invite`, `SteamLobby`, `SteamLobbyVisibility`, `UpdateStamp`.
+- `perf`: `alloc_counts`, `AllocReport`, `Budget`, `BudgetViolation`, `Contributor`, `FrameStats`, `FrameTimes`, `GpuPass`, `Instant`, `note_allocation`, `PassReport`, `Perf`, `PerfReport`, `PerfWarning`, `Regression`, `RenderReport`, `scope_named`, `ScopeReport`, `SystemReport`, `SystemTiming`, `WarningKind`, `WorstFrame`.
+- `physics`: `MAX_POLYGON_POINTS`.
+- `physics3d`: `ColliderFocus`, `CollisionGroups`, `CollisionMesh`, `CollisionMeshData`, `FrictionCurve`, `PHYSICS3D_HZ`, `RagdollBone`, `TerrainCollider`.
+- `random`: `DEFAULT_SEED`.
+- `reflect`: `Field`, `ReflectError`.
+- `render`: `AmbientOcclusion`, `AntiAliasing`, `Compute`, `ComputePass`, `Effect`, `ExtractionBench`, `ExtractionSample`, `GlobalIllumination`, `GpuAdapter`, `GpuBuffer`, `GpuCapabilities`, `GpuFeature`, `GpuFeatureStatus`, `GpuLimits`, `GpuTier`, `GpuUploads`, `GraphicsQuality`, `InstanceBatch`, `InstanceBatchOptions`, `InstanceLevel`, `Lighting`, `LodGroup`, `LodHysteresis`, `LodLevel`, `LodPick`, `LodRenderer`, `LodSettings`, `LodShadow`, `Material`, `MaterialDesc`, `Mesh`, `MeshCost`, `MeshData`, `ModelMaterial`, `ModelMaterials`, `ParticleCurve`, `ParticleGradient`, `PipelineStats`, `Post`, `QualityLevel`, `ReceivesDecals`, `RenderStats`, `ScreenEffect`, `Shader`, `ShaderDiagnostic`, `ShaderKind`, `ShaderOutcome`, `ShaderStatus`, `ShadowMesh`, `Sky`, `TargetCamera`, `TargetEffect`, `Tonemap`.
+- `residency`: `ResidencyKind`, `ResidencyStats`.
+- `scenario`: `InputScenario`, `MAX_SCENARIO_STEPS`, `MAX_SCENARIO_TICKS`, `SCENARIO_VERSION`, `ScenarioCheck`, `ScenarioError`, `ScenarioFailure`, `ScenarioReport`, `ScenarioStatus`.
+- `scope`: `ProfileScope`, `ScopeGuard`, `ScopeTiming`.
+- `spatial`: `GridEntry`, `spatial_key`, `SpatialGrid`.
+- `stream`: `CellStreamer`, `Job`.
+- `streaming`: `AssetState`, `DEFAULT_UPLOAD_BUDGET`, `StreamedAsset`, `UploadStats`.
+- `system_view`: `SystemView`, `ViewEvents`.
+- `terrain`: `FarTerrain`, `Heightfield`, `TerrainMaterialDesc`, `TerrainTile`, `TerrainTileData`, `TextureArray`, `TextureKind`.
+- `ui`: `UiAccessNode`, `UiAccessTree`, `UiAccessValue`, `UiBuilder`, `UiEvent`, `UiImmediate`, `UiInput`, `UiLayout`, `UiPaint`, `UiRole`, `UiStyle`, `UiTextAlign`, `UiTheme`, `UiWidget`.
+
+What does warn: the root constants that became associated constants
+(`MAX_DECALS` → `d3::Decal::MAX`, `MAX_DECALS_PER_CLUSTER`, `MAX_GI_PROBES`,
+`MAX_GI_PROBES_PER_FRAME`, `MAX_LIGHT_SHADOW_VIEWS`, `LIGHT_SHADOW_SIZE`,
+`LIGHT_SHADOW_ATLAS_SIZE`, `MIN_RENDER_SCALE`, `MAX_RENDER_SCALE`,
+`TERRAIN_LODS`, `TERRAIN_LAYERS`, `SPATIAL_SORT_EVERY`), the root forwarders
+of the built-in systems, and `World`'s dynamic methods (below).
 
 Use `d3::Decal::MAX`, `d3::Decal::MAX_PER_CLUSTER`,
 `spatial::SpatialGrid::<()>::SORT_EVERY`, `render::GraphicsQuality::MIN_RENDER_SCALE`
 and `MAX_RENDER_SCALE`, `terrain::TerrainTile::LODS` and `LAYERS`,
 `d3::PointLight::SHADOW_SIZE`, `SHADOW_ATLAS_SIZE` and `MAX_SHADOW_VIEWS`, and
-`render::GlobalIllumination::MAX_PROBES` and `MAX_PROBES_PER_FRAME`.
-The old root constants remain available as deprecated constants with the
-same values; the new `d3`, `render` and `terrain` modules export only the
-associated forms. Constants that already belong to one module keep their name
-there (`net::MAX_PLAYERS`, `input::MAX_GAMEPADS`, `random::DEFAULT_SEED`,
+`render::GlobalIllumination::MAX_PROBES` and `MAX_PROBES_PER_FRAME`; the new
+`d3`, `render` and `terrain` modules export only these associated forms.
+Constants that belong to one module keep their name there
+(`net::MAX_PLAYERS`, `input::MAX_GAMEPADS`, `random::DEFAULT_SEED`,
 `physics3d::PHYSICS3D_HZ`, `scenario::SCENARIO_VERSION`,
-`streaming::DEFAULT_UPLOAD_BUDGET`); their root spellings are deprecated too.
-`Instant` moved to `time::Instant`, `Graphics` to `gfx::Graphics`, `Field` to
-`reflect::Field`, and `ComponentId` and `WorldView` to `ecs_core`.
+`streaming::DEFAULT_UPLOAD_BUDGET`). `Instant` is `perf::Instant`.
+`Animation` (the sprite-sheet animation) is in `d2`, not the prelude: games
+often name their own type `Animation`.
+
+### Root modules and crates of the same name
+
+`use ponko::*;` also brings in the root modules (`audio`, `input`, `net`,
+`render`, `ui`, `random`, `events`, ...). A glob-imported module takes
+precedence over a dependency of the same name, so with the root glob,
+`net::...` means `ponko::net`, not a `net` crate. Write `::net::...` for the
+crate, or use `use ponko::prelude::*;`, which holds no such modules apart
+from `d2`, `d3`, `systems` and `actions`. The clock module is private, so
+the `time` crate is not shadowed.
 
 The engine's built-in systems (`step_physics3d`, `draw_sprites`,
 `animate_sprites`, `rebuild_spatial_grid`, ...) live in `ponko::systems`, and

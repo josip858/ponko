@@ -133,6 +133,40 @@ fn old_root_constants_and_moved_types_still_resolve_to_their_module_items() {
     let _: Option<ponko::reflect::Field> = None::<Field>;
     let _: Option<ponko::ecs_core::ComponentId> = None::<ComponentId>;
     let _: Option<ponko::ecs_core::WorldView<'static>> = None::<WorldView<'static>>;
-    let start: ponko::time::Instant = Instant::now();
+    let start: ponko::perf::Instant = Instant::now();
     assert!(start.elapsed().as_secs() < 60);
+}
+
+#[cfg(feature = "physics3d")]
+#[test]
+fn old_3d_joint_enum_variants_import_from_the_root() {
+    use ponko::JointAxis3D::*;
+    use ponko::JointMotion3D::{Free, Locked};
+    assert!(matches!(LinearX, d3::JointAxis::LinearX));
+    assert!(matches!(LinearZ, d3::JointAxis::LinearZ));
+    assert!(matches!(Free, d3::JointMotion::Free));
+    assert!(matches!(Locked, d3::JointMotion::Locked));
+}
+
+#[cfg(feature = "3d")]
+#[test]
+fn old_3d_particle_and_text_enum_variants_import_from_the_root() {
+    use ponko::ParticleBlend3D::Additive;
+    use ponko::ParticleShape3D::Point;
+    use ponko::ParticleSpace3D::Local;
+    use ponko::TextAlign3D::Center;
+    assert!(matches!(Additive, d3::ParticleBlend::Additive));
+    assert!(matches!(Point, d3::ParticleShape::Point));
+    assert!(matches!(Local, d3::ParticleSpace::Local));
+    assert!(matches!(Center, d3::TextAlign::Center));
+}
+
+// The documented global-allocator spelling: a unit struct used as a value.
+use ponko::CountingAllocator as RootCountingAllocator;
+static COUNTING: RootCountingAllocator = RootCountingAllocator;
+
+#[test]
+fn the_root_counting_allocator_is_the_unit_struct_value() {
+    let _: &ponko::alloc_count::CountingAllocator = &COUNTING;
+    assert_eq!(std::mem::size_of_val(&COUNTING), 0);
 }

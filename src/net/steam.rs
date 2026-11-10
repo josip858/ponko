@@ -272,7 +272,7 @@ pub fn steam_wait_for_invite(client: &Client, timeout: std::time::Duration) -> O
     let _listening = client.register_callback(move |r: steamworks::GameLobbyJoinRequested| {
         *seen.lock().expect("invite") = Some(r.lobby_steam_id);
     });
-    let start = crate::time::Instant::now();
+    let start = crate::perf::Instant::now();
     while start.elapsed() < timeout {
         client.run_callbacks();
         if let Some(lobby) = *accepted.lock().expect("invite") {

@@ -137,7 +137,7 @@ impl Graphics {
     ///
     /// # Panics
     ///
-    /// As [`Graphics::create_material`](crate::Graphics::create_material), or if the material comes from another
+    /// As [`Graphics::create_material`](crate::gfx::Graphics::create_material), or if the material comes from another
     /// game. Updating a freed material does nothing: it stays freed.
     pub fn update_material(&mut self, material: Material, desc: MaterialDesc) {
         assert!(
@@ -317,12 +317,12 @@ impl Graphics {
     /// If the file can't be read or doesn't compile (the message says where).
     /// With hot reload on, a file that doesn't compile doesn't panic: it
     /// gets a stand-in and stays watched until a saved fix compiles
-    /// ([`ShaderOutcome::Failed`](crate::render::ShaderOutcome::Failed), [`Graphics::shader_status`](crate::Graphics::shader_status)).
+    /// ([`ShaderOutcome::Failed`](crate::render::ShaderOutcome::Failed), [`Graphics::shader_status`](crate::gfx::Graphics::shader_status)).
     pub fn load_shader(&mut self, path: &str) -> Shader {
         self.try_load_shader(path).unwrap_or_else(|e| panic!("ponko: {e}"))
     }
 
-    /// [`Graphics::load_shader`](crate::Graphics::load_shader) that returns errors (for the C API).
+    /// [`Graphics::load_shader`](crate::gfx::Graphics::load_shader) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_load_shader(&mut self, path: &str) -> Result<Shader, String> {
         let found = match self
@@ -357,7 +357,7 @@ impl Graphics {
     }
 
     /// Makes a material shader from WGSL source; `name` is for error
-    /// messages. See [`Graphics::load_shader`](crate::Graphics::load_shader) for what it can define.
+    /// messages. See [`Graphics::load_shader`](crate::gfx::Graphics::load_shader) for what it can define.
     ///
     /// ```no_run
     /// # use ponko::prelude::*;
@@ -379,7 +379,7 @@ impl Graphics {
             .unwrap_or_else(|e| panic!("ponko: {e}"))
     }
 
-    /// [`Graphics::create_shader`](crate::Graphics::create_shader) that returns errors (for the C API).
+    /// [`Graphics::create_shader`](crate::gfx::Graphics::create_shader) that returns errors (for the C API).
     #[doc(hidden)]
     pub fn try_create_shader(&mut self, name: &str, source: &str) -> Result<Shader, String> {
         let id = self.assets3d.shaders;
@@ -1017,7 +1017,7 @@ impl Graphics {
     /// Every material loaded from glTF files so far that the files call
     /// `name`, with what it was made from: to give materials of imported
     /// models a shader of your own, keep their textures and change the
-    /// rest with [`Graphics::update_material`](crate::Graphics::update_material). Models loaded later aren't in it.
+    /// rest with [`Graphics::update_material`](crate::gfx::Graphics::update_material). Models loaded later aren't in it.
     ///
     /// ```no_run
     /// # use ponko::prelude::*;
