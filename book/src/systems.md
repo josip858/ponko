@@ -206,11 +206,11 @@ impl Plugin for Player {
         let speed = self.speed;
         game.add(Phase::BeforePhysics, move |ctx| {
             let dt = ctx.dt();
-            ctx.world.query::<&mut Transform2D>().for_each(|t| t.position.x += speed * dt);
+            ctx.world.query::<&mut ponko::d2::Transform>().for_each(|t| t.position.x += speed * dt);
         })
     }
     fn setup(&self, ctx: &mut Ctx) {
-        ctx.world.spawn((Transform2D::default(),));
+        ctx.world.spawn((ponko::d2::Transform::default(),));
     }
 }
 
@@ -348,7 +348,7 @@ fn spawner(every: u64) -> impl FnMut(&mut Ctx) {
     let mut spawned = 0;
     move |ctx| {
         if ctx.time.sim_tick() % every == 0 {
-            ctx.commands.spawn((Transform2D::default(),));
+            ctx.commands.spawn((ponko::d2::Transform::default(),));
             spawned += 1;
         }
     }

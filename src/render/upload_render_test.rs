@@ -2,7 +2,13 @@
 //! scene has settled (`RenderStats::uploads`).
 use super::buffer_render_test::Rig;
 use super::traffic;
-use crate::*;
+#[allow(unused_imports)]
+use crate::anim::Blend;
+#[allow(unused_imports)]
+use crate::d3::{PointLight as PointLight3D, Transform as Transform3D};
+use crate::prelude::*;
+#[allow(unused_imports)]
+use crate::render::{GpuUploads, Material, MaterialDesc, Mesh, MeshData, Model, ModelMaterial, RenderStats};
 
 /// A rig with `n` × `n` cubes on the ground, seen from above, with sun
 /// shadows; `None` without a GPU.
@@ -265,7 +271,7 @@ fn fly(rig: &mut Rig, cubes: &mut Vec<Entity>, (other, red): (Mesh, Material), s
                 world.remove::<Model>(e);
             }
             for &e in &cubes[310..330] {
-                world.insert(e, ShadowMesh(None));
+                world.insert(e, crate::render::ShadowMesh(None));
             }
         }
         // Another mesh, another material.
@@ -293,7 +299,7 @@ fn fly(rig: &mut Rig, cubes: &mut Vec<Entity>, (other, red): (Mesh, Material), s
                 world.insert(e, Model::new(other).with_color(Color::GREEN));
             }
             for &e in &cubes[310..320] {
-                world.remove::<ShadowMesh>(e);
+                world.remove::<crate::render::ShadowMesh>(e);
             }
         }
         _ => {}

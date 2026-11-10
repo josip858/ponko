@@ -29,14 +29,14 @@ pub struct GridEntry<T = ()> {
 /// (parallel) query:
 ///
 /// ```
-/// use ponko::*;
+/// use ponko::prelude::*;
 ///
 /// struct Unit;
 /// struct Crowded(bool);
 ///
 /// fn crowding(ctx: &mut Ctx) {
 ///     let grid = &ctx.spatial;
-///     ctx.world.query::<(Entity, &Transform2D, &mut Crowded)>().par_for_each(|(me, t, crowded)| {
+///     ctx.world.query::<(Entity, &ponko::d2::Transform, &mut Crowded)>().par_for_each(|(me, t, crowded)| {
 ///         let mut near = 0;
 ///         grid.for_each_in_radius(t.position, 50.0, |other| {
 ///             if other.entity != me {
@@ -52,9 +52,9 @@ pub struct GridEntry<T = ()> {
 ///     .sim_system(crowding)
 ///     .run_headless(1, |ctx| {
 ///         for i in 0..5 {
-///             ctx.world.spawn((Transform2D::at(vec2(i as f32, 0.0)), Unit, Crowded(false)));
+///             ctx.world.spawn((ponko::d2::Transform::at(vec2(i as f32, 0.0)), Unit, Crowded(false)));
 ///         }
-///         ctx.world.spawn((Transform2D::at(vec2(500.0, 500.0)), Unit, Crowded(false)));
+///         ctx.world.spawn((ponko::d2::Transform::at(vec2(500.0, 500.0)), Unit, Crowded(false)));
 ///     });
 /// assert_eq!(world.query::<&Crowded>().iter().filter(|c| c.0).count(), 5);
 /// ```
@@ -72,18 +72,18 @@ pub struct GridEntry<T = ()> {
 /// such a grid in your system's closure:
 ///
 /// ```
-/// use ponko::*;
+/// use ponko::prelude::*;
 ///
 /// struct Vel(Vec2);
 ///
 /// let align = {
-///     let mut grid = SpatialGrid::with_data(20.0);
+///     let mut grid = ponko::spatial::SpatialGrid::with_data(20.0);
 ///     move |ctx: &mut Ctx| {
 ///         grid.rebuild_with_data(
-///             ctx.world.query::<(Entity, &Transform2D, &Vel)>().iter().map(|(e, t, v)| (e, t.position, v.0)),
+///             ctx.world.query::<(Entity, &ponko::d2::Transform, &Vel)>().iter().map(|(e, t, v)| (e, t.position, v.0)),
 ///         );
 ///         let grid = &grid;
-///         ctx.world.query::<(&Transform2D, &mut Vel)>().par_for_each(|(t, v)| {
+///         ctx.world.query::<(&ponko::d2::Transform, &mut Vel)>().par_for_each(|(t, v)| {
 ///             let mut sum = Vec2::ZERO;
 ///             grid.for_each_in_radius(t.position, 20.0, |n| sum += n.data);
 ///             v.0 = v.0.lerp(sum.normalize_or_zero() * v.0.length(), 0.1);
@@ -357,8 +357,8 @@ impl<T: Copy + Send + Sync> SpatialGrid<T> {
     /// returns `true` (use it to skip yourself or pick a team), if any.
     ///
     /// ```
-    /// # use ponko::*;
-    /// # fn f(grid: &SpatialGrid, me: Entity, pos: Vec2) {
+    /// # use ponko::prelude::*;
+    /// # fn f(grid: &ponko::spatial::SpatialGrid, me: Entity, pos: Vec2) {
     /// let target = grid.nearest(pos, 200.0, |e| e.entity != me);
     /// # }
     /// ```
@@ -390,9 +390,9 @@ fn cell_of(p: Vec2, inv_cell: f32) -> (i32, i32) {
 /// neighbors sit next to each other in memory:
 ///
 /// ```
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
-/// ctx.world.sort_by::<Transform2D>(|t| spatial_key(t.position, 32.0));
+/// ctx.world.sort_by::<ponko::d2::Transform>(|t| ponko::spatial::spatial_key(t.position, 32.0));
 /// # }
 /// ```
 #[must_use]
@@ -550,4 +550,9 @@ mod tests {
         assert_eq!(b.of(11, 20).abs_diff(b.of(10, 20)), 1);
         assert_eq!(b.of(10, 21).abs_diff(b.of(10, 20)), 256);
     }
+}
+
+impl<T> SpatialGrid<T> {
+    /// Simulation ticks between spatial reordering.
+    pub const SORT_EVERY: u64 = SPATIAL_SORT_EVERY;
 }

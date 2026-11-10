@@ -7,8 +7,9 @@ use ponko_ecs::Entity;
 
 use super::{LodGroup, LodPick, Mesh, Transform3D, gltf};
 use crate::assets::{self, Origin};
+use crate::residency::ResidencyKind;
 use crate::streaming::{AssetState, StreamedAsset, StreamedMesh};
-use crate::{Ctx, Job, ResidencyKind};
+use crate::{Ctx, Job};
 
 /// A decoded glTF file waiting for the game thread.
 pub(crate) enum LoadedFile {
@@ -32,16 +33,16 @@ pub(crate) enum LoadedFile {
 /// levels the files fill in.
 ///
 /// ```
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
 /// let levels = vec![
-///     LodLevel::new(0.3, vec![LodRenderer::new(Mesh::NONE)]),
-///     LodLevel::new(0.05, vec![LodRenderer::new(Mesh::NONE)]),
+///     ponko::render::LodLevel::new(0.3, vec![ponko::render::LodRenderer::new(ponko::render::Mesh::NONE)]),
+///     ponko::render::LodLevel::new(0.05, vec![ponko::render::LodRenderer::new(ponko::render::Mesh::NONE)]),
 /// ];
 /// ctx.world.spawn((
-///     Transform3D::default(),
-///     LodGroup::new(10.0, levels),
-///     StreamedLod::new(&["models/tower_lod0.glb", "models/tower_lod1.glb"]),
+///     ponko::d3::Transform::default(),
+///     ponko::render::LodGroup::new(10.0, levels),
+///     ponko::d3::StreamedLod::new(&["models/tower_lod0.glb", "models/tower_lod1.glb"]),
 /// ));
 /// # }
 /// ```
@@ -85,11 +86,11 @@ impl Ctx {
     /// asking again; `resident_mesh` loads it again.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).run_headless(0, |ctx| {
     ///     assert_eq!(ctx.stream_mesh("models/missing.glb"), None);
     ///     ctx.finish_uploads();
-    ///     assert_eq!(ctx.gfx.asset_state(ResidencyKind::Mesh, "models/missing.glb"), AssetState::Failed);
+    ///     assert_eq!(ctx.gfx.asset_state(ponko::residency::ResidencyKind::Mesh, "models/missing.glb"), ponko::streaming::AssetState::Failed);
     /// });
     /// ```
     pub fn stream_mesh(&mut self, path: &str) -> Option<Mesh> {

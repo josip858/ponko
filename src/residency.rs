@@ -58,10 +58,10 @@ impl ResidencyKind {
 /// estimates of GPU memory.
 ///
 /// ```
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// Game::new("t", 1, 1).run_headless(0, |ctx| {
-///     ctx.set_residency_budget(ResidencyKind::Mesh, Some(64 << 20));
-///     let meshes = ctx.gfx.residency(ResidencyKind::Mesh);
+///     ctx.set_residency_budget(ponko::residency::ResidencyKind::Mesh, Some(64 << 20));
+///     let meshes = ctx.gfx.residency(ponko::residency::ResidencyKind::Mesh);
 ///     assert_eq!(meshes.budget, Some(64 << 20));
 ///     assert_eq!((meshes.resident, meshes.evictions), (0, 0));
 /// });

@@ -8,7 +8,13 @@
 //! `SHOT=path.png` saves the second frame and quits; `HOUR=19` and `FOG=1`
 //! set the time and the fog.
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::anim::Blend;
+#[allow(unused_imports)]
+use ponko::d3::Transform as Transform3D;
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::{MaterialDesc, MeshData, Model, Sky};
 
 /// One blade of grass: a thin quad, texture v from 0 at the root to 1 at the tip.
 fn blade() -> MeshData {

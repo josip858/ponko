@@ -7,7 +7,8 @@
 //! (`CRABBY_UI_SCREEN` is the screen's own UI). The mouse works on the nearest
 //! panel its ray hits, in the panel's pixels, unless the screen's UI has it.
 
-use ponko::{Ctx, Model, UiPanel3D, Vec3};
+use ponko::render::Model;
+use ponko::{Ctx, UiPanel3D, Vec3};
 
 use crate::ctx::{ctx_access, out};
 use crate::particles::entity;

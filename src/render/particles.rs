@@ -2,7 +2,7 @@
 //! them (strips built on the CPU). GPU storage grows only at high-water
 //! marks.
 use super::gpu::GpuTexture;
-use crate::ParticleBlend3D;
+use crate::d3::ParticleBlend as ParticleBlend3D;
 use crate::render::traffic::{Counted, NewBuffer, Upload};
 use crate::three::particles::{ParticleFrame, ParticleInstance, ParticleRun};
 use crate::three::strips::{StripRun, StripVertex};
@@ -323,8 +323,17 @@ fn buffer(device: &wgpu::Device, capacity: usize) -> wgpu::Buffer {
 mod tests {
     use super::super::gpu::GpuTexture;
     use super::super::gpu3d::*;
+    #[allow(unused_imports)]
+    use crate::anim::Blend;
+    #[allow(unused_imports)]
+    use crate::d3::{
+        Line as Line3D, ParticleBlend as ParticleBlend3D, ParticleEmitter as ParticleEmitter3D,
+        ParticleSettings as ParticleSettings3D, Transform as Transform3D,
+    };
+    use crate::prelude::*;
+    #[allow(unused_imports)]
+    use crate::render::{MaterialDesc, MeshData, Model};
     use crate::three::{Frame3D, GpuMaterialDesc, Scene3D, SkinFrame, SkyLight};
-    use crate::*;
     const SIZE: u32 = 64;
 
     #[test]
@@ -517,7 +526,7 @@ mod tests {
                 gravity: Vec3::ZERO,
                 size: (1.0, 1.0),
                 blend: ParticleBlend3D::Additive,
-                color_over_life: ParticleGradient::new(vec![(0.0, Color::rgba(1.0, 0.2, 0.0, 0.5))]),
+                color_over_life: crate::render::ParticleGradient::new(vec![(0.0, Color::rgba(1.0, 0.2, 0.0, 0.5))]),
                 ..Default::default()
             }),
         ));

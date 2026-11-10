@@ -132,7 +132,7 @@ What keeps the CPU side small:
 `ctx.perf.render_stats()` tells you what drawing the last frame cost:
 
 ```rust
-# use ponko::*;
+# use ponko::prelude::*;
 fn report(ctx: &mut Ctx) {
     let r = ctx.perf.render_stats();
     println!(

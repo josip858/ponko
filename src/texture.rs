@@ -10,7 +10,8 @@ use crate::color::Color;
 /// [`Graphics::create_texture`](crate::Graphics::create_texture).
 ///
 /// ```
-/// # use ponko::*;
+/// # use ponko::prelude::*;
+
 /// # fn setup(ctx: &mut Ctx) {
 /// let crab = ctx.load_texture("crab.png");
 /// println!("{} x {}", crab.width(), crab.height());
@@ -32,7 +33,8 @@ impl Texture {
     /// Width in pixels.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
+
     /// # fn f(tex: Texture) {
     /// let w = tex.width();
     /// # }
@@ -45,7 +47,8 @@ impl Texture {
     /// Height in pixels.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
+
     /// # fn f(tex: Texture) {
     /// let h = tex.height();
     /// # }
@@ -58,7 +61,8 @@ impl Texture {
     /// Size in pixels as a vector.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
+
     /// # fn f(tex: Texture) {
     /// let half = tex.size() / 2.0;
     /// # }
@@ -84,7 +88,8 @@ pub enum TextureFilter {
 /// Start from `DrawParams::default()` and change what you need.
 ///
 /// ```
-/// # use ponko::*;
+/// # use ponko::prelude::*;
+
 /// # fn update(ctx: &mut Ctx, tex: Texture) {
 /// ctx.gfx.draw_ex(&tex, vec2(100.0, 100.0), DrawParams {
 ///     rotation: 0.5,

@@ -7,7 +7,11 @@
 //! Click the water to drop a stone in. `SHOT=path.png` saves frame 120
 //! and quits.
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::Transform as Transform3D;
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::{ComputePass, MaterialDesc, MeshData, Model, Sky};
 
 /// The wave equation on a grid: each texel moves toward the average of
 /// its neighbours, overshooting like water does, and calms slowly.

@@ -1,6 +1,14 @@
 //! Reflection: components read and written by name, as JSON.
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d2::{Sprite, Transform as Transform2D};
+#[allow(unused_imports)]
+use ponko::d3::{Decal as Decal3D, PointLight as PointLight3D, SpotLight as SpotLight3D, Transform as Transform3D};
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::reflect::ReflectError;
+#[allow(unused_imports)]
+use ponko::render::{LodGroup, LodHysteresis, Model, ModelMaterial, ReceivesDecals};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -522,7 +530,7 @@ struct CUnit {
     mood: i16,
 }
 
-fn c_world() -> (World, ComponentId) {
+fn c_world() -> (World, ponko::ecs_core::ComponentId) {
     let mut world = World::new();
     // SAFETY: CUnit is plain bytes; bool is only written as 0/1 by reflection.
     let id = unsafe {
@@ -534,13 +542,33 @@ fn c_world() -> (World, ComponentId) {
         )
     };
     let fields = [
-        Field::new("hp", FieldType::F32, std::mem::offset_of!(CUnit, hp)),
-        Field::new("level", FieldType::U8, std::mem::offset_of!(CUnit, level)),
-        Field::new("alive", FieldType::Bool, std::mem::offset_of!(CUnit, alive)),
-        Field::new("at", FieldType::Vec2, std::mem::offset_of!(CUnit, at)),
-        Field::new("tint", FieldType::Color, std::mem::offset_of!(CUnit, tint)),
-        Field::new("target", FieldType::Entity, std::mem::offset_of!(CUnit, target)),
-        Field::new("mood", FieldType::I16, std::mem::offset_of!(CUnit, mood)),
+        ponko::reflect::Field::new("hp", ponko::reflect::FieldType::F32, std::mem::offset_of!(CUnit, hp)),
+        ponko::reflect::Field::new(
+            "level",
+            ponko::reflect::FieldType::U8,
+            std::mem::offset_of!(CUnit, level),
+        ),
+        ponko::reflect::Field::new(
+            "alive",
+            ponko::reflect::FieldType::Bool,
+            std::mem::offset_of!(CUnit, alive),
+        ),
+        ponko::reflect::Field::new("at", ponko::reflect::FieldType::Vec2, std::mem::offset_of!(CUnit, at)),
+        ponko::reflect::Field::new(
+            "tint",
+            ponko::reflect::FieldType::Color,
+            std::mem::offset_of!(CUnit, tint),
+        ),
+        ponko::reflect::Field::new(
+            "target",
+            ponko::reflect::FieldType::Entity,
+            std::mem::offset_of!(CUnit, target),
+        ),
+        ponko::reflect::Field::new(
+            "mood",
+            ponko::reflect::FieldType::I16,
+            std::mem::offset_of!(CUnit, mood),
+        ),
     ];
     // SAFETY: every field value makes a valid CUnit.
     unsafe { world.reflect_fields(id, &fields) };
@@ -548,12 +576,12 @@ fn c_world() -> (World, ComponentId) {
     (world, id)
 }
 
-fn c_unit(world: &World, e: Entity, id: ComponentId) -> CUnit {
+fn c_unit(world: &World, e: Entity, id: ponko::ecs_core::ComponentId) -> CUnit {
     // SAFETY: `id` is CUnit's id.
     unsafe { *world.get_dynamic(e, id).unwrap().cast::<CUnit>() }
 }
 
-fn spawn_c_unit(world: &mut World, id: ComponentId, unit: CUnit) -> Entity {
+fn spawn_c_unit(world: &mut World, id: ponko::ecs_core::ComponentId, unit: CUnit) -> Entity {
     // SAFETY: a valid CUnit.
     unsafe { world.spawn_dynamic(&[(id, (&unit as *const CUnit).cast())]) }
 }
@@ -723,7 +751,12 @@ fn described_components_save_and_load_with_their_ids() {
 fn describing_again_replaces_the_fields() {
     let (mut world, id) = c_world();
     // SAFETY: as in c_world.
-    unsafe { world.reflect_fields(id, &[Field::new("health", FieldType::F32, 0)]) };
+    unsafe {
+        world.reflect_fields(
+            id,
+            &[ponko::reflect::Field::new("health", ponko::reflect::FieldType::F32, 0)],
+        )
+    };
     let e = spawn_c_unit(
         &mut world,
         id,
@@ -745,7 +778,12 @@ fn fields_must_fit_in_the_component() {
     // SAFETY: plain bytes.
     let id = unsafe { world.register_component("Small", 4, 4, None) };
     // SAFETY: never reached: the call panics.
-    unsafe { world.reflect_fields(id, &[Field::new("wide", FieldType::F32, 2)]) };
+    unsafe {
+        world.reflect_fields(
+            id,
+            &[ponko::reflect::Field::new("wide", ponko::reflect::FieldType::F32, 2)],
+        )
+    };
 }
 
 #[test]
@@ -758,7 +796,10 @@ fn field_names_must_be_unique() {
     unsafe {
         world.reflect_fields(
             id,
-            &[Field::new("x", FieldType::F32, 0), Field::new("x", FieldType::F32, 4)],
+            &[
+                ponko::reflect::Field::new("x", ponko::reflect::FieldType::F32, 0),
+                ponko::reflect::Field::new("x", ponko::reflect::FieldType::F32, 4),
+            ],
         )
     };
 }
@@ -769,7 +810,16 @@ fn rust_types_use_reflect_instead() {
     let mut world = World::new();
     let id = world.register::<Transform2D>();
     // SAFETY: never reached: the call panics.
-    unsafe { world.reflect_fields(id, &[Field::new("rotation", FieldType::F32, 8)]) };
+    unsafe {
+        world.reflect_fields(
+            id,
+            &[ponko::reflect::Field::new(
+                "rotation",
+                ponko::reflect::FieldType::F32,
+                8,
+            )],
+        )
+    };
 }
 
 // ---- resources described by fields (C and C++ resources) ---------------------------
@@ -791,9 +841,17 @@ fn c_score_world() -> World {
             "game::Score",
             std::alloc::Layout::new::<CScore>(),
             &[
-                Field::new("red", FieldType::U32, std::mem::offset_of!(CScore, red)),
-                Field::new("blue", FieldType::U32, std::mem::offset_of!(CScore, blue)),
-                Field::new("time", FieldType::F32, std::mem::offset_of!(CScore, time)),
+                ponko::reflect::Field::new("red", ponko::reflect::FieldType::U32, std::mem::offset_of!(CScore, red)),
+                ponko::reflect::Field::new(
+                    "blue",
+                    ponko::reflect::FieldType::U32,
+                    std::mem::offset_of!(CScore, blue),
+                ),
+                ponko::reflect::Field::new(
+                    "time",
+                    ponko::reflect::FieldType::F32,
+                    std::mem::offset_of!(CScore, time),
+                ),
             ],
         );
     }

@@ -1,7 +1,12 @@
 //! Contact modification (feature `physics3d`): one-way surfaces, conveyor
 //! belts and the custom contact hook.
 #![cfg(feature = "physics3d")]
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::{
+    Collider as Collider3D, ContactModifier as ContactModifier3D, RigidBody as RigidBody3D, Transform as Transform3D,
+    Velocity as Velocity3D,
+};
+use ponko::prelude::*;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 

@@ -133,7 +133,7 @@ default) touches everything:
 const GROUND: u32 = 1;
 const DEBRIS: u32 = 2;
 // Debris lands on the ground but passes through other debris.
-let debris = CollisionGroups::new(DEBRIS, GROUND);
+let debris = ponko::physics3d::CollisionGroups::new(DEBRIS, GROUND);
 ```
 
 Collisions send `CollisionStarted` and `CollisionStopped` events, the same

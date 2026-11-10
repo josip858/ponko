@@ -27,7 +27,7 @@ pub const MAX_DECALS_PER_CLUSTER: usize = 64;
 /// A box that paints an image onto the opaque surfaces inside it. The
 /// entity's [`Transform3D`] places the box (its scale multiplies `size`).
 /// The image is projected along the box's **-Z** (looking from +Z), its top
-/// along +Y, as with [`MeshData::decal`](crate::MeshData::decal); only
+/// along +Y, as with [`MeshData::decal`](crate::render::MeshData::decal); only
 /// surfaces turned towards +Z get it.
 ///
 /// Unlike a mesh decal, nothing is built: the decal is drawn onto whatever
@@ -43,13 +43,13 @@ pub const MAX_DECALS_PER_CLUSTER: usize = 64;
 /// materials.
 ///
 /// ```
-/// use ponko::*;
+/// use ponko::prelude::*;
 /// // A 2 x 2 m mark, 1 m deep, from the first image of the decal textures.
-/// let mark = Decal3D { size: vec3(2.0, 2.0, 1.0), image: 0, ..Default::default() };
+/// let mark = ponko::d3::Decal { size: vec3(2.0, 2.0, 1.0), image: 0, ..Default::default() };
 /// let mut world = World::new();
 /// // Looking down: the box's +Z turned to point up.
 /// let down = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
-/// world.spawn((Transform3D::at(vec3(0.0, 0.5, 0.0)).rotated(down), mark));
+/// world.spawn((ponko::d3::Transform::at(vec3(0.0, 0.5, 0.0)).rotated(down), mark));
 /// ```
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -139,12 +139,12 @@ impl Default for Decal3D {
 /// without it take every decal. Only the low 16 bits count.
 ///
 /// ```
-/// use ponko::*;
+/// use ponko::prelude::*;
 /// let mut ctx_world = World::new();
 /// // A character that no decal lands on:
-/// let hero = ctx_world.spawn((Transform3D::default(), ReceivesDecals::NONE));
+/// let hero = ctx_world.spawn((ponko::d3::Transform::default(), ponko::render::ReceivesDecals::NONE));
 /// // Only blood (layer bit 1):
-/// let wall = ctx_world.spawn((Transform3D::default(), ReceivesDecals(0b10)));
+/// let wall = ctx_world.spawn((ponko::d3::Transform::default(), ponko::render::ReceivesDecals(0b10)));
 /// # let _ = (hero, wall);
 /// ```
 #[repr(C)]
@@ -684,4 +684,11 @@ mod tests {
         assert_eq!(receiver_mask(Some(&ReceivesDecals(0xFFFF_0002))), 2.0);
         assert_eq!(ReceivesDecals::default(), ReceivesDecals::ALL);
     }
+}
+
+impl Decal3D {
+    /// Maximum decals in one frame.
+    pub const MAX: usize = MAX_DECALS;
+    /// Maximum decals affecting one cluster.
+    pub const MAX_PER_CLUSTER: usize = MAX_DECALS_PER_CLUSTER;
 }

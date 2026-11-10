@@ -55,8 +55,8 @@ pub use crate::sheet::animate_sprites;
 pub use crate::spatial::rebuild_spatial_grid;
 pub use crate::tilemap::draw_tilemaps;
 
-/// Advances every [`Animator`](crate::Animator) that isn't in manual mode
-/// by this frame's time and poses its [`Skeleton`](crate::Skeleton); with
+/// Advances every [`Animator`](crate::anim::Animator) that isn't in manual mode
+/// by this frame's time and poses its [`Skeleton`](crate::anim::Skeleton); with
 /// `physics3d`, ragdolls pose theirs first. The game runs it at the end of
 /// [`Phase::Animate`](crate::Phase::Animate)
 /// ([`Systems::UPDATE_ANIMATORS`](crate::Systems::UPDATE_ANIMATORS)), so late
@@ -66,8 +66,8 @@ pub fn update_animators(ctx: &mut Ctx) {
     ctx.update_animators();
 }
 
-/// Advances every [`ParticleEmitter3D`](crate::ParticleEmitter3D) and
-/// [`Trail3D`](crate::Trail3D) by this frame's time. The game runs it at
+/// Advances every [`ParticleEmitter3D`](crate::d3::ParticleEmitter) and
+/// [`Trail3D`](crate::d3::Trail) by this frame's time. The game runs it at
 /// the end of [`Phase::Animate`](crate::Phase::Animate), after the animators
 /// ([`Systems::UPDATE_PARTICLES`](crate::Systems::UPDATE_PARTICLES)).
 #[cfg(feature = "3d")]
@@ -75,7 +75,7 @@ pub fn update_particles(ctx: &mut Ctx) {
     ctx.update_particles();
 }
 
-/// Moves every positional sound ([`AudioSource3D`](crate::AudioSource3D))
+/// Moves every positional sound ([`AudioSource3D`](crate::d3::AudioSource))
 /// to this frame's listener and emitters. The game runs it at the end of
 /// [`Phase::Late`](crate::Phase::Late)
 /// ([`Systems::UPDATE_AUDIO3D`](crate::Systems::UPDATE_AUDIO3D)), so sound

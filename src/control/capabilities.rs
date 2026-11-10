@@ -331,7 +331,7 @@ mod tests {
             report(&ctx)["subsystems"]["physics"]["active"].is_null(),
             "unknown before the loop runs"
         );
-        let timing = |name| crate::SystemTiming {
+        let timing = |name| crate::perf::SystemTiming {
             name,
             sim: true,
             last_ms: 0.0,
@@ -424,8 +424,8 @@ mod tests {
     fn describing_an_unreflected_type_is_an_error() {
         let mut ctx = ctx(true);
         let e = ctx.world.describe_component("Nope", crate::ValueSchema::Number);
-        assert!(matches!(e, Err(crate::ReflectError::UnknownComponent(_))));
+        assert!(matches!(e, Err(crate::reflect::ReflectError::UnknownComponent(_))));
         let e = ctx.world.describe_resource("Nope", crate::ValueSchema::Number);
-        assert!(matches!(e, Err(crate::ReflectError::UnknownResource(_))));
+        assert!(matches!(e, Err(crate::reflect::ReflectError::UnknownResource(_))));
     }
 }

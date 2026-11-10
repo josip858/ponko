@@ -149,3 +149,5 @@ pub use crate::three::Tonemap;
 pub use crate::three::Trail3D as Trail;
 pub use crate::three::Transform3D as Transform;
 pub use crate::ui::UiPanel3D as UiPanel;
+
+pub use crate::three::StreamedLod;

@@ -1,5 +1,11 @@
 //! Headless navigation: compile with `--no-default-features --features navmesh`.
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::{NavAgent as NavAgent3D, NavMesh as NavMesh3D, NavObstacle as NavObstacle3D, Transform as Transform3D};
+#[allow(unused_imports)]
+use ponko::nav::{NavBakeSettings, NavSource};
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::MeshData;
 
 // ANCHOR: bake
 fn navigation() -> NavMesh3D {

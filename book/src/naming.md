@@ -137,3 +137,44 @@ the existing three-argument 2D call and four-argument 3D call.
 `Ctx::spawn_prefab(path, placement)` also accepts a `Vec3` or `d3::Transform`.
 A 3D transform supplies position, rotation and scale; a 2D position keeps the
 prefab's existing rotation and scale. Saved component names remain unchanged.
+
+## Prelude and service imports
+
+`use ponko::prelude::*;` is the default game import. It includes the game loop,
+context, ECS, math, input, colors, textures/sounds/fonts, common transforms and
+reflection registration. Add `d2::*` or `d3::*` for one dimension, then explicit
+service imports as needed. `Pose`, `Material` and `Job` are deliberately absent
+from the prelude so games can define them freely.
+
+| Area | Canonical module |
+|---|---|
+| Networking, replication, interest, Steam | `net` (`net::steam` is the SDK) |
+| Frame/per-system reports, budgets, scopes | `perf` |
+| Materials, effects, compute, targets, quality | `render` |
+| Clips, graphs, skeletal animation, IK | `anim` |
+| Heightfields, terrain tiles, terrain streaming | `terrain` |
+| Retained UI and layout | `ui`, `ui::layout` |
+| Physics and navigation | `physics`, `physics3d`, `nav`, `d2`, `d3` |
+| Reflection JSON | `reflect::json` |
+| Advanced ECS and native storage | `ecs_core` |
+
+Specialized root types remain as deprecated compatibility aliases for at least
+one minor release. `use ponko::*;` still compiles; new code uses the prelude.
+Canonical modules export the original types, so identity, layouts, saves and
+flat C/C++ names do not change. Traits keep their compatibility reexports
+because stable Rust has no trait aliases. Compatibility exports are hidden
+from the root rustdoc page; module docs are the discovery path.
+
+Use `d3::Decal::MAX`, `d3::Decal::MAX_PER_CLUSTER`,
+`spatial::SpatialGrid::<()>::SORT_EVERY`, `render::GraphicsQuality::MIN_RENDER_SCALE`
+and `MAX_RENDER_SCALE`, `terrain::TerrainTile::LODS` and `LAYERS`,
+`d3::PointLight::SHADOW_SIZE`, `SHADOW_ATLAS_SIZE` and `MAX_SHADOW_VIEWS`, and
+`render::GlobalIllumination::MAX_PROBES` and `MAX_PROBES_PER_FRAME`.
+The old constants remain available for compatibility.
+
+Use `world.raw()` for dynamic components/resources, chunks and archetypes;
+`world.raw_ref()` supplies read-only dynamic inspection. These views borrow the
+same world and preserve every pointer/layout requirement of the existing native
+interface. Existing `World` methods remain callable for compatibility but are
+hidden from the typed `World` documentation. C bindings continue to call the
+same storage operations.

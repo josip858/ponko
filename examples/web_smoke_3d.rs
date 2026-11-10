@@ -13,7 +13,11 @@
 //! The failure cases are `web_smoke`'s. On the desktop it opens a window
 //! (`cargo run --example web_smoke_3d --features 3d`).
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::Transform as Transform3D;
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::{MaterialDesc, MeshData, Model, ModelMaterial};
 use serde_json::json;
 use std::cell::Cell;
 use std::rc::Rc;

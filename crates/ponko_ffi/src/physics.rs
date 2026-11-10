@@ -462,7 +462,11 @@ pub unsafe extern "C" fn crabby_ctx_collisions(
 mod imp {
     use std::cell::RefCell;
 
-    use ponko::{BodyKind, Collider, CollisionStarted, CollisionStopped, RigidBody, Shape, Vec2, Velocity};
+    use ponko::d2::Collider;
+    use ponko::d2::RigidBody;
+    use ponko::d2::Shape;
+    use ponko::d2::Velocity;
+    use ponko::{BodyKind, CollisionStarted, CollisionStopped, Vec2};
     use ponko_ecs::Entity;
 
     use super::*;

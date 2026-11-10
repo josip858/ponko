@@ -1,6 +1,12 @@
 //! Ragdolls (feature `physics3d`): a skeleton handed over to physics.
 #![cfg(feature = "physics3d")]
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::anim::{Joint, Skeleton};
+#[allow(unused_imports)]
+use ponko::d3::{Collider as Collider3D, Ragdoll as Ragdoll3D, RigidBody as RigidBody3D, Transform as Transform3D};
+#[allow(unused_imports)]
+use ponko::physics3d::RagdollBone;
+use ponko::prelude::*;
 
 const GRAVITY: Vec3 = Vec3::new(0.0, -9.81, 0.0);
 

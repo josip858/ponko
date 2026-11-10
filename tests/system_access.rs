@@ -1,7 +1,9 @@
 //! Declared system access: conflict rules, the report, and the debug check
 //! that a system stays within its declaration. Headless.
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::access::{AccessConflict, SystemAccess};
+use ponko::prelude::*;
 
 struct Pos(f32);
 struct Vel(f32);

@@ -1,5 +1,11 @@
 //! Ribbon trails, lines and decals: `cargo run --features 3d --example ribbons`.
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::anim::Blend;
+#[allow(unused_imports)]
+use ponko::d3::{Line as Line3D, ParticleBlend as ParticleBlend3D, Trail as Trail3D, Transform as Transform3D};
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::{MaterialDesc, MeshData, Model};
 
 /// Flies in a circle.
 struct Orbiting;
@@ -23,7 +29,7 @@ fn setup(ctx: &mut Ctx) {
     // A glowing tracer behind a flying ball: a quarter second long, thin at
     // the end and fading out.
     let mut tracer = Trail3D::new(0.25, 0.12);
-    tracer.color = ParticleGradient::new(vec![
+    tracer.color = ponko::render::ParticleGradient::new(vec![
         (0.0, Color::rgb(1.0, 0.8, 0.3)),
         (1.0, Color::rgba(1.0, 0.3, 0.0, 0.0)),
     ]);

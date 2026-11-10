@@ -29,7 +29,7 @@
 //! `ctx.assets` borrows apart from it.
 //!
 //! ```
-//! use ponko::*;
+//! use ponko::prelude::*;
 //!
 //! #[derive(serde::Deserialize)]
 //! struct Rules {
@@ -140,7 +140,7 @@ pub trait AssetSource: 'static {
 /// `include_bytes!`, generated at startup, or made up in a test.
 ///
 /// ```
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// Game::new("t", 1, 1).run_headless(0, |ctx| {
 ///     let mut pixel = Vec::new();
 ///     image::RgbaImage::from_pixel(1, 1, image::Rgba([255, 0, 0, 255]))
@@ -661,7 +661,7 @@ impl Assets {
     /// they change (see [`Game::hot_reload`](crate::Game::hot_reload)).
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).hot_reload(false).run_headless(0, |ctx| {
     ///     assert!(!ctx.assets.hot_reload());
     /// });
@@ -677,12 +677,12 @@ impl Assets {
     /// Every load by name goes through it: [`load_texture`](crate::Graphics::load_texture),
     /// [`load_font`](crate::Graphics::load_font), [`load_resource`](Self::load_resource),
     /// [`load_scene`](crate::Ctx::load_scene), [`spawn_prefab`](crate::Ctx::spawn_prefab)
-    /// (and the textures their scenes name), [`load_sound`](crate::Audio::load),
+    /// (and the textures their scenes name), [`load_sound`](crate::audio::Audio::load),
     /// [`load_with`](Self::load_with) and, with the `3d` feature,
     /// meshes, skeletons and animation clips (and the files a glTF refers to),
     /// shaders, screen effects and compute passes.
     ///
-    /// Not covered yet: [`load_stream`](crate::Audio::load_stream) (music streamed
+    /// Not covered yet: [`load_stream`](crate::audio::Audio::load_stream) (music streamed
     /// from a file), texture arrays and reflection probe images still come
     /// only from `assets/`.
     ///
@@ -694,7 +694,7 @@ impl Assets {
     /// earlier stay cached where they were found.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// #[derive(serde::Deserialize)]
     /// struct Rules {
     ///     speed: f32,
@@ -722,7 +722,7 @@ impl Assets {
     /// that is reported with the asset's name and source.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// /// A level in a tiny made-up format: one row of tiles per line.
     /// struct Tiles(Vec<Vec<u8>>);
     ///
@@ -767,7 +767,7 @@ impl Assets {
     /// column).
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// #[derive(serde::Deserialize)]
     /// struct Rules {
     ///     speed: f32,
@@ -804,7 +804,7 @@ impl Assets {
     /// registered with `World::reflect`; the name the file is applied under
     /// comes from the type, so it can't drift from it.
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # #[derive(Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
     /// # struct Stats { hp: f32 }
     /// # fn f(ctx: &mut Ctx, e: Entity) -> Result<(), String> {
@@ -854,7 +854,7 @@ impl Assets {
     /// from the type. Unlike [`load_resource`](Self::load_resource) this
     /// merges into the existing value instead of replacing it.
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # #[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
     /// # struct Rules { speed: f32 }
     /// # fn f(ctx: &mut Ctx) -> Result<(), String> {
@@ -895,7 +895,7 @@ impl Assets {
     /// in `assets/<path>`, over the file if it exists. Not in web builds.
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx) {
     /// ctx.assets.save_scene(&ctx.world, "levels/beach.json").expect("saved");
     /// # }
@@ -914,7 +914,7 @@ impl Assets {
     /// position isn't kept: each spawn says where. Not in web builds.
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx, palm: Entity) {
     /// ctx.assets.save_prefab(&ctx.world, palm, "prefabs/palm.json").expect("saved");
     /// # }
@@ -940,7 +940,7 @@ impl Assets {
     /// to redo work that depends on them.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx) {
     /// if ctx.assets.reloaded_files().iter().any(|f| f == "map.json") {
     ///     println!("map changed: rebuilding the flow fields");
@@ -957,7 +957,7 @@ impl Assets {
     /// anything you computed from an image, such as a level read from its pixels.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx, level: Texture) {
     /// if ctx.assets.reloaded_textures().contains(&level) {
     ///     println!("level image changed: rebuilding the map");

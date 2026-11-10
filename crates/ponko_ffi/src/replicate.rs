@@ -3,11 +3,24 @@
 //! the byte messages of `crabby_net_messages_*` and never touch the wire, so
 //! the game keeps its own packet format.
 
-use ponko::{
-    Authority, AuthorityCheck, Interest, InterestChange, InterestChangeKind, InterestConfig, InterestEntity,
-    InterestTier, InterestViewer, LatestWins, MAX_INTEREST_TIERS, PeerId, Pose, SnapshotConfig, SnapshotPush,
-    SnapshotState, SnapshotStream, UpdateStamp, Vec3, seq_diff, seq_newer,
-};
+use ponko::net::Authority;
+use ponko::net::AuthorityCheck;
+use ponko::net::Interest;
+use ponko::net::InterestChange;
+use ponko::net::InterestChangeKind;
+use ponko::net::InterestConfig;
+use ponko::net::InterestEntity;
+use ponko::net::InterestTier;
+use ponko::net::InterestViewer;
+use ponko::net::LatestWins;
+use ponko::net::PeerId;
+use ponko::net::Pose;
+use ponko::net::SnapshotConfig;
+use ponko::net::SnapshotPush;
+use ponko::net::SnapshotState;
+use ponko::net::SnapshotStream;
+use ponko::net::UpdateStamp;
+use ponko::{MAX_INTEREST_TIERS, Vec3, seq_diff, seq_newer};
 
 use crate::ctx::{collect, out};
 use crate::three::{CrabbyQuat, CrabbyVec3, quat_from_c, quat_to_c};

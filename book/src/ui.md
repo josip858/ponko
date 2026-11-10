@@ -109,10 +109,10 @@ CSS escapes; reserved CSS keywords and names starting with digits are rejected.
 <div>
 
 ```rust
-use ponko::{Ui, UiWidget, ui_layout::*};
+use ponko::{ponko::ui::Ui, ponko::ui::UiWidget, ui_layout::*};
 use ponko::ui_layout::style_helpers::*;
-let mut tree = Ui::default();
-let dashboard = tree.add(UiWidget::Panel, Style {
+let mut tree = ponko::ui::Ui::default();
+let dashboard = tree.add(ponko::ui::UiWidget::Panel, Style {
     display: Display::Grid,
     size: Size { width: length(600.0), height: length(400.0) },
     grid_template_columns: vec![repeat(2, vec![fr(1.0)])],
@@ -128,7 +128,7 @@ let dashboard = tree.add(UiWidget::Panel, Style {
     ..Style::default()
 });
 let placement = GridPlacement::NamedLine("main".into(), 0);
-let main = tree.add_child(dashboard, UiWidget::Label, Style {
+let main = tree.add_child(dashboard, ponko::ui::UiWidget::Label, Style {
     grid_column: Line { start: placement.clone(), end: placement.clone() },
     grid_row: Line { start: placement.clone(), end: placement },
     ..Style::default()
@@ -272,10 +272,10 @@ but inert. The snapshot prints one indented line per node, which suits golden
 tests:
 
 ```rust
-let mut ui = Ui::default();
-let root = ui.root().layout(UiLayout::fill()).id();
+let mut ui = ponko::ui::Ui::default();
+let root = ui.root().layout(ponko::ui::UiLayout::fill()).id();
 ui.button(root, "Play");
-ui.slider(root).layout(UiLayout::row(20.0)).value(0.25).accessible_name("Volume");
+ui.slider(root).layout(ponko::ui::UiLayout::row(20.0)).value(0.25).accessible_name("Volume");
 ui.push_screen(root, false);
 ui.layout(vec2(800.0, 600.0));
 assert_eq!(

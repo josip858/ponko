@@ -5,7 +5,20 @@
 mod common;
 
 use common::TempAsset;
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::anim::Blend;
+#[allow(unused_imports)]
+use ponko::d3::{PointLight as PointLight3D, SpotLight as SpotLight3D, Transform as Transform3D};
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::{
+    AmbientOcclusion, AntiAliasing, ComputePass, GlobalIllumination, GpuBuffer, GpuFeature, GpuTier, GraphicsQuality,
+    InstanceBatchOptions, InstanceLevel, LodGroup, LodHysteresis, LodLevel, LodPick, LodRenderer, LodShadow, Material,
+    MaterialDesc, Mesh, MeshData, Model, ModelMaterial, Post, QualityLevel, ScreenEffect, Sky, TargetCamera,
+    TargetEffect, Tonemap,
+};
+#[allow(unused_imports)]
+use ponko::terrain::{FarTerrain, Heightfield, TerrainMaterialDesc, TerrainTile, TerrainTileData, TextureKind};
 
 // ANCHOR: three_d
 /// Turns around its own Y axis, this many radians a second.
@@ -93,18 +106,26 @@ fn grass_can_cast_no_shadow() {
 /// A detailed tree with a cheap shadow, a flat sign with none, and a stand-in
 /// shadow for a row of fence pieces that cast none themselves.
 fn yard(ctx: &mut Ctx, tree: Mesh, blob: Mesh, sign: Mesh, fence: Mesh, fence_shadow: Mesh) {
-    ctx.world
-        .spawn((Transform3D::default(), Model::new(tree), ShadowMesh(Some(blob))));
-    ctx.world
-        .spawn((Transform3D::at(vec3(4.0, 0.0, 0.0)), Model::new(sign), ShadowMesh(None)));
+    ctx.world.spawn((
+        Transform3D::default(),
+        Model::new(tree),
+        ponko::render::ShadowMesh(Some(blob)),
+    ));
+    ctx.world.spawn((
+        Transform3D::at(vec3(4.0, 0.0, 0.0)),
+        Model::new(sign),
+        ponko::render::ShadowMesh(None),
+    ));
     for i in 0..10 {
         let at = vec3(i as f32, 0.0, 6.0);
         ctx.world
-            .spawn((Transform3D::at(at), Model::new(fence), ShadowMesh(None)));
+            .spawn((Transform3D::at(at), Model::new(fence), ponko::render::ShadowMesh(None)));
     }
     // Only a shadow: no Model.
-    ctx.world
-        .spawn((Transform3D::at(vec3(0.0, 0.0, 6.0)), ShadowMesh(Some(fence_shadow))));
+    ctx.world.spawn((
+        Transform3D::at(vec3(0.0, 0.0, 6.0)),
+        ponko::render::ShadowMesh(Some(fence_shadow)),
+    ));
 }
 // ANCHOR_END: shadow_mesh
 
@@ -114,24 +135,34 @@ fn shadow_meshes_round_trip_through_scenes() {
         let material = ctx.gfx.default_material();
         let mesh = ctx.gfx.create_mesh(&MeshData::cube(1.0), material);
         yard(ctx, mesh, mesh, mesh, mesh, mesh);
-        let only_shadows = ctx.world.query::<&ShadowMesh>().without::<Model>().iter().count();
+        let only_shadows = ctx
+            .world
+            .query::<&ponko::render::ShadowMesh>()
+            .without::<Model>()
+            .iter()
+            .count();
         assert_eq!(only_shadows, 1);
         let none = ctx
             .world
-            .query::<&ShadowMesh>()
+            .query::<&ponko::render::ShadowMesh>()
             .iter()
             .filter(|s| s.0.is_none())
             .count();
         assert_eq!(none, 11);
         // No shadow, as JSON and back.
-        let sign = ctx.world.spawn((Transform3D::default(), ShadowMesh(None)));
+        let sign = ctx
+            .world
+            .spawn((Transform3D::default(), ponko::render::ShadowMesh(None)));
         let json = ctx.world.entity_json(sign).unwrap();
         assert_eq!(json["ShadowMesh"], serde_json::json!({ "mesh": null }), "{json}");
         let other = ctx.world.spawn((Transform3D::default(),));
         ctx.world
             .set_json(other, "ShadowMesh", json["ShadowMesh"].clone())
             .unwrap();
-        assert_eq!(ctx.world.get::<ShadowMesh>(other), Some(&ShadowMesh(None)));
+        assert_eq!(
+            ctx.world.get::<ponko::render::ShadowMesh>(other),
+            Some(&ponko::render::ShadowMesh(None))
+        );
         let unloaded = ctx
             .world
             .set_json(other, "ShadowMesh", serde_json::json!({ "mesh": "nope.glb" }))
@@ -579,7 +610,11 @@ fn the_guide_hills_are_nine_tiles_of_four_details() {
         assert_eq!(tile.lod_distance, 128.0);
         meshes.extend(tile.lods.map(|m| m));
     });
-    assert_eq!(meshes.len(), 9 * TERRAIN_LODS, "every tile and level has its own mesh");
+    assert_eq!(
+        meshes.len(),
+        9 * ponko::terrain::TERRAIN_LODS,
+        "every tile and level has its own mesh"
+    );
 }
 
 // ANCHOR: effect
@@ -860,14 +895,14 @@ fn transforms_are_reflected_as_json() {
 /// built on worker threads, freed past 800 m, and coarse far ground
 /// beyond them.
 struct Ground {
-    cells: CellStreamer,
+    cells: ponko::stream::CellStreamer,
     tiles: std::collections::HashMap<(i32, i32), Tile>,
     material: Material,
     far: FarTerrain,
 }
 
 enum Tile {
-    Building(Job<TerrainTileData>),
+    Building(ponko::stream::Job<TerrainTileData>),
     Live(Entity, TerrainTile),
 }
 
@@ -883,7 +918,7 @@ impl Ground {
             .map(|i| hill(-4096.0 + (i % n) as f32 * 32.0, -4096.0 + (i / n) as f32 * 32.0))
             .collect();
         Self {
-            cells: CellStreamer::new(128.0, 600.0, 800.0),
+            cells: ponko::stream::CellStreamer::new(128.0, 600.0, 800.0),
             tiles: Default::default(),
             material,
             far: FarTerrain::new(&heights, n, vec2(-4096.0, -4096.0), 32.0, 128.0, material),
@@ -896,7 +931,7 @@ impl Ground {
         self.cells.update(ctx.camera3d.position, 4);
         for &cell in self.cells.to_load() {
             let corner = self.cells.corner(cell);
-            let job = Job::spawn(move || {
+            let job = ponko::stream::Job::spawn(move || {
                 // 65 x 65 heights, 2 m apart.
                 let heights: Vec<f32> = (0..65 * 65)
                     .map(|i| hill(corner.x + (i % 65) as f32 * 2.0, corner.z + (i / 65) as f32 * 2.0))
@@ -1009,8 +1044,11 @@ fn recolored(ctx: &mut Ctx, house: Mesh, gold: Material, rust: Material) {
     ctx.world.spawn((at(1.0), Model::new(ball), ModelMaterial(gold)));
     ctx.world.spawn((at(2.0), Model::new(ball), ModelMaterial(rust)));
     // Part 1 only; the other parts keep the materials from the file.
-    ctx.world
-        .spawn((at(6.0), Model::new(house), ModelMaterials::new(&[(1, rust)])));
+    ctx.world.spawn((
+        at(6.0),
+        Model::new(house),
+        ponko::render::ModelMaterials::new(&[(1, rust)]),
+    ));
 }
 // ANCHOR_END: model_material
 
@@ -1030,7 +1068,7 @@ fn one_plain_mesh_is_drawn_in_each_models_material() {
         assert_eq!(ctx.world.query::<(&Model, &ModelMaterial)>().iter().count(), 2);
         let listed: Vec<_> = ctx
             .world
-            .query::<&ModelMaterials>()
+            .query::<&ponko::render::ModelMaterials>()
             .iter()
             .flat_map(|m| m.parts().collect::<Vec<_>>())
             .collect();
@@ -1061,7 +1099,7 @@ fn model_material_overrides_save_and_load_by_file_and_material_name() {
         let swapped = ctx.world.spawn((
             at(2.0),
             Model::new(house),
-            ModelMaterials::new(&[(1, walls), (0, roof)]),
+            ponko::render::ModelMaterials::new(&[(1, walls), (0, roof)]),
         ));
         // A material made in code has no file to name: not saved.
         let paint = ctx.gfx.create_material(MaterialDesc::color(Color::rgb(1.0, 0.0, 0.0)));
@@ -1069,7 +1107,7 @@ fn model_material_overrides_save_and_load_by_file_and_material_name() {
             at(3.0),
             Model::new(house),
             ModelMaterial(paint),
-            ModelMaterials::new(&[(0, roof), (1, paint)]),
+            ponko::render::ModelMaterials::new(&[(0, roof), (1, paint)]),
         ));
         assert_eq!(
             ctx.world.get_json(all_roof, "ModelMaterial").unwrap(),
@@ -1094,9 +1132,14 @@ fn model_material_overrides_save_and_load_by_file_and_material_name() {
                 ctx.gfx.loaded_materials("walls")[0].0,
                 ctx.gfx.loaded_materials("roof")[0].0,
             );
-            let mut got: Vec<(f32, Option<ModelMaterial>, Option<ModelMaterials>)> = ctx
+            let mut got: Vec<(f32, Option<ModelMaterial>, Option<ponko::render::ModelMaterials>)> = ctx
                 .world
-                .query::<(&Transform3D, &Model, Option<&ModelMaterial>, Option<&ModelMaterials>)>()
+                .query::<(
+                    &Transform3D,
+                    &Model,
+                    Option<&ModelMaterial>,
+                    Option<&ponko::render::ModelMaterials>,
+                )>()
                 .iter()
                 .map(|(t, _, m, parts)| (t.position.x, m.copied(), parts.cloned()))
                 .collect();
@@ -1105,7 +1148,11 @@ fn model_material_overrides_save_and_load_by_file_and_material_name() {
                 got,
                 vec![
                     (1.0, Some(ModelMaterial(roof)), None),
-                    (2.0, None, Some(ModelMaterials::new(&[(0, roof), (1, walls)]))),
+                    (
+                        2.0,
+                        None,
+                        Some(ponko::render::ModelMaterials::new(&[(0, roof), (1, walls)]))
+                    ),
                     (3.0, None, None),
                 ]
             );

@@ -6,11 +6,11 @@ use crate::{Color, Mat4, Vec3};
 /// A persistent batch. Handles are never recycled; freeing twice is harmless.
 /// Create one batch per streamed region and free it when that region unloads.
 /// ```
-/// use ponko::*;
+/// use ponko::prelude::*;
 /// Game::new("instances", 1, 1).run_headless(0, |ctx| {
-///     let mat = ctx.gfx.create_material(MaterialDesc::default());
-///     let mesh = ctx.gfx.create_mesh(&MeshData::cube(1.0), mat);
-///     let batch = ctx.gfx.create_instance_batch(mesh, &[Mat4::IDENTITY], InstanceBatchOptions::default());
+///     let mat = ctx.gfx.create_material(ponko::render::MaterialDesc::default());
+///     let mesh = ctx.gfx.create_mesh(&ponko::render::MeshData::cube(1.0), mat);
+///     let batch = ctx.gfx.create_instance_batch(mesh, &[Mat4::IDENTITY], ponko::render::InstanceBatchOptions::default());
 ///     ctx.gfx.free_instance_batch(batch);
 /// });
 /// ```
@@ -31,8 +31,8 @@ impl InstanceBatch {
 }
 /// Settings for a batch; materials come from the mesh's parts.
 /// ```
-/// use ponko::*;
-/// let settings = InstanceBatchOptions { max_distance: 500.0, ..Default::default() };
+/// use ponko::prelude::*;
+/// let settings = ponko::render::InstanceBatchOptions { max_distance: 500.0, ..Default::default() };
 /// assert!(settings.cast_shadows);
 /// ```
 #[derive(Clone, Copy, Debug)]

@@ -7,7 +7,9 @@
 //!
 //! Keys: R starts over, Escape quits.
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d2::{Collider, Hit as RayHit, Physics, RigidBody, Shape, Transform as Transform2D};
+use ponko::prelude::*;
 
 const W: f32 = 1000.0;
 const H: f32 = 700.0;

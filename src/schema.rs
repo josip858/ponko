@@ -22,7 +22,7 @@ use crate::reflect::{Field, FieldType};
 /// fragment, which is what tools receive.
 ///
 /// ```
-/// use ponko::*;
+/// use ponko::prelude::*;
 ///
 /// let health = ValueSchema::object([
 ///     ("current", ValueSchema::Number),

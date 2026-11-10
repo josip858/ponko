@@ -25,7 +25,8 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use crate::assets::{self, Origin};
-use crate::{Ctx, Job, ResidencyKind, Texture};
+use crate::residency::ResidencyKind;
+use crate::{Ctx, Job, Texture};
 
 /// The longest side of a streamed texture's stand-in.
 pub(crate) const STAND_IN: u32 = 32;
@@ -78,10 +79,10 @@ impl AssetState {
 /// The upload queue's budget and counters ([`Graphics::upload_stats`](crate::Graphics::upload_stats)).
 ///
 /// ```
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// Game::new("t", 1, 1).run_headless(0, |ctx| {
 ///     let uploads = ctx.gfx.upload_stats();
-///     assert_eq!(uploads.budget, Some(DEFAULT_UPLOAD_BUDGET));
+///     assert_eq!(uploads.budget, Some(ponko::streaming::DEFAULT_UPLOAD_BUDGET));
 ///     assert_eq!(uploads.pending, 0);
 /// });
 /// ```
@@ -347,7 +348,7 @@ impl Ctx {
     /// a worker. In a browser, decoding runs when the load starts.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).run_headless(0, |ctx| {
     ///     let mut png = Vec::new();
     ///     image::RgbaImage::from_pixel(256, 128, image::Rgba([90, 160, 60, 255]))
@@ -358,7 +359,7 @@ impl Ctx {
     ///     ctx.finish_uploads(); // a loading screen; games just keep asking
     ///     let grass = ctx.stream_texture("grass.png").unwrap();
     ///     assert_eq!((grass.width(), grass.height()), (256, 128));
-    ///     assert_eq!(ctx.gfx.asset_state(ResidencyKind::Texture, "grass.png"), AssetState::Resident);
+    ///     assert_eq!(ctx.gfx.asset_state(ponko::residency::ResidencyKind::Texture, "grass.png"), ponko::streaming::AssetState::Resident);
     /// });
     /// ```
     pub fn stream_texture(&mut self, path: &str) -> Option<Texture> {
@@ -402,7 +403,7 @@ impl Ctx {
     /// on this thread, as [`load_texture`](Self::load_texture) does), under
     /// the [texture budget](Self::set_residency_budget). Ask for it each
     /// tick or frame you need it: when resident textures go over the
-    /// budget, the least recently used ones that no [`Sprite`](crate::Sprite)
+    /// budget, the least recently used ones that no [`Sprite`](crate::d2::Sprite)
     /// shows drop to a small stand-in (at most 32 pixels a side) until they
     /// are asked for again. The handle stays the same throughout and is
     /// never freed by the budget.
@@ -414,17 +415,17 @@ impl Ctx {
     /// those materials sample the stand-in.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).run_headless(0, |ctx| {
     ///     let mut png = Vec::new();
     ///     image::RgbaImage::from_pixel(64, 64, image::Rgba([200, 30, 30, 255]))
     ///         .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
     ///         .unwrap();
     ///     ctx.assets.add_source(MemorySource::new("mem").with("brick.png", png));
-    ///     ctx.set_residency_budget(ResidencyKind::Texture, Some(64 << 20));
+    ///     ctx.set_residency_budget(ponko::residency::ResidencyKind::Texture, Some(64 << 20));
     ///     let brick = ctx.resident_texture("brick.png");
     ///     assert_eq!(brick.width(), 64);
-    ///     assert!(ctx.gfx.is_resident(ResidencyKind::Texture, "brick.png"));
+    ///     assert!(ctx.gfx.is_resident(ponko::residency::ResidencyKind::Texture, "brick.png"));
     /// });
     /// ```
     ///
@@ -812,7 +813,7 @@ impl Ctx {
     fn shown_textures(&mut self) -> std::collections::HashSet<u32> {
         let mut ids = std::mem::take(&mut self.gfx.residency.shown);
         ids.clear();
-        self.world.query::<&crate::Sprite>().for_each(|s| {
+        self.world.query::<&crate::d2::Sprite>().for_each(|s| {
             ids.insert(s.texture.id);
         });
         ids
@@ -940,13 +941,13 @@ impl crate::Graphics {
     /// Where the streamed or resident asset of `kind` called `name` is.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).run_headless(0, |ctx| {
-    ///     assert_eq!(ctx.gfx.asset_state(ResidencyKind::Texture, "sky.png"), AssetState::Unknown);
+    ///     assert_eq!(ctx.gfx.asset_state(ponko::residency::ResidencyKind::Texture, "sky.png"), ponko::streaming::AssetState::Unknown);
     ///     ctx.stream_texture("sky.png"); // not there: fails on a worker
     ///     ctx.finish_uploads();
-    ///     assert_eq!(ctx.gfx.asset_state(ResidencyKind::Texture, "sky.png"), AssetState::Failed);
-    ///     assert_eq!(ctx.gfx.asset_error(ResidencyKind::Texture, "sky.png").unwrap().kind(), ErrorKind::NotFound);
+    ///     assert_eq!(ctx.gfx.asset_state(ponko::residency::ResidencyKind::Texture, "sky.png"), ponko::streaming::AssetState::Failed);
+    ///     assert_eq!(ctx.gfx.asset_error(ponko::residency::ResidencyKind::Texture, "sky.png").unwrap().kind(), ErrorKind::NotFound);
     /// });
     /// ```
     #[must_use]

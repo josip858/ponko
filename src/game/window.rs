@@ -36,7 +36,7 @@ where
     ctx.seed = game.seed;
     ctx.assets.watcher.set_on(crate::hot_reload::enabled(game.hot_reload));
     if let Some(cell) = game.spatial_cell {
-        ctx.spatial = crate::SpatialGrid::new(cell);
+        ctx.spatial = crate::spatial::SpatialGrid::new(cell);
     }
     #[cfg(feature = "physics")]
     if let Some(gravity) = game.gravity {

@@ -11,7 +11,11 @@
 
 use std::time::Instant;
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::Transform as Transform3D;
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::{Model, Sky};
 
 /// The middle and size of where the scene's models are.
 fn extent(world: &mut World) -> (Vec3, f32) {

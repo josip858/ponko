@@ -125,15 +125,15 @@ so models never pop out while they load; levels the camera left stop being
 shown, and the mesh budget can evict them.
 
 ```rust
-# use ponko::*;
+# use ponko::prelude::*;
 # fn f(ctx: &mut Ctx) {
 let levels = vec![
-    LodLevel::new(0.3, vec![LodRenderer::new(Mesh::NONE)]),
-    LodLevel::new(0.05, vec![LodRenderer::new(Mesh::NONE)]),
+    ponko::render::LodLevel::new(0.3, vec![ponko::render::LodRenderer::new(ponko::render::Mesh::NONE)]),
+    ponko::render::LodLevel::new(0.05, vec![ponko::render::LodRenderer::new(ponko::render::Mesh::NONE)]),
 ];
 ctx.world.spawn((
     ponko::d3::Transform::default(),
-    LodGroup::new(10.0, levels),
+    ponko::render::LodGroup::new(10.0, levels),
     StreamedLod::new(&["models/tower_lod0.glb", "models/tower_lod1.glb"]),
 ));
 # }

@@ -7,7 +7,19 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d2::{Sprite, Transform as Transform2D};
+#[allow(unused_imports)]
+use ponko::d3::Transform as Transform3D;
+#[allow(unused_imports)]
+use ponko::inventory::AssetClass;
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::{LodGroup, LodLevel, LodRenderer, Mesh, MeshData, Model};
+#[allow(unused_imports)]
+use ponko::residency::ResidencyKind;
+#[allow(unused_imports)]
+use ponko::streaming::AssetState;
 
 /// A `w` × `h` PNG of one color.
 fn png(w: u32, h: u32, shade: u8) -> Vec<u8> {
@@ -761,7 +773,7 @@ mod meshes {
         ctx.world.spawn((
             Transform3D::default(),
             LodGroup::new(4.0, levels),
-            StreamedLod::new(&files),
+            ponko::d3::StreamedLod::new(&files),
         ))
     }
 

@@ -20,7 +20,7 @@
 //! }
 //! ```
 //!
-//! Everything you need comes in with `use ponko::*;`.
+//! Start with `use ponko::prelude::*;`, then add dimension and service modules as needed.
 //!
 //! ## Features
 //!
@@ -54,164 +54,172 @@
 #[cfg(test)]
 extern crate self as ponko;
 
+pub mod anim;
 pub mod d2;
 #[cfg(feature = "3d")]
 pub mod d3;
+pub mod nav;
 pub mod prelude;
+#[cfg(feature = "3d")]
+pub mod terrain;
 
-mod access;
-mod actions;
-mod alloc_count;
-mod assets;
-mod attach;
-mod audio;
-mod camera;
+pub mod access;
+pub mod actions;
+pub mod alloc_count;
+pub mod assets;
+pub mod attach;
+pub mod audio;
+pub mod camera;
 #[cfg(any(feature = "physics", feature = "physics3d"))]
 mod collision;
-mod color;
+pub mod color;
 mod control;
 mod ctx;
 mod ctx_compat;
-mod diagnostics;
+pub mod diagnostics;
 mod ecs;
 #[cfg(feature = "inspector")]
 mod editor;
-mod error;
-mod events;
-mod flow;
-mod game;
+pub mod error;
+pub mod events;
+pub mod flow;
+pub mod game;
 #[cfg(feature = "gamepad")]
 mod gamepad;
-mod gfx;
-mod handle;
+pub mod gfx;
+pub mod handle;
 mod hot_reload;
-mod input;
-mod inventory;
-pub use access::{AccessConflict, AccessReport, ReportedPair, ReportedSystem, Service, SystemAccess};
-pub use actions::{
-    Action, ActionId, ActionMap, ActionRef, Axis2Binding, AxisBinding, ButtonBinding, InputEvent, UnknownAction,
-};
-pub use system_view::{SystemView, ViewEvents};
+pub mod input;
+pub mod inventory;
+
+#[doc(hidden)]
+pub use actions::{Action, ActionId, ActionMap, ActionRef, Axis2Binding, AxisBinding, ButtonBinding};
+
 #[cfg(feature = "inspector")]
 mod inspector;
 mod logs;
 #[cfg(feature = "navmesh")]
 mod nav3d;
-mod net;
-#[cfg(feature = "navmesh")]
-pub use nav3d::{NavAgent3D, NavBakeError, NavBakeSettings, NavMesh3D, NavObstacle3D, NavSource};
-mod perf;
+pub mod net;
+
+pub mod perf;
 mod perf_report;
 #[cfg(feature = "physics")]
-mod physics;
+pub mod physics;
 #[cfg(feature = "physics3d")]
-mod physics3d;
+pub mod physics3d;
 mod profiler;
 #[cfg(any(all(target_arch = "wasm32", feature = "window"), test))]
 mod query;
-mod random;
-mod reflect;
-mod render;
-mod residency;
-mod scenario;
+pub mod random;
+pub mod reflect;
+pub mod render;
+pub mod residency;
+pub mod scenario;
 mod scene;
 mod schema;
-mod scope;
-mod sheet;
-mod spatial;
-mod stream;
-mod streaming;
-mod system_view;
+pub mod scope;
+pub mod sheet;
+pub mod spatial;
+pub mod stream;
+pub mod streaming;
+pub mod system_view;
 pub mod systems;
-mod text;
-mod texture;
+pub mod text;
+pub mod texture;
 #[cfg(feature = "3d")]
 mod three;
-mod tilemap;
-mod time;
-mod ui;
+pub mod tilemap;
+pub mod time;
+pub mod ui;
 #[cfg(all(target_arch = "wasm32", feature = "window"))]
 mod web;
 
-pub use alloc_count::{AllocCounts, CountingAllocator, alloc_counts, note_allocation};
+#[doc(hidden)]
+pub use alloc_count::{alloc_counts, note_allocation};
+#[doc(hidden)]
 pub use assets::{AssetSource, Assets, MemorySource};
+#[doc(hidden)]
 pub use attach::Attached;
-pub use audio::{Audio, AudioBus, AudioEffects, Playing, Sound, SoundParams};
-#[cfg(feature = "3d")]
-pub use audio::{AudioListener3D, AudioRolloff, AudioSettings3D, AudioSource3D};
-pub use camera::{Camera2D, Rect, camera_controls};
+#[doc(hidden)]
+pub use audio::{AudioBus, Playing, Sound, SoundParams};
+
+#[doc(hidden)]
+pub use camera::{Rect, camera_controls};
 #[cfg(any(feature = "physics", feature = "physics3d"))]
+#[doc(hidden)]
 pub use collision::{BodyKind, CollisionStarted, CollisionStopped};
+#[doc(hidden)]
 pub use color::Color;
 pub use ctx::Ctx;
-pub use diagnostics::{
-    ArchetypeDiagnostics, ComponentDiagnostics, ECS_DIAGNOSTICS_VERSION, EcsDiagnostics, MatchCount, SystemDiagnostics,
-};
-pub use ecs::{Sprite, Transform2D};
+#[doc(hidden)]
+pub use diagnostics::ECS_DIAGNOSTICS_VERSION;
+
+#[doc(hidden)]
 pub use error::{Error, ErrorKind};
+#[doc(hidden)]
 pub use events::Events;
 #[doc(hidden)]
 pub use flow::RawFlowView;
-pub use flow::{FlowField, NavGrid};
+
+#[doc(hidden)]
 pub use game::{ConfiguredGame, Game, Phase, Plugin, SetupResult, SystemId, Systems};
+#[doc(hidden)]
 pub use gfx::Graphics;
-pub use handle::{Handle, LiveCounts};
-pub use input::{Gamepad, GamepadAxis, GamepadButton, GamepadStick, Input, Key, MAX_GAMEPADS, MouseButton};
-pub use inventory::{AssetClass, AssetCount, AssetGrowth, AssetInventory, GpuResidency};
+#[doc(hidden)]
+pub use handle::Handle;
+#[doc(hidden)]
+pub use input::{Key, MAX_GAMEPADS, MouseButton};
+
 #[cfg(feature = "3d")]
+#[doc(hidden)]
 pub use net::NetPose;
-pub use net::{
-    Authority, AuthorityCheck, ClockSync, Interest, InterestChange, InterestChangeKind, InterestConfig, InterestEntity,
-    InterestEntry, InterestTier, InterestViewer, Interpolate, LatestWins, MAX_INTEREST_TIERS, Pose, SnapshotBuffer,
-    SnapshotConfig, SnapshotPush, SnapshotSample, SnapshotState, SnapshotStream, UpdateStamp, seq_diff, seq_newer,
-};
-pub use net::{
-    Desync, Lane, MAX_INPUT_BYTES, MAX_MESSAGE_BYTES, MAX_PLAYERS, MessageEvent, MessageStats, Net, NetMessages,
-    NetState, NetStats, PeerId,
-};
+#[doc(hidden)]
+pub use net::{Interpolate, MAX_INTEREST_TIERS, seq_diff, seq_newer};
+#[doc(hidden)]
+pub use net::{MAX_INPUT_BYTES, MAX_MESSAGE_BYTES, MAX_PLAYERS};
 #[cfg(feature = "steam")]
-pub use net::{SteamLobby, SteamLobbyVisibility, steam_lobby_from_args, steam_wait_for_invite};
-pub use perf::{Perf, SystemTiming};
-pub use perf_report::{
-    AllocReport, Budget, BudgetViolation, Contributor, FrameTimes, PassReport, PerfReport, PerfWarning, Regression,
-    RenderReport, ScopeReport, SystemReport, WarningKind, WorstFrame,
-};
+#[doc(hidden)]
+pub use net::{steam_lobby_from_args, steam_wait_for_invite};
+
 #[cfg(feature = "physics")]
-pub use physics::{Collider, MAX_POLYGON_POINTS, Physics, RayHit, RigidBody, Shape, Velocity};
+#[doc(hidden)]
+pub use physics::MAX_POLYGON_POINTS;
 #[cfg(feature = "physics3d")]
-pub use physics3d::{
-    Character3D, Collider3D, ColliderFocus, CollisionGroups, CollisionMesh, CollisionMeshData, ContactModifier3D,
-    ContactPair3D, FrictionCurve, Hit3D, Joint3D, JointAxis3D, JointDrive3D, JointMotion3D, PHYSICS3D_HZ, Physics3D,
-    QueryFilter3D, Ragdoll3D, RagdollBone, RigidBody3D, Shape3D, TerrainCollider, Vehicle3D, Velocity3D, Wheel3D,
-};
-pub use profiler::{FrameStats, GpuPass};
+#[doc(hidden)]
+pub use physics3d::PHYSICS3D_HZ;
+
+#[doc(hidden)]
 pub use random::{DEFAULT_SEED, Random, Rng};
-pub use reflect::{Field, FieldType, ReflectError, WorldReflect};
-pub use render::{
-    GpuAdapter, GpuCapabilities, GpuFeature, GpuFeatureStatus, GpuLimits, GpuTier, GpuUploads, PipelineStats,
-    RenderStats,
-};
-pub use residency::{ResidencyKind, ResidencyStats};
-pub use scenario::{
-    InputScenario, MAX_SCENARIO_STEPS, MAX_SCENARIO_TICKS, SCENARIO_VERSION, ScenarioCheck, ScenarioError,
-    ScenarioFailure, ScenarioReport, ScenarioStatus,
-};
+#[doc(hidden)]
+pub use reflect::{Field, FieldType, WorldReflect};
+
+#[doc(hidden)]
+pub use scenario::{MAX_SCENARIO_STEPS, MAX_SCENARIO_TICKS, SCENARIO_VERSION};
+#[doc(hidden)]
 pub use schema::ValueSchema;
-pub use scope::{ProfileScope, ScopeGuard, ScopeTiming, scope_named};
+#[doc(hidden)]
+pub use scope::scope_named;
+#[doc(hidden)]
 pub use sheet::{Animation, SpriteSheet};
 #[doc(hidden)]
+#[doc(hidden)]
 pub use spatial::RawGridView;
-pub use spatial::{GridEntry, SPATIAL_SORT_EVERY, SpatialGrid, spatial_key};
+#[doc(hidden)]
+pub use spatial::{SPATIAL_SORT_EVERY, spatial_key};
 /// The Steamworks SDK (re-exported `steamworks` crate, feature `steam`):
 /// create the [`steamworks::Client`] for [`Net::steam_host`] here, and use
 /// it for achievements, friends and the rest of Steam.
 #[cfg(feature = "steam")]
+#[doc(hidden)]
 pub use steamworks;
 #[cfg(feature = "3d")]
 pub use stream::CellStreamer;
 pub use stream::Job;
-pub use streaming::{AssetState, DEFAULT_UPLOAD_BUDGET, StreamedAsset, UploadStats};
+#[doc(hidden)]
+pub use streaming::DEFAULT_UPLOAD_BUDGET;
 #[allow(deprecated)]
+#[doc(hidden)]
 pub use systems::at_root::*;
 /// Flex/grid/absolute layout types used by retained UI.
 /// ```
@@ -219,60 +227,58 @@ pub use systems::at_root::*;
 /// let style: Style = Style::default();
 /// ```
 pub use taffy as ui_layout;
+#[doc(hidden)]
 pub use text::{Font, TextParams};
+#[doc(hidden)]
 pub use texture::{DrawParams, Texture, TextureFilter};
 #[cfg(feature = "3d")]
+#[doc(hidden)]
 pub use three::StreamedLod;
 #[cfg(feature = "3d")]
+#[doc(hidden)]
 pub use three::{
-    AmbientOcclusion, AnimationClip, AnimationCondition, AnimationEvent, AnimationGraph, AnimationLayer,
-    AnimationParameter, AnimationState, AnimationTrack, AnimationTransition, Animator, AntiAliasing, AttachToJoint,
-    Blend, Camera3D, Compute, ComputePass, Decal3D, Effect, FarTerrain, GlobalIllumination, GpuBuffer, GraphicsQuality,
-    Heightfield, InstanceBatch, InstanceBatchOptions, InstanceLevel, Interpolation, Joint, JointAnimation, JointMask,
-    LIGHT_SHADOW_ATLAS_SIZE, LIGHT_SHADOW_SIZE, LayerBlend, Lighting, Line3D, LodGroup, LodHysteresis, LodLevel,
-    LodPick, LodRenderer, LodSettings, LodShadow, MAX_DECALS, MAX_DECALS_PER_CLUSTER, MAX_GI_PROBES,
-    MAX_GI_PROBES_PER_FRAME, MAX_LIGHT_SHADOW_VIEWS, MAX_RENDER_SCALE, MIN_RENDER_SCALE, Material, MaterialDesc, Mesh,
-    MeshCost, MeshData, Model, ModelMaterial, ModelMaterials, MorphAnimation, MorphFrame, MorphTarget, MorphWeights,
-    Motion, MotionChild, ParticleBlend3D, ParticleCurve, ParticleEmitter3D, ParticleGradient, ParticleSettings3D,
-    ParticleShape3D, ParticleSpace3D, PointLight3D, Post, QualityLevel, ReceivesDecals, ReflectionProbe3D, RootMotion,
-    ScreenEffect, Shader, ShaderDiagnostic, ShaderKind, ShaderOutcome, ShaderStatus, ShadowMesh, Skeleton, SkinOf, Sky,
-    SpotLight3D, TERRAIN_LAYERS, TERRAIN_LODS, TargetCamera, TargetEffect, TerrainMaterialDesc, TerrainTile,
-    TerrainTileData, Text3D, TextAlign3D, TextureArray, TextureKind, Tonemap, Trail3D, Transform3D, look_at_joint,
+    AnimationClip, JointMask, LIGHT_SHADOW_ATLAS_SIZE, LIGHT_SHADOW_SIZE, MAX_DECALS, MAX_DECALS_PER_CLUSTER,
+    MAX_GI_PROBES, MAX_GI_PROBES_PER_FRAME, MAX_LIGHT_SHADOW_VIEWS, MAX_RENDER_SCALE, MIN_RENDER_SCALE, ModelMaterials,
+    MorphWeights, ParticleCurve, ParticleGradient, ShadowMesh, TERRAIN_LAYERS, TERRAIN_LODS, look_at_joint,
     two_bone_ik,
 };
-#[cfg(feature = "3d")]
+
 #[doc(hidden)]
-pub use three::{ExtractionBench, ExtractionSample};
 pub use tilemap::TileMap;
+#[doc(hidden)]
 pub use time::{Time, Turns};
 #[cfg(feature = "3d")]
+#[doc(hidden)]
 pub use ui::UiPanel3D;
-pub use ui::{
-    Ui, UiAccessNode, UiAccessTree, UiAccessValue, UiBuilder, UiEvent, UiId, UiImmediate, UiInput, UiLayout, UiPaint,
-    UiRole, UiStyle, UiTextAlign, UiTheme, UiWidget,
-};
 
 /// The ECS: entities, components, queries, resources, commands.
+#[doc(hidden)]
 pub use ponko_ecs::{
     Added, Changed, Commands, Component, ComponentId, Entity, Or, Query, QueryFilter, Tick, ViewQuery, With, Without,
     World, WorldView,
 };
 
 /// The full ECS crate, for advanced use (C path, chunks, archetypes).
+#[doc(hidden)]
 pub use ponko_ecs as ecs_core;
 
 /// 3D and 4D vectors, rotation and 4x4 matrix, for 3D (re-exported from `glam`).
 #[cfg(feature = "3d")]
+#[doc(hidden)]
 pub use glam::{Mat4, Vec4, vec4};
 /// Rotation and 3D vector (re-exported from `glam`); also used by the
 /// replication helpers ([`Pose`], [`Interest`]), which need no `3d` feature.
+#[doc(hidden)]
 pub use glam::{Quat, Vec3, vec3};
 /// Whole-number 2D vector, for tile coordinates (re-exported from `glam`).
+#[doc(hidden)]
 pub use glam::{UVec2, uvec2};
 /// 2D vector used for positions, sizes and velocities (re-exported from `glam`).
+#[doc(hidden)]
 pub use glam::{Vec2, vec2};
 
 /// JSON values used by reflection (re-exported from `serde_json`).
+#[doc(hidden)]
 pub use serde_json::{self, Value, json};
 
 /// A point in time for measuring how long something took, like
@@ -282,15 +288,21 @@ pub use serde_json::{self, Value, json};
 ///
 /// ```
 /// # use ponko::*;
-/// let nav = NavGrid::new(256, 256, 8.0);
-/// let mut field = FlowField::new();
-/// let start = Instant::now();
+/// let nav = ponko::flow::NavGrid::new(256, 256, 8.0);
+/// let mut field = ponko::flow::FlowField::new();
+/// let start = ponko::Instant::now();
 /// field.compute(&nav, &[vec2(40.0, 40.0)]);
 /// println!("flow field in {:.2} ms", start.elapsed().as_secs_f64() * 1000.0);
 /// ```
+#[doc(hidden)]
 pub use web_time::Instant;
 
 mod environment;
 
 /// Prefab placement in either dimension.
 pub use scene::Placement;
+
+mod compat;
+#[doc(hidden)]
+#[allow(deprecated)]
+pub use compat::*;

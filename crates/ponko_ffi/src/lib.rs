@@ -71,7 +71,7 @@ pub use animator::*;
 /// the engine makes. A Rust program that links this crate as a library and
 /// wants its own allocator should depend on the engine instead.
 #[global_allocator]
-static ALLOCATOR: ponko::CountingAllocator = ponko::CountingAllocator;
+static ALLOCATOR: ponko::alloc_count::CountingAllocator = ponko::alloc_count::CountingAllocator;
 
 pub use attach::*;
 pub use audio3d::*;
@@ -114,7 +114,9 @@ pub use ui_panel3d::*;
 pub use ui_retained::*;
 pub use vehicle3d::*;
 
-use ponko::{Sprite, Transform2D, spatial_key};
+use ponko::d2::Sprite;
+use ponko::d2::Transform as Transform2D;
+use ponko::spatial_key;
 use ponko_ecs::{ComponentId, Entity, World};
 use std::alloc::Layout;
 use std::any::TypeId;
@@ -395,22 +397,22 @@ pub(crate) fn component(world: &World, id: u32) -> Result<(ComponentId, Kind), F
         Some(t) if t == TypeId::of::<Sprite>() => Kind::Mirror(&SPRITE),
         // repr(C), layout checked against CrabbyTransform3D / CrabbyModel;
         // any bits are a valid value (unknown meshes draw nothing).
-        Some(t) if t == TypeId::of::<ponko::Transform3D>() => Kind::Plain,
-        Some(t) if t == TypeId::of::<ponko::Model>() => Kind::Plain,
-        Some(t) if t == TypeId::of::<ponko::PointLight3D>() => Kind::Plain,
-        Some(t) if t == TypeId::of::<ponko::SpotLight3D>() => Kind::Plain,
+        Some(t) if t == TypeId::of::<ponko::d3::Transform>() => Kind::Plain,
+        Some(t) if t == TypeId::of::<ponko::render::Model>() => Kind::Plain,
+        Some(t) if t == TypeId::of::<ponko::d3::PointLight>() => Kind::Plain,
+        Some(t) if t == TypeId::of::<ponko::d3::SpotLight>() => Kind::Plain,
         // repr(C), layout checked against CrabbyReflectionProbe3D; `content`
         // is checked when a bake or the renderer uses it, and non-finite
         // sizes or intensities give the probe no influence.
-        Some(t) if t == TypeId::of::<ponko::ReflectionProbe3D>() => Kind::Plain,
+        Some(t) if t == TypeId::of::<ponko::d3::ReflectionProbe>() => Kind::Plain,
         // repr(C), layouts checked against CrabbyDecal3D / CrabbyReceivesDecals;
         // any bits are valid (non-finite or empty values draw no decal, and
         // images outside the decal textures draw as flat color).
-        Some(t) if t == TypeId::of::<ponko::Decal3D>() => Kind::Plain,
-        Some(t) if t == TypeId::of::<ponko::ReceivesDecals>() => Kind::Plain,
+        Some(t) if t == TypeId::of::<ponko::d3::Decal>() => Kind::Plain,
+        Some(t) if t == TypeId::of::<ponko::render::ReceivesDecals>() => Kind::Plain,
         // repr(C), layout checked against CrabbyTerrainTile; unknown meshes
         // draw nothing and every level index is clamped.
-        Some(t) if t == TypeId::of::<ponko::TerrainTile>() => Kind::Plain,
+        Some(t) if t == TypeId::of::<ponko::terrain::TerrainTile>() => Kind::Plain,
         Some(t) => match crate::physics::kind(t)
             .or_else(|| crate::physics3d::kind3d(t))
             .or_else(|| crate::physics3d_stream::stream_kind(t))

@@ -58,7 +58,7 @@ panics in browsers. `ponko::Instant` is the same type on desktop and
 works on the web:
 
 ```rust
-# use ponko::*;
+# use ponko::prelude::*;
 let start = Instant::now();
 // ... work ...
 let ms = start.elapsed().as_secs_f64() * 1000.0;

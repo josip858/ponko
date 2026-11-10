@@ -2,7 +2,8 @@
 //! input as bytes, read everyone's.
 use std::ffi::{c_char, c_void};
 
-use ponko::{Net, NetState};
+use ponko::net::Net;
+use ponko::net::NetState;
 
 use crate::ctx::{CrabbyCtx, ctx_access, out, text};
 use crate::game::build;

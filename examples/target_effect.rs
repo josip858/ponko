@@ -7,7 +7,11 @@
 //!
 //! `SHOT=path.png` saves frame 60 and quits.
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::Transform as Transform3D;
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::{MaterialDesc, MeshData, Model, ScreenEffect, Sky, TargetEffect};
 
 /// Writes the frame's light into its render target; a smaller target than
 /// the frame is a coarse copy, which the screen effect samples smoothly.

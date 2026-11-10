@@ -727,14 +727,14 @@ impl World {
     ///
     /// ```
     /// # use ponko_ecs::*;
-    /// struct Sprite(u32);
+    /// struct ponko::d2::Sprite(u32);
     /// let mut world = World::new();
-    /// world.track_changes::<Sprite>();
-    /// let a = world.spawn((Sprite(1),));
-    /// let b = world.spawn((Sprite(2),));
-    /// world.remove::<Sprite>(a);
+    /// world.track_changes::<ponko::d2::Sprite>();
+    /// let a = world.spawn((ponko::d2::Sprite(1),));
+    /// let b = world.spawn((ponko::d2::Sprite(2),));
+    /// world.remove::<ponko::d2::Sprite>(a);
     /// world.despawn(b);
-    /// assert_eq!(world.removed::<Sprite>(), [a, b]);
+    /// assert_eq!(world.removed::<ponko::d2::Sprite>(), [a, b]);
     /// ```
     ///
     /// # Panics
@@ -900,14 +900,14 @@ impl World {
     ///
     /// ```
     /// # use ponko_ecs::*;
-    /// struct Sprite(u32);
+    /// struct ponko::d2::Sprite(u32);
     /// let mut world = World::new();
-    /// world.track_changes::<Sprite>();
-    /// let e = world.spawn((Sprite(1),));
+    /// world.track_changes::<ponko::d2::Sprite>();
+    /// let e = world.spawn((ponko::d2::Sprite(1),));
     /// world.despawn(e);
     /// let seen = world.advance_change_tick();
     /// world.forget_removed(seen);
-    /// assert!(world.removed_since::<Sprite>(Tick::default()).is_empty());
+    /// assert!(world.removed_since::<ponko::d2::Sprite>(Tick::default()).is_empty());
     /// ```
     pub fn forget_removed(&mut self, tick: Tick) {
         for log in &mut self.changes.removed {

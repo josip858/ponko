@@ -16,18 +16,18 @@ use crate::gfx::Graphics;
 /// view's shadows. Transparent models aren't drawn into it.
 ///
 /// ```no_run
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
 /// let screen = ctx.gfx.create_render_target(512, 512);
 /// let mut camera = ctx.camera3d;
 /// camera.position = vec3(0.0, 10.0, 0.0);
 /// camera.look_at(Vec3::ZERO);
-/// ctx.target_cameras.push(TargetCamera::new(camera, screen));
+/// ctx.target_cameras.push(ponko::render::TargetCamera::new(camera, screen));
 /// // A monitor showing it: a material with the target as its texture.
-/// let monitor = ctx.gfx.create_material(MaterialDesc {
+/// let monitor = ctx.gfx.create_material(ponko::render::MaterialDesc {
 ///     emissive_map: Some(screen),
 ///     emissive: Color::WHITE,
-///     ..MaterialDesc::color(Color::BLACK)
+///     ..ponko::render::MaterialDesc::color(Color::BLACK)
 /// });
 /// # }
 /// ```
@@ -48,10 +48,10 @@ impl TargetCamera {
     /// `camera` drawing into `target`, with no clip plane.
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx) {
     /// let target = ctx.gfx.create_render_target(256, 256);
-    /// ctx.target_cameras.push(TargetCamera::new(ctx.camera3d, target));
+    /// ctx.target_cameras.push(ponko::render::TargetCamera::new(ctx.camera3d, target));
     /// # }
     /// ```
     #[must_use]
@@ -69,11 +69,11 @@ impl TargetCamera {
     /// `vec2(uv.x, 1.0 - uv.y)`.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("lake", 640, 360).run_headless(0, |ctx| {
     ///     let reflection = ctx.gfx.create_render_target(640, 360);
     ///     ctx.camera3d.position = vec3(0.0, 5.0, 0.0);
-    ///     let mirrored = TargetCamera::reflection(ctx.camera3d, reflection, 1.0);
+    ///     let mirrored = ponko::render::TargetCamera::reflection(ctx.camera3d, reflection, 1.0);
     ///     assert_eq!(mirrored.camera.position, vec3(0.0, -3.0, 0.0));
     ///     ctx.target_cameras.push(mirrored);
     /// });
@@ -130,7 +130,7 @@ impl Graphics {
     /// Use it in a material like any texture; it holds linear HDR light.
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx) {
     /// let mirror = ctx.gfx.create_render_target(512, 512);
     /// assert_eq!(mirror.width(), 512);
@@ -180,7 +180,7 @@ impl Graphics {
     /// Only its id is compared.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).run_headless(0, |ctx| {
     ///     let target = ctx.gfx.create_render_target(64, 64);
     ///     assert!(ctx.gfx.is_render_target(target));

@@ -1,7 +1,9 @@
 //! 2D physics (feature `physics`): bodies, colliders, events, queries.
 #![cfg(feature = "physics")]
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d2::{Collider, Hit as RayHit, RigidBody, Shape, Transform as Transform2D, Velocity};
+use ponko::prelude::*;
 
 const GRAVITY: Vec2 = Vec2::new(0.0, 980.0);
 

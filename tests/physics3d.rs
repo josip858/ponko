@@ -8,7 +8,18 @@ use std::rc::Rc;
 mod common;
 
 use common::TempAsset;
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::{
+    Character as Character3D, Collider as Collider3D, Physics as Physics3D, QueryFilter as QueryFilter3D,
+    RigidBody as RigidBody3D, Transform as Transform3D, Velocity as Velocity3D,
+};
+#[allow(unused_imports)]
+use ponko::physics3d::{CollisionGroups, CollisionMesh};
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::Mesh;
+#[allow(unused_imports)]
+use ponko::terrain::Heightfield;
 
 const GRAVITY: Vec3 = Vec3::new(0.0, -9.81, 0.0);
 

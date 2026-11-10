@@ -35,16 +35,16 @@ pub enum TextAlign3D {
 /// after solid models; it casts no shadow.
 ///
 /// ```
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// Game::new("t", 1, 1).run_headless(0, |ctx| {
-///     let label = Text3D {
+///     let label = ponko::d3::Text {
 ///         size: 0.3,
 ///         outline: Color::BLACK,
 ///         outline_width: 0.06,
 ///         billboard: true,
-///         ..Text3D::new("Shop")
+///         ..ponko::d3::Text::new("Shop")
 ///     };
-///     ctx.world.spawn((Transform3D::at(vec3(0.0, 2.5, 0.0)), label));
+///     ctx.world.spawn((ponko::d3::Transform::at(vec3(0.0, 2.5, 0.0)), label));
 /// });
 /// ```
 #[derive(Debug, Clone, PartialEq)]
@@ -75,8 +75,8 @@ pub struct Text3D {
 impl Text3D {
     /// `text` in the default font, a quarter meter per line, white.
     /// ```
-    /// # use ponko::*;
-    /// let sign = Text3D::new("OPEN");
+    /// # use ponko::prelude::*;
+    /// let sign = ponko::d3::Text::new("OPEN");
     /// assert_eq!(sign.size, 0.25);
     /// ```
     #[must_use]

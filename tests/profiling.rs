@@ -1,6 +1,6 @@
 //! Profiling: frame statistics, the performance overlay and traces.
 
-use ponko::*;
+use ponko::prelude::*;
 
 // ANCHOR: profiling
 /// F3 shows the performance overlay; F4 records the next 300 frames as a

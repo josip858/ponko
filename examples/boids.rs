@@ -7,7 +7,11 @@
 //!
 //! Keys: Space pause, Period single step, 1-4 speed (1x/4x/16x/64x), Escape quit.
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d2::{Sprite, Transform as Transform2D};
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::spatial::SpatialGrid;
 
 /// Reflected, so tools and agents (ponko-mcp) can read and change velocities.
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -30,8 +34,9 @@ fn flocking(bounds: Vec2) -> impl FnMut(&mut Ctx) {
         let dt = ctx.dt();
         // Keep boids that are close in space close in memory, so neighbor
         // lookups hit the cache (1M boids: 62 -> 40 ms/tick).
-        if ctx.time.sim_tick().is_multiple_of(SPATIAL_SORT_EVERY) {
-            ctx.world.sort_by::<Transform2D>(|t| spatial_key(t.position, RADIUS));
+        if ctx.time.sim_tick().is_multiple_of(ponko::spatial::SPATIAL_SORT_EVERY) {
+            ctx.world
+                .sort_by::<Transform2D>(|t| ponko::spatial::spatial_key(t.position, RADIUS));
         }
         grid.rebuild_with_data(
             ctx.world
@@ -121,13 +126,13 @@ fn main() {
         let side = (n as f32 / 20_000.0).sqrt() * 1280.0;
         let bounds = Vec2::splat(side);
         let ticks = env_number("TICKS", 300.0) as u64;
-        let mut start = Instant::now();
+        let mut start = ponko::Instant::now();
         let world = Game::new("boids", 1, 1)
             .sim_system(flocking(bounds))
             // The two-argument form may borrow a local, here the timer.
             .run_headless(ticks, |ctx| {
                 spawn_boids(ctx, n, bounds);
-                start = Instant::now();
+                start = ponko::Instant::now();
             });
         let secs = start.elapsed().as_secs_f64();
         println!(

@@ -3,7 +3,9 @@
 
 use std::ffi::c_char;
 
-use ponko::{Budget, PerfReport, ProfileScope};
+use ponko::perf::Budget;
+use ponko::perf::PerfReport;
+use ponko::scope::ProfileScope;
 
 use crate::ctx::{ctx_access, out, text};
 use crate::{CrabbyCtx, CrabbyStatus, boundary, invalid, invalid_owned};

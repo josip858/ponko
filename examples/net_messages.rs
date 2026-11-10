@@ -1,5 +1,8 @@
 //! Run with `cargo run --example net_messages --no-default-features`.
-use ponko::{Lane, MessageEvent, NetMessages, PeerId};
+use ponko::net::Lane;
+use ponko::net::MessageEvent;
+use ponko::net::NetMessages;
+use ponko::net::PeerId;
 use std::time::{Duration, Instant};
 
 fn main() -> std::io::Result<()> {

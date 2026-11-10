@@ -21,9 +21,11 @@ use glam::Vec2;
 use ponko_ecs::{ComponentId, Entity, World};
 use serde_json::Value;
 
+use crate::d2::Sprite;
+use crate::d2::Transform as Transform2D;
 use crate::editor::Editor;
 use crate::reflect::short_name;
-use crate::{Ctx, Rect, Sprite, Transform2D, WorldReflect};
+use crate::{Ctx, Rect, WorldReflect};
 
 /// Environment variable that turns the inspector on (`1`) or off (`0`),
 /// overriding [`Game::inspector`](crate::Game::inspector).

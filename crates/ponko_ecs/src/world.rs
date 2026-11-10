@@ -679,6 +679,7 @@ impl World {
     /// # Panics
     /// If a resource of that name exists with a different layout.
     #[track_caller]
+    #[doc(hidden)]
     pub unsafe fn insert_resource_dynamic(&mut self, name: &str, layout: Layout, value: *const u8) {
         self.recorder.note(|l| l.dynamic_resource(name));
         if let Some(old) = self.dynamic_resources.get(name) {
@@ -696,6 +697,7 @@ impl World {
     /// [`insert_resource_dynamic`](Self::insert_resource_dynamic)), or `None`.
     /// It stays valid until the resource is replaced or removed.
     #[must_use]
+    #[doc(hidden)]
     pub fn get_resource_dynamic(&self, name: &str) -> Option<*mut u8> {
         self.recorder.note(|l| l.dynamic_resource(name));
         self.dynamic_resources.get(name).map(|r| r.ptr.as_ptr())
@@ -703,11 +705,13 @@ impl World {
 
     /// The size and alignment of resource `name`, if it exists.
     #[must_use]
+    #[doc(hidden)]
     pub fn resource_layout_dynamic(&self, name: &str) -> Option<Layout> {
         self.dynamic_resources.get(name).map(|r| r.layout)
     }
 
     /// Removes resource `name`; `false` if there was none.
+    #[doc(hidden)]
     pub fn remove_resource_dynamic(&mut self, name: &str) -> bool {
         self.recorder.note(|l| l.dynamic_resource(name));
         self.dynamic_resources.remove(name).is_some()
@@ -914,6 +918,7 @@ impl World {
 
     /// Looks a component up by name (registered name, or Rust type name).
     #[must_use]
+    #[doc(hidden)]
     pub fn component_by_name(&self, name: &str) -> Option<ComponentId> {
         self.by_name.get(name).copied()
     }
@@ -949,6 +954,7 @@ impl World {
 
     /// The archetype tables, for tools such as the inspector.
     #[must_use]
+    #[doc(hidden)]
     pub fn archetypes(&self) -> &[Archetype] {
         &self.archetypes
     }
@@ -977,6 +983,7 @@ impl World {
 
     /// Pointer to component `id` of entity `e`, or `None`.
     #[must_use]
+    #[doc(hidden)]
     pub fn get_dynamic(&self, e: Entity, id: ComponentId) -> Option<*mut u8> {
         // The pointer allows writing: count it as a write.
         self.recorder.note(|l| l.component(id, true));
@@ -999,6 +1006,7 @@ impl World {
     ///
     /// # Panics
     /// If a component id appears twice.
+    #[doc(hidden)]
     pub unsafe fn spawn_dynamic(&mut self, components: &[(ComponentId, *const u8)]) -> Entity {
         self.recorder.note(|l| l.structural = true);
         let a = self.dynamic_archetype(components, "spawn_dynamic");
@@ -1032,6 +1040,7 @@ impl World {
     ///
     /// # Panics
     /// If a component id appears twice.
+    #[doc(hidden)]
     pub unsafe fn spawn_at_dynamic(&mut self, e: Entity, components: &[(ComponentId, *const u8)]) -> bool {
         self.recorder.note(|l| l.structural = true);
         let a = self.dynamic_archetype(components, "spawn_at_dynamic");
@@ -1086,6 +1095,7 @@ impl World {
     /// # Safety
     /// `value` must point to a valid value of component `id`; on success the
     /// world takes ownership of it.
+    #[doc(hidden)]
     pub unsafe fn insert_dynamic(&mut self, e: Entity, id: ComponentId, value: *const u8) -> bool {
         let Some(loc) = self.entities.get(e) else {
             self.recorder.note(|l| l.structural = true);
@@ -1142,6 +1152,7 @@ impl World {
 
     /// Removes component `id` from `e`, dropping the value. Returns `false` if
     /// `e` is dead or didn't have it.
+    #[doc(hidden)]
     pub fn remove_dynamic(&mut self, e: Entity, id: ComponentId) -> bool {
         self.recorder.note(|l| l.structural = true);
         let Some(loc) = self.entities.get(e) else { return false };
@@ -1168,6 +1179,7 @@ impl World {
     /// # Panics
     ///
     /// With more than 32 component ids.
+    #[doc(hidden)]
     pub fn for_each_chunk(&mut self, ids: &[ComponentId], mut f: impl FnMut(Chunk<'_>)) {
         const MAX: usize = 32;
         assert!(ids.len() <= MAX, "for_each_chunk: at most {MAX} components");

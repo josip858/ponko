@@ -22,19 +22,19 @@ pub enum AssetClass {
     Texture,
     /// 3D: textures cameras draw into ([`Graphics::create_render_target`](crate::Graphics::create_render_target)). Never freed.
     RenderTarget,
-    /// 3D: [`TextureArray`](crate::TextureArray)s. Never freed.
+    /// 3D: [`TextureArray`](crate::terrain::TextureArray)s. Never freed.
     TextureArray,
-    /// 3D: [`Material`](crate::Material)s. Never freed.
+    /// 3D: [`Material`](crate::render::Material)s. Never freed.
     Material,
-    /// 3D: material [`Shader`](crate::Shader)s. Never freed.
+    /// 3D: material [`Shader`](crate::render::Shader)s. Never freed.
     Shader,
-    /// 3D: [`Mesh`](crate::Mesh)es, freed with [`Graphics::free_mesh`](crate::Graphics::free_mesh).
+    /// 3D: [`Mesh`](crate::render::Mesh)es, freed with [`Graphics::free_mesh`](crate::Graphics::free_mesh).
     Mesh,
-    /// 3D: [`GpuBuffer`](crate::GpuBuffer)s, freed with [`Ctx::free`](crate::Ctx::free).
+    /// 3D: [`GpuBuffer`](crate::render::GpuBuffer)s, freed with [`Ctx::free`](crate::Ctx::free).
     GpuBuffer,
-    /// 3D: screen [`Effect`](crate::Effect)s. Never freed.
+    /// 3D: screen [`Effect`](crate::render::Effect)s. Never freed.
     Effect,
-    /// 3D: [`Compute`](crate::Compute) passes. Never freed.
+    /// 3D: [`Compute`](crate::render::Compute) passes. Never freed.
     Compute,
     /// [`Sound`](crate::Sound)s, loaded or made. Never freed.
     Sound,
@@ -124,14 +124,14 @@ pub struct GpuResidency {
 /// and compare with [`growth_since`](Self::growth_since).
 ///
 /// ```
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// Game::new("t", 1, 1).run_headless(0, |ctx| {
 ///     let before = ctx.asset_inventory();
 ///     let _sprite = ctx.gfx.create_texture(2, 2, &[255; 16]);
 ///     let after = ctx.asset_inventory();
-///     assert_eq!(after.get(AssetClass::Texture).live, before.get(AssetClass::Texture).live + 1);
+///     assert_eq!(after.get(ponko::inventory::AssetClass::Texture).live, before.get(ponko::inventory::AssetClass::Texture).live + 1);
 ///     let growth = after.growth_since(&before);
-///     assert_eq!(growth[0].class, AssetClass::Texture);
+///     assert_eq!(growth[0].class, ponko::inventory::AssetClass::Texture);
 ///     assert_eq!(growth[0].bytes, 2 * 2 * 4);
 /// });
 /// ```

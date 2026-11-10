@@ -141,7 +141,7 @@ Do not mix opted-out followers into a crowd and expect them to collide.
 <div>
 
 ```rust
-# use ponko::*;
+# use ponko::prelude::*;
 let mut agent = ponko::d3::NavAgent::default();
 agent.avoidance = true;
 agent.avoidance_weight = 2.0;
@@ -205,9 +205,9 @@ updates never rasterize source triangles again.
 <div class="lang-pair">
 
 ```rust,no_run
-# use ponko::*;
+# use ponko::prelude::*;
 # fn add(ctx: &mut Ctx) {
-// Bake with layers: NavBakeSettings { carving: true, ..Default::default() }.
+// Bake with layers: ponko::nav::NavBakeSettings { carving: true, ..Default::default() }.
 let mut obstacle = ponko::d3::NavObstacle::new(vec3(6.0, 1.0, 6.0), Vec3::ONE);
 obstacle.carve = true;
 ctx.world.spawn((obstacle,));

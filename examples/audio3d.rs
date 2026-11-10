@@ -1,5 +1,9 @@
 //! Positional procedural audio. Build only in CI; running opens audio/window.
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::audio::{AudioEffects, AudioRolloff};
+#[allow(unused_imports)]
+use ponko::d3::{AudioSettings as AudioSettings3D, AudioSource as AudioSource3D, Transform as Transform3D};
+use ponko::prelude::*;
 
 // ANCHOR: sound3d
 fn setup(ctx: &mut Ctx) {

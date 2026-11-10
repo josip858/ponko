@@ -1,7 +1,13 @@
 //! Large levels: many tiles with the default settings, helpful limit errors,
 //! opt-in carving layers, and carving that blocks a corridor completely.
 #![cfg(feature = "navmesh")]
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::{NavAgent as NavAgent3D, NavMesh as NavMesh3D, NavObstacle as NavObstacle3D, Transform as Transform3D};
+#[allow(unused_imports)]
+use ponko::nav::{NavBakeSettings, NavSource};
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::MeshData;
 use std::time::Instant;
 
 fn plane(size: f32) -> NavSource {

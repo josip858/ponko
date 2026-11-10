@@ -12,17 +12,18 @@ use rapier2d::prelude as rp;
 use serde::{Deserialize, Serialize};
 
 use crate::collision::{BodyKind, CollisionStarted, CollisionStopped};
-use crate::{Ctx, Entity, Events, Transform2D, Vec2, World};
+use crate::d2::Transform as Transform2D;
+use crate::{Ctx, Entity, Events, Vec2, World};
 
 /// Makes an entity a physics body. It also needs a [`Collider`] and a
 /// [`Transform2D`].
 ///
 /// ```
-/// use ponko::*;
-/// let crate_body = RigidBody::dynamic();
-/// let wall = RigidBody::fixed();
+/// use ponko::prelude::*;
+/// let crate_body = ponko::d2::RigidBody::dynamic();
+/// let wall = ponko::d2::RigidBody::fixed();
 /// assert_eq!(crate_body.gravity_scale, 1.0);
-/// assert_eq!(wall.kind, BodyKind::Fixed);
+/// assert_eq!(wall.kind, ponko::collision::BodyKind::Fixed);
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -119,10 +120,10 @@ impl Shape {
     /// A polygon's corners (empty for other shapes).
     ///
     /// ```
-    /// use ponko::*;
-    /// let wedge = Collider::polygon(&[vec2(0.0, 0.0), vec2(40.0, 0.0), vec2(0.0, -20.0)]);
+    /// use ponko::prelude::*;
+    /// let wedge = ponko::d2::Collider::polygon(&[vec2(0.0, 0.0), vec2(40.0, 0.0), vec2(0.0, -20.0)]);
     /// assert_eq!(wedge.shape.points().len(), 3);
-    /// assert!(Collider::circle(5.0).shape.points().is_empty());
+    /// assert!(ponko::d2::Collider::circle(5.0).shape.points().is_empty());
     /// ```
     #[must_use]
     pub fn points(&self) -> &[Vec2] {
@@ -136,9 +137,9 @@ impl Shape {
 /// The solid shape of a body, and how it touches others.
 ///
 /// ```
-/// use ponko::*;
-/// let ball = Collider::circle(8.0).restitution(0.9);
-/// let trigger = Collider::rect(vec2(64.0, 64.0)).sensor();
+/// use ponko::prelude::*;
+/// let ball = ponko::d2::Collider::circle(8.0).restitution(0.9);
+/// let trigger = ponko::d2::Collider::rect(vec2(64.0, 64.0)).sensor();
 /// assert!(trigger.sensor);
 /// assert_eq!(ball.restitution, 0.9);
 /// ```
@@ -202,8 +203,8 @@ impl Collider {
     /// For a concave shape, put convex pieces on separate bodies.
     ///
     /// ```
-    /// use ponko::*;
-    /// let ramp = Collider::polygon(&[vec2(-50.0, 10.0), vec2(50.0, 10.0), vec2(50.0, -10.0)]);
+    /// use ponko::prelude::*;
+    /// let ramp = ponko::d2::Collider::polygon(&[vec2(-50.0, 10.0), vec2(50.0, 10.0), vec2(50.0, -10.0)]);
     /// assert_eq!(ramp.shape.points().len(), 3);
     /// ```
     ///
@@ -261,8 +262,8 @@ impl Collider {
 /// write it to set the speed (a jump, a thrown crate, a moving platform).
 ///
 /// ```
-/// use ponko::*;
-/// let v = Velocity::linear(vec2(0.0, -300.0)); // a jump, y is down
+/// use ponko::prelude::*;
+/// let v = ponko::d2::Velocity::linear(vec2(0.0, -300.0)); // a jump, y is down
 /// assert_eq!(v.angular, 0.0);
 /// ```
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -410,9 +411,9 @@ impl Physics {
     /// within `max_distance`. Up to date as of the last physics step.
     ///
     /// ```
-    /// use ponko::*;
+    /// use ponko::prelude::*;
     /// let world = Game::new("t", 1, 1).physics(Vec2::ZERO).run_headless(1, |ctx| {
-    ///     ctx.world.spawn((Transform2D::at(vec2(100.0, 0.0)), RigidBody::fixed(), Collider::circle(10.0)));
+    ///     ctx.world.spawn((ponko::d2::Transform::at(vec2(100.0, 0.0)), ponko::d2::RigidBody::fixed(), ponko::d2::Collider::circle(10.0)));
     /// });
     /// # let _ = world;
     /// ```

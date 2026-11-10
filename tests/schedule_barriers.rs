@@ -4,7 +4,11 @@
 //! frame" chapter; a future parallel scheduler must keep it or document the
 //! change.
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d2::Physics;
+#[allow(unused_imports)]
+use ponko::input::Input;
+use ponko::prelude::*;
 
 /// What systems observed, in order.
 #[derive(Default)]

@@ -1,5 +1,11 @@
 //! Retained UI on a screen in the 3D world: `cargo run --features 3d --example ui_panel`.
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::Transform as Transform3D;
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::{MaterialDesc, MeshData, Model};
+#[allow(unused_imports)]
+use ponko::ui::UiLayout;
 
 pub fn setup(ctx: &mut Ctx) {
     ctx.camera3d.position = vec3(0.0, 1.6, 1.0);
@@ -23,7 +29,7 @@ pub fn terminal(ctx: &mut Ctx) {
     // Aim with the middle of the screen, not the mouse (a locked cursor, a controller in VR).
     let (eye, forward) = (ctx.camera3d.position, ctx.camera3d.forward());
     ctx.ui.set_pointer_ray(Some((eye, forward)));
-    ctx.world.query::<&mut UiPanel3D>().for_each(|panel| {
+    ctx.world.query::<&mut crate::d3::UiPanel>().for_each(|panel| {
         if let Some(buy) = panel.ui.take_click().filter(|&id| panel.ui.name(id) == Some("buy")) {
             panel.ui.set_text(buy, "Bought!");
         }

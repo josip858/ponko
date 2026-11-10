@@ -30,7 +30,7 @@ pub const MAX_GI_PROBES_PER_FRAME: u32 = 16;
 
 /// Real-time global illumination: sunlight, sky light and lamp light
 /// bounced off the world's surfaces onto others, at
-/// [`Lighting::gi`](crate::Lighting::gi). A red wall in the sun tints the
+/// [`Lighting::gi`](crate::render::Lighting::gi). A red wall in the sun tints the
 /// floor beside it red, a room lit through a window is lit all over (and a
 /// closed one goes dark instead of taking the sky's light), and it all
 /// follows the sun through a day.
@@ -58,8 +58,8 @@ pub const MAX_GI_PROBES_PER_FRAME: u32 = 16;
 /// per shader (any desktop or laptop GPU); elsewhere (WebGL2) it's off and
 /// the ambient light is unchanged.
 /// ```
-/// use ponko::*;
-/// let mut lighting = Lighting::default();
+/// use ponko::prelude::*;
+/// let mut lighting = ponko::render::Lighting::default();
 /// assert!(!lighting.gi.enabled);
 /// lighting.gi.enabled = true;
 /// assert_eq!(lighting.gi.probe_counts(), [17, 9, 17]);
@@ -111,12 +111,12 @@ impl GlobalIllumination {
     /// 1`, 2 to 64 each, fewer when that's more than [`MAX_GI_PROBES`] in
     /// all (the grid shrinks; the spacing stays).
     /// ```
-    /// use ponko::*;
-    /// let gi = GlobalIllumination { extent: vec3(8.0, 4.0, 8.0), spacing: 1.0, ..Default::default() };
+    /// use ponko::prelude::*;
+    /// let gi = ponko::render::GlobalIllumination { extent: vec3(8.0, 4.0, 8.0), spacing: 1.0, ..Default::default() };
     /// assert_eq!(gi.probe_counts(), [9, 5, 9]);
-    /// let huge = GlobalIllumination { extent: Vec3::splat(1000.0), ..Default::default() };
+    /// let huge = ponko::render::GlobalIllumination { extent: Vec3::splat(1000.0), ..Default::default() };
     /// let [x, y, z] = huge.probe_counts();
-    /// assert!(x * y * z <= MAX_GI_PROBES);
+    /// assert!(x * y * z <= ponko::render::MAX_GI_PROBES);
     /// ```
     #[must_use]
     pub fn probe_counts(&self) -> [u32; 3] {
@@ -593,4 +593,11 @@ mod tests {
         probes.plan([2, 2, 2], 2.0, Vec3::ZERO, 4, &mut out);
         assert!(out.iter().all(|u| u.keep == 0.0));
     }
+}
+
+impl GlobalIllumination {
+    /// Maximum resident probes.
+    pub const MAX_PROBES: u32 = MAX_GI_PROBES;
+    /// Probe update budget per frame.
+    pub const MAX_PROBES_PER_FRAME: u32 = MAX_GI_PROBES_PER_FRAME;
 }

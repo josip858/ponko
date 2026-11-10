@@ -1,5 +1,10 @@
 #![cfg(feature = "physics3d")]
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::{
+    Collider as Collider3D, Joint as Joint3D, JointAxis as JointAxis3D, JointDrive as JointDrive3D,
+    JointMotion as JointMotion3D, RigidBody as RigidBody3D, Transform as Transform3D, Velocity as Velocity3D,
+};
+use ponko::prelude::*;
 use std::{cell::Cell, rc::Rc};
 
 fn body(ctx: &mut Ctx, position: Vec3, fixed: bool) -> Entity {

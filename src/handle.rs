@@ -15,7 +15,7 @@
 //!
 //! Freeing something others still use is defined: they draw with the
 //! default. A model whose mesh was freed draws nothing (as with
-//! [`Mesh::NONE`](crate::Mesh::NONE)); a material whose texture was freed
+//! [`Mesh::NONE`](crate::render::Mesh::NONE)); a material whose texture was freed
 //! samples white, as if it had none; a mesh part whose material was freed
 //! draws with the default material; text in a freed font uses the built-in
 //! one. Nothing is reference counted: freeing is explicit, and handles
@@ -30,17 +30,17 @@ mod sealed {
 }
 
 /// A handle to a resource the engine holds for the game: [`Texture`](crate::Texture),
-/// [`Sound`](crate::Sound), [`Font`](crate::Font), and with the `3d` feature [`Mesh`](crate::Mesh),
-/// [`Material`](crate::Material), [`Shader`](crate::Shader),
-/// [`Compute`](crate::Compute), [`Effect`](crate::Effect),
-/// [`GpuBuffer`](crate::GpuBuffer), [`InstanceBatch`](crate::InstanceBatch)
-/// and [`TextureArray`](crate::TextureArray). Render targets are textures.
+/// [`Sound`](crate::Sound), [`Font`](crate::Font), and with the `3d` feature [`Mesh`](crate::render::Mesh),
+/// [`Material`](crate::render::Material), [`Shader`](crate::render::Shader),
+/// [`Compute`](crate::render::Compute), [`Effect`](crate::render::Effect),
+/// [`GpuBuffer`](crate::render::GpuBuffer), [`InstanceBatch`](crate::render::InstanceBatch)
+/// and [`TextureArray`](crate::terrain::TextureArray). Render targets are textures.
 ///
 /// Check one with [`Ctx::is_live`] and release it with [`Ctx::free`].
 /// Implemented by the engine's handle types only.
 ///
 /// ```
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// Game::new("t", 1, 1).run_headless(0, |ctx| {
 ///     let pixel = ctx.gfx.create_texture(1, 1, &[255; 4]);
 ///     assert!(ctx.is_live(pixel));
@@ -55,7 +55,7 @@ pub trait Handle: Copy + Eq + Hash + std::fmt::Debug + sealed::Sealed {
     /// built-in font for text).
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// assert_eq!(Texture::NONE.id(), u32::MAX);
     /// ```
     const NONE: Self;
@@ -64,7 +64,7 @@ pub trait Handle: Copy + Eq + Hash + std::fmt::Debug + sealed::Sealed {
     /// maps keyed by id. Unique per kind within a run.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).run_headless(0, |ctx| {
     ///     let a = ctx.gfx.create_texture(1, 1, &[255; 4]);
     ///     let b = ctx.gfx.create_texture(1, 1, &[255; 4]);
@@ -74,12 +74,12 @@ pub trait Handle: Copy + Eq + Hash + std::fmt::Debug + sealed::Sealed {
     fn id(self) -> u32;
 
     /// A handle from an id (from [`id`](Self::id)). Only the id is kept:
-    /// for [`Texture`](crate::Texture), [`Sound`](crate::Sound) and [`TextureArray`](crate::TextureArray)
+    /// for [`Texture`](crate::Texture), [`Sound`](crate::Sound) and [`TextureArray`](crate::terrain::TextureArray)
     /// the size or length reads 0, so compare such handles by id. Check it
     /// with [`Ctx::is_live`] before trusting it.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).run_headless(0, |ctx| {
     ///     let t = ctx.gfx.create_texture(2, 2, &[255; 16]);
     ///     assert!(ctx.is_live(Texture::from_id(t.id())));
@@ -101,7 +101,7 @@ pub trait Handle: Copy + Eq + Hash + std::fmt::Debug + sealed::Sealed {
 /// (without the `3d` feature) count 0.
 ///
 /// ```
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// Game::new("t", 1, 1).run_headless(0, |ctx| {
 ///     let before = ctx.live_counts();
 ///     let t = ctx.gfx.create_texture(1, 1, &[255; 4]);
@@ -144,7 +144,7 @@ impl Ctx {
     /// False for [`Handle::NONE`] and for handles from another game.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).run_headless(0, |ctx| {
     ///     let font = Font::DEFAULT;
     ///     assert!(ctx.is_live(font));
@@ -172,7 +172,7 @@ impl Ctx {
     /// The built-in font is never freed.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).run_headless(0, |ctx| {
     ///     let beep = ctx.audio.create(8_000, &[0.0; 800]);
     ///     ctx.free(beep);
@@ -188,7 +188,7 @@ impl Ctx {
     /// How many handles of each kind are live now (see [`LiveCounts`]).
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).run_headless(0, |ctx| {
     ///     assert_eq!(ctx.live_counts().sounds, 0);
     /// });
@@ -340,7 +340,14 @@ impl Handle for crate::Font {
 #[cfg(feature = "3d")]
 mod three {
     use super::*;
-    use crate::{Compute, Effect, GpuBuffer, InstanceBatch, Material, Mesh, Shader, TextureArray};
+    use crate::render::Compute;
+    use crate::render::Effect;
+    use crate::render::GpuBuffer;
+    use crate::render::InstanceBatch;
+    use crate::render::Material;
+    use crate::render::Mesh;
+    use crate::render::Shader;
+    use crate::terrain::TextureArray;
 
     id_handle!(Mesh, |c: &Ctx, h: Mesh| c.gfx.is_mesh_live(h), |c: &mut Ctx, h| c
         .gfx

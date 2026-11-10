@@ -1,5 +1,10 @@
 //! CPU billboards: `cargo run --features 3d --example particles`.
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::{
+    ParticleBlend as ParticleBlend3D, ParticleEmitter as ParticleEmitter3D, ParticleSettings as ParticleSettings3D,
+    ParticleShape as ParticleShape3D, Transform as Transform3D,
+};
+use ponko::prelude::*;
 
 // ANCHOR: particles
 fn setup(ctx: &mut Ctx) {
@@ -16,8 +21,8 @@ fn setup(ctx: &mut Ctx) {
         drag: 0.2,
         size: (0.05, 0.13),
         rotation: (0.0, std::f32::consts::TAU),
-        size_over_life: ParticleCurve::new(vec![(0.0, 0.5), (0.2, 1.0), (1.0, 0.0)]),
-        color_over_life: ParticleGradient::new(vec![
+        size_over_life: ponko::render::ParticleCurve::new(vec![(0.0, 0.5), (0.2, 1.0), (1.0, 0.0)]),
+        color_over_life: ponko::render::ParticleGradient::new(vec![
             (0.0, Color::rgba(1.0, 0.7, 0.2, 1.0)),
             (1.0, Color::rgba(1.0, 0.1, 0.0, 0.0)),
         ]),

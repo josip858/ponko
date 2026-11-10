@@ -5,7 +5,19 @@
 mod common;
 
 use common::TempAsset;
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::actions::InputEvent;
+#[allow(unused_imports)]
+use ponko::audio::AudioEffects;
+#[allow(unused_imports)]
+use ponko::d2::{Sprite, Transform as Transform2D};
+#[allow(unused_imports)]
+use ponko::d3::{AudioListener as AudioListener3D, ReflectionProbe as ReflectionProbe3D, Transform as Transform3D};
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::{ComputePass, GraphicsQuality, MaterialDesc, Mesh, MeshData, QualityLevel};
+#[allow(unused_imports)]
+use ponko::ui::{UiEvent, UiId, UiInput, UiWidget};
 
 struct Pos(f32);
 
@@ -328,11 +340,11 @@ fn a_texture_loaded_by_the_service_is_saved_by_file_name() {
     assert_eq!(save.matches("\"texture\":\"dot.png\"").count(), 1, "{save}");
 }
 
-fn sized(w: f32, h: f32) -> ui_layout::Style {
-    ui_layout::Style {
-        size: ui_layout::Size {
-            width: ui_layout::Dimension::length(w),
-            height: ui_layout::Dimension::length(h),
+fn sized(w: f32, h: f32) -> ponko::ui::layout::Style {
+    ponko::ui::layout::Style {
+        size: ponko::ui::layout::Size {
+            width: ponko::ui::layout::Dimension::length(w),
+            height: ponko::ui::layout::Dimension::length(h),
         },
         flex_shrink: 0.0,
         ..Default::default()
@@ -521,7 +533,41 @@ fn scenes_and_prefabs_are_saved_from_the_world_they_are_given() {
 
 #[cfg(feature = "3d")]
 mod three {
-    use ponko::*;
+    #[allow(unused_imports)]
+    use ponko::actions::InputEvent;
+    #[allow(unused_imports)]
+    use ponko::audio::AudioEffects;
+    #[allow(unused_imports)]
+    use ponko::d2::Sprite;
+    #[allow(unused_imports)]
+    use ponko::d2::Transform as Transform2D;
+    #[allow(unused_imports)]
+    use ponko::d3::AudioListener as AudioListener3D;
+    #[allow(unused_imports)]
+    use ponko::d3::ReflectionProbe as ReflectionProbe3D;
+    #[allow(unused_imports)]
+    use ponko::d3::Transform as Transform3D;
+    use ponko::prelude::*;
+    #[allow(unused_imports)]
+    use ponko::render::ComputePass;
+    #[allow(unused_imports)]
+    use ponko::render::GraphicsQuality;
+    #[allow(unused_imports)]
+    use ponko::render::MaterialDesc;
+    #[allow(unused_imports)]
+    use ponko::render::Mesh;
+    #[allow(unused_imports)]
+    use ponko::render::MeshData;
+    #[allow(unused_imports)]
+    use ponko::render::QualityLevel;
+    #[allow(unused_imports)]
+    use ponko::ui::UiEvent;
+    #[allow(unused_imports)]
+    use ponko::ui::UiId;
+    #[allow(unused_imports)]
+    use ponko::ui::UiInput;
+    #[allow(unused_imports)]
+    use ponko::ui::UiWidget;
 
     struct Box3(Mesh);
 

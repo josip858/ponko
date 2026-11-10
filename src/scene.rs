@@ -32,9 +32,9 @@ impl Ctx {
     /// [asset source](crate::Assets::add_source).
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("Crabs", 800, 600).run(|ctx| {
-    ///     ctx.world.reflect::<Transform2D>();
+    ///     ctx.world.reflect::<ponko::d2::Transform>();
     ///     ctx.load_scene("levels/beach.json").expect("level");
     /// });
     /// ```
@@ -89,11 +89,11 @@ impl Ctx {
     /// (a simulation system or setup in a session, anywhere offline); the
     /// name says at the call site that the load is part of the shared
     /// simulation. The peers' worlds are still compared every
-    /// [`checksum_every`](crate::Net::checksum_every) ticks, so a load that
-    /// only some peers made shows up as a [`Desync`](crate::Desync).
+    /// [`checksum_every`](crate::net::Net::checksum_every) ticks, so a load that
+    /// only some peers made shows up as a [`Desync`](crate::net::Desync).
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn next_level(ctx: &mut Ctx) {
     /// // A simulation system: every peer reaches tick 600 with the same world.
     /// if ctx.time.sim_tick() == 600 {
@@ -132,7 +132,10 @@ impl Ctx {
     }
 
     fn session_active(&self) -> bool {
-        matches!(self.net.state(), crate::NetState::Connecting | crate::NetState::Running)
+        matches!(
+            self.net.state(),
+            crate::net::NetState::Connecting | crate::net::NetState::Running
+        )
     }
 
     /// Replaces the world with `save` (a scene or world save) for tools (the
@@ -173,7 +176,7 @@ impl Ctx {
     /// rotation and scale as saved). The file is read once, then kept.
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx) {
     /// for x in 0..10 {
     ///     ctx.spawn_prefab("prefabs/palm.json", vec2(x as f32 * 64.0, 400.0)).expect("palm");
@@ -222,7 +225,7 @@ impl crate::Assets {
     /// for the same component and field replaces its loader.
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// /// A shop item: its icon is an image, saved by name.
     /// #[derive(Clone, serde::Serialize, serde::Deserialize)]
     /// struct ShopItem {
@@ -333,9 +336,23 @@ fn components_of(prefab: &Value) -> Result<Value, String> {
 /// there's none).
 fn spawn_at(world: &mut crate::World, mut components: Value, at: Placement) -> Result<Entity, String> {
     match at {
-        Placement::D2(at) => match components.get_mut("Transform2D") {
-            Some(t) => t["position"] = json!([at.position.x, at.position.y]),
-            None => components["Transform2D"] = serde_json::to_value(at).map_err(|e| e.to_string())?,
+        Placement::Position2(at) => match components.get_mut("Transform2D") {
+            Some(t) => t["position"] = json!([at.x, at.y]),
+            None => {
+                components["Transform2D"] =
+                    serde_json::to_value(crate::d2::Transform::at(at)).map_err(|e| e.to_string())?
+            }
+        },
+        Placement::D2(at) => {
+            components["Transform2D"] = serde_json::to_value(at).map_err(|e| e.to_string())?;
+        }
+        #[cfg(feature = "3d")]
+        Placement::Position3(at) => match components.get_mut("Transform3D") {
+            Some(t) => t["position"] = json!([at.x, at.y, at.z]),
+            None => {
+                components["Transform3D"] =
+                    serde_json::to_value(crate::d3::Transform::at(at)).map_err(|e| e.to_string())?
+            }
         },
         #[cfg(feature = "3d")]
         Placement::D3(at) => {
@@ -348,6 +365,11 @@ fn spawn_at(world: &mut crate::World, mut components: Value, at: Placement) -> R
 /// Dimension-specific placement for prefab spawning. Serialized component names stay stable.
 #[derive(Clone, Copy, Debug)]
 pub enum Placement {
+    /// Repositions a 2D prefab, preserving saved rotation and scale.
+    Position2(crate::Vec2),
+    /// Repositions a 3D prefab, preserving saved rotation and scale.
+    #[cfg(feature = "3d")]
+    Position3(crate::Vec3),
     /// A 2D position/transform.
     D2(crate::d2::Transform),
     /// A 3D position/transform.
@@ -356,7 +378,7 @@ pub enum Placement {
 }
 impl From<Vec2> for Placement {
     fn from(at: Vec2) -> Self {
-        Self::D2(crate::d2::Transform::at(at))
+        Self::Position2(at)
     }
 }
 impl From<crate::d2::Transform> for Placement {
@@ -367,7 +389,7 @@ impl From<crate::d2::Transform> for Placement {
 #[cfg(feature = "3d")]
 impl From<crate::Vec3> for Placement {
     fn from(at: crate::Vec3) -> Self {
-        Self::D3(crate::d3::Transform::at(at))
+        Self::Position3(at)
     }
 }
 #[cfg(feature = "3d")]
@@ -384,7 +406,10 @@ mod lockstep_tests {
     use serde::{Deserialize, Serialize};
     use serde_json::json;
 
-    use crate::{Ctx, Desync, Game, Net, NetState, World, WorldReflect};
+    use crate::net::Desync;
+    use crate::net::Net;
+    use crate::net::NetState;
+    use crate::{Ctx, Game, World, WorldReflect};
 
     #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
     struct Tag(u32);

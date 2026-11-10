@@ -51,7 +51,7 @@ position. Both write over the file in `assets/` if it's there, else create
 it (and its folders). Web builds can't save files.
 
 ```rust
-# let palm = ctx.world.spawn((Transform2D::default(),));
+# let palm = ctx.world.spawn((ponko::d2::Transform::default(),));
 ctx.assets.save_scene(&ctx.world, "levels/beach.json")?;
 ctx.assets.save_prefab(&ctx.world, palm, "prefabs/palm.json")?;
 ```

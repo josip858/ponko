@@ -129,7 +129,7 @@ const SHADOW_PASSES: [&str; 8] = [
     "shadows 6",
     "shadows 7",
 ];
-use crate::Material;
+use crate::render::Material;
 use crate::three::gi::GI_SHADOW_SIZE;
 use crate::three::motion::MovedInstance;
 use crate::three::{
@@ -847,7 +847,7 @@ pub(crate) struct Renderer3D {
     /// The 1x1 light shadow map frame bind groups use without light shadows.
     no_light_shadow: wgpu::TextureView,
     output_format: wgpu::TextureFormat,
-    aa: crate::AntiAliasing,
+    aa: crate::render::AntiAliasing,
     smaa: Option<super::smaa::Smaa>,
     /// Temporal antialiasing: the resolve pass (made when first used), and
     /// whether this device can run it (WebGL2 can't: FXAA stands in).
@@ -1748,7 +1748,7 @@ impl Renderer3D {
             upscale_pipeline,
             no_light_shadow,
             output_format: format,
-            aa: crate::AntiAliasing::None,
+            aa: crate::render::AntiAliasing::None,
             smaa: None,
             taa: None,
             taa_supported: can_compute(device),
@@ -2736,7 +2736,7 @@ impl Renderer3D {
     }
 
     /// The pipeline cache's counters and what it holds now.
-    pub fn pipeline_stats(&self) -> crate::PipelineStats {
+    pub fn pipeline_stats(&self) -> crate::render::PipelineStats {
         self.cache.stats()
     }
 
@@ -2918,9 +2918,9 @@ impl Renderer3D {
         self.lut = lut.map_or(self.white, |(id, _)| id);
         self.bloom = post.bloom > 0.0;
         // Temporal antialiasing needs compute-class devices; the others get FXAA.
-        self.taa_on = post.anti_aliasing == crate::AntiAliasing::Taa && self.taa_supported;
+        self.taa_on = post.anti_aliasing == crate::render::AntiAliasing::Taa && self.taa_supported;
         self.aa = match post.anti_aliasing {
-            crate::AntiAliasing::Taa if !self.taa_supported => crate::AntiAliasing::Fxaa,
+            crate::render::AntiAliasing::Taa if !self.taa_supported => crate::render::AntiAliasing::Fxaa,
             aa => aa,
         };
         if self.taa_on && self.taa.is_none() {
@@ -3013,10 +3013,10 @@ impl Renderer3D {
                 (post.ao_half_resolution, post.ao_temporal && ao_on),
             );
         }
-        if self.targets.as_ref().is_some_and(|t| t.size != size) || self.aa != crate::AntiAliasing::Smaa {
+        if self.targets.as_ref().is_some_and(|t| t.size != size) || self.aa != crate::render::AntiAliasing::Smaa {
             self.smaa = None;
         }
-        if self.aa == crate::AntiAliasing::Smaa
+        if self.aa == crate::render::AntiAliasing::Smaa
             && (self.smaa.is_none() || self.targets.as_ref().is_none_or(|t| t.size != size))
         {
             self.smaa = Some(super::smaa::Smaa::new(
@@ -3581,7 +3581,7 @@ impl Renderer3D {
                     ],
                 })
             };
-            let ldr = (self.aa == crate::AntiAliasing::Fxaa).then(|| {
+            let ldr = (self.aa == crate::render::AntiAliasing::Fxaa).then(|| {
                 target(
                     "3d LDR before AA",
                     self.output_format,
@@ -3956,9 +3956,9 @@ impl Renderer3D {
                 0
             }
             + match self.aa {
-                crate::AntiAliasing::None | crate::AntiAliasing::Taa => 0,
-                crate::AntiAliasing::Fxaa => 1,
-                crate::AntiAliasing::Smaa => 3,
+                crate::render::AntiAliasing::None | crate::render::AntiAliasing::Taa => 0,
+                crate::render::AntiAliasing::Fxaa => 1,
+                crate::render::AntiAliasing::Smaa => 3,
             }
             + if self.atmosphere { 2 } else { 0 }
             + shadow_views(self.cascades, self.light_views)
@@ -4608,9 +4608,9 @@ impl Renderer3D {
                     label: Some("3d post"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                         view: match self.aa {
-                            crate::AntiAliasing::None | crate::AntiAliasing::Taa => output,
-                            crate::AntiAliasing::Fxaa => targets.ldr.as_ref().unwrap(),
-                            crate::AntiAliasing::Smaa => self.smaa.as_ref().unwrap().input(),
+                            crate::render::AntiAliasing::None | crate::render::AntiAliasing::Taa => output,
+                            crate::render::AntiAliasing::Fxaa => targets.ldr.as_ref().unwrap(),
+                            crate::render::AntiAliasing::Smaa => self.smaa.as_ref().unwrap().input(),
                         },
                         depth_slice: None,
                         resolve_target: None,
@@ -4630,9 +4630,9 @@ impl Renderer3D {
                 pass.draw(0..3, 0..1);
                 drop(pass);
                 match self.aa {
-                    crate::AntiAliasing::None | crate::AntiAliasing::Taa => {}
-                    crate::AntiAliasing::Smaa => self.smaa.as_ref().unwrap().draw(encoder, output),
-                    crate::AntiAliasing::Fxaa => {
+                    crate::render::AntiAliasing::None | crate::render::AntiAliasing::Taa => {}
+                    crate::render::AntiAliasing::Smaa => self.smaa.as_ref().unwrap().draw(encoder, output),
+                    crate::render::AntiAliasing::Fxaa => {
                         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                             label: Some("FXAA"),
                             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -4858,7 +4858,7 @@ impl Renderer3D {
     /// Whether the targets were made for other settings than these: a
     /// different size (window or render scale), or an effect switched on or
     /// off. They are then made again, and the history with them.
-    fn targets_stale(&self, size: (u32, u32), post: &crate::Post, ao_on: bool, upscaled: bool) -> bool {
+    fn targets_stale(&self, size: (u32, u32), post: &crate::render::Post, ao_on: bool, upscaled: bool) -> bool {
         self.targets.as_ref().is_none_or(|t| {
             t.size != size
                 || t.ao.is_some() != self.ao_enabled
@@ -4869,7 +4869,7 @@ impl Renderer3D {
                 || t.ssr.is_some() != self.ssr_on
                 || t.taa.is_some() != self.taa_on
                 || t.velocity.is_some() != self.velocity_on
-                || t.ldr.is_some() != (self.aa == crate::AntiAliasing::Fxaa)
+                || t.ldr.is_some() != (self.aa == crate::render::AntiAliasing::Fxaa)
                 || t.upscale.is_some() != upscaled
         })
     }

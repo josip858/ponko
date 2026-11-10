@@ -167,10 +167,10 @@ impl Net {
     /// achievements and the rest of Steam). Feature `steam`.
     ///
     /// ```no_run
-    /// use ponko::*;
+    /// use ponko::prelude::*;
     /// let client = steamworks::Client::init_app(480).expect("is Steam running?"); // 480: Valve's test app
     /// Game::new("RTS", 1280, 720)
-    ///     .lockstep(Net::steam_host(&client, 2))
+    ///     .lockstep(ponko::net::Net::steam_host(&client, 2))
     ///     .run(|_| {});
     /// ```
     ///
@@ -199,11 +199,11 @@ impl Net {
     /// shown by the host. Feature `steam`.
     ///
     /// ```no_run
-    /// use ponko::*;
+    /// use ponko::prelude::*;
     /// let client = steamworks::Client::init_app(480).expect("is Steam running?");
-    /// let net = match steam_lobby_from_args() {
-    ///     Some(lobby) => Net::steam_join(&client, lobby), // accepted an invite
-    ///     None => Net::steam_host(&client, 2),
+    /// let net = match ponko::net::steam_lobby_from_args() {
+    ///     Some(lobby) => ponko::net::Net::steam_join(&client, lobby), // accepted an invite
+    ///     None => ponko::net::Net::steam_host(&client, 2),
     /// };
     /// Game::new("RTS", 1280, 720).lockstep(net).run(|_| {});
     /// ```
@@ -258,11 +258,11 @@ pub fn steam_lobby_from_args() -> Option<LobbyId> {
 /// wasn't running. Feature `steam`.
 ///
 /// ```no_run
-/// use ponko::*;
+/// use ponko::prelude::*;
 /// let client = steamworks::Client::init_app(480).expect("is Steam running?");
 /// println!("accept your friend's invite in Steam...");
-/// if let Some(lobby) = steam_wait_for_invite(&client, std::time::Duration::from_secs(120)) {
-///     Game::new("RTS", 1280, 720).lockstep(Net::steam_join(&client, lobby)).run(|_| {});
+/// if let Some(lobby) = ponko::net::steam_wait_for_invite(&client, std::time::Duration::from_secs(120)) {
+///     Game::new("RTS", 1280, 720).lockstep(ponko::net::Net::steam_join(&client, lobby)).run(|_| {});
 /// }
 /// ```
 #[must_use]

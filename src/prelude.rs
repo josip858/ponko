@@ -27,3 +27,9 @@ pub use crate::{json, profile_scope};
 pub use glam::{Mat4, Vec4, vec4};
 pub use glam::{Quat, UVec2, Vec2, Vec3, uvec2, vec2, vec3};
 pub use ponko_ecs::{Added, Changed, Commands, Component, Entity, Or, Query, Tick, With, Without, World};
+// Common dimension types retain descriptive spellings in mixed-dimensional code.
+pub use crate::actions;
+pub use crate::d2::{Camera as Camera2D, Sprite, Transform as Transform2D};
+#[cfg(feature = "3d")]
+pub use crate::d3::{Camera as Camera3D, Model, Transform as Transform3D};
+pub use crate::ui::{Ui, UiId};

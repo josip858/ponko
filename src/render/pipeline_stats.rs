@@ -83,7 +83,7 @@ impl Graphics {
     /// and how many a hot reload threw away. All zero in headless runs.
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx) {
     /// let p = ctx.gfx.pipeline_stats();
     /// if p.misses > 0 {

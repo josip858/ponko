@@ -48,7 +48,7 @@ pub use pipeline_stats::PipelineStats;
 #[cfg(all(feature = "window", feature = "3d"))]
 pub(crate) use shader_diagnostics::{diagnose, without_location};
 
-/// What drawing the last frame cost, from [`Perf::render_stats`](crate::Perf::render_stats).
+/// What drawing the last frame cost, from [`Perf::render_stats`](crate::perf::Perf::render_stats).
 ///
 /// Compare `cpu_ms` and `gpu_ms` with the frame time to see what limits the
 /// frame rate: if `gpu_ms` is close to the frame time, the GPU is the
@@ -76,7 +76,7 @@ pub struct RenderStats {
     pub record_ms: f32,
     /// Of `cpu_ms`, the time handing the command buffers to the GPU, in ms.
     pub submit_ms: f32,
-    /// 3D models the camera draws (one per drawn [`Model`](crate::Model)).
+    /// 3D models the camera draws (one per drawn [`Model`](crate::render::Model)).
     pub instances: usize,
     /// Triangles the camera's passes draw (each once, though the depth
     /// prepass draws the solid ones a second time).
@@ -286,3 +286,15 @@ mod quality_render_test;
 
 #[cfg(all(test, feature = "window", feature = "3d"))]
 mod residency_render_test;
+
+#[cfg(feature = "3d")]
+pub use crate::three::{
+    AmbientOcclusion, AntiAliasing, Compute, ComputePass, Effect, ExtractionBench, ExtractionSample,
+    GlobalIllumination, GpuBuffer, GraphicsQuality, InstanceBatch, InstanceBatchOptions, InstanceLevel,
+    LIGHT_SHADOW_ATLAS_SIZE, LIGHT_SHADOW_SIZE, Lighting, LodGroup, LodHysteresis, LodLevel, LodPick, LodRenderer,
+    LodSettings, LodShadow, MAX_DECALS, MAX_DECALS_PER_CLUSTER, MAX_GI_PROBES, MAX_GI_PROBES_PER_FRAME,
+    MAX_LIGHT_SHADOW_VIEWS, MAX_RENDER_SCALE, MIN_RENDER_SCALE, Material, MaterialDesc, Mesh, MeshCost, MeshData,
+    Model, ModelMaterial, ModelMaterials, ParticleCurve, ParticleGradient, Post, QualityLevel, ReceivesDecals,
+    ScreenEffect, Shader, ShaderDiagnostic, ShaderKind, ShaderOutcome, ShaderStatus, ShadowMesh, Sky, TargetCamera,
+    TargetEffect, Tonemap, look_at_joint, two_bone_ik,
+};

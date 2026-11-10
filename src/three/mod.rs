@@ -108,8 +108,8 @@ use crate::{Color, Texture};
 /// Position, rotation and scale of a 3D entity.
 ///
 /// ```
-/// # use ponko::*;
-/// let crate_box = Transform3D::at(vec3(0.0, 0.5, -3.0)).rotated(Quat::from_rotation_y(0.3));
+/// # use ponko::prelude::*;
+/// let crate_box = ponko::d3::Transform::at(vec3(0.0, 0.5, -3.0)).rotated(Quat::from_rotation_y(0.3));
 /// # let _ = crate_box;
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -138,8 +138,8 @@ impl Transform3D {
     /// At `position`, not rotated, scale 1.
     ///
     /// ```
-    /// # use ponko::*;
-    /// let t = Transform3D::at(vec3(1.0, 2.0, 3.0));
+    /// # use ponko::prelude::*;
+    /// let t = ponko::d3::Transform::at(vec3(1.0, 2.0, 3.0));
     /// assert_eq!(t.scale, Vec3::ONE);
     /// ```
     #[must_use]
@@ -153,8 +153,8 @@ impl Transform3D {
     /// The same, rotated by `rotation`.
     ///
     /// ```
-    /// # use ponko::*;
-    /// let t = Transform3D::default().rotated(Quat::from_rotation_y(1.0));
+    /// # use ponko::prelude::*;
+    /// let t = ponko::d3::Transform::default().rotated(Quat::from_rotation_y(1.0));
     /// # let _ = t;
     /// ```
     #[must_use]
@@ -165,8 +165,8 @@ impl Transform3D {
     /// The same, scaled by `scale` on every axis.
     ///
     /// ```
-    /// # use ponko::*;
-    /// assert_eq!(Transform3D::default().scaled(2.0).scale, Vec3::splat(2.0));
+    /// # use ponko::prelude::*;
+    /// assert_eq!(ponko::d3::Transform::default().scaled(2.0).scale, Vec3::splat(2.0));
     /// ```
     #[must_use]
     pub fn scaled(self, scale: f32) -> Self {
@@ -179,8 +179,8 @@ impl Transform3D {
     /// The same, turned so its -Z axis points at `target` (with +Y as up).
     ///
     /// ```
-    /// # use ponko::*;
-    /// let t = Transform3D::at(vec3(0.0, 0.0, 5.0)).looking_at(Vec3::ZERO);
+    /// # use ponko::prelude::*;
+    /// let t = ponko::d3::Transform::at(vec3(0.0, 0.0, 5.0)).looking_at(Vec3::ZERO);
     /// assert!((t.forward() - vec3(0.0, 0.0, -1.0)).length() < 1e-5);
     /// ```
     #[must_use]
@@ -194,8 +194,8 @@ impl Transform3D {
     /// The direction it faces: its -Z axis.
     ///
     /// ```
-    /// # use ponko::*;
-    /// assert_eq!(Transform3D::default().forward(), vec3(0.0, 0.0, -1.0));
+    /// # use ponko::prelude::*;
+    /// assert_eq!(ponko::d3::Transform::default().forward(), vec3(0.0, 0.0, -1.0));
     /// ```
     #[must_use]
     pub fn forward(&self) -> Vec3 {
@@ -205,8 +205,8 @@ impl Transform3D {
     /// The matrix from its local space to the world.
     ///
     /// ```
-    /// # use ponko::*;
-    /// let m = Transform3D::at(vec3(1.0, 0.0, 0.0)).matrix();
+    /// # use ponko::prelude::*;
+    /// let m = ponko::d3::Transform::at(vec3(1.0, 0.0, 0.0)).matrix();
     /// assert_eq!(m.transform_point3(Vec3::ZERO), vec3(1.0, 0.0, 0.0));
     /// ```
     #[must_use]
@@ -230,10 +230,10 @@ fn look_rotation(direction: Vec3) -> Quat {
 /// loaded with [`Graphics::load_mesh`](crate::Graphics::load_mesh); a cheap handle.
 ///
 /// ```no_run
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
-/// let tree: Mesh = ctx.gfx.load_mesh("tree.glb");
-/// ctx.world.spawn((Transform3D::default(), Model::new(tree)));
+/// let tree: ponko::render::Mesh = ctx.gfx.load_mesh("tree.glb");
+/// ctx.world.spawn((ponko::d3::Transform::default(), ponko::render::Model::new(tree)));
 /// # }
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -249,13 +249,13 @@ impl Mesh {
     /// id. The same value as [`Handle::NONE`](crate::Handle::NONE).
     ///
     /// ```
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// Game::new("t", 1, 1).run_headless(0, |ctx| {
     ///     let material = ctx.gfx.default_material();
-    ///     let bush = ctx.gfx.create_mesh(&MeshData::cube(1.0), material);
-    ///     ctx.world.spawn((Transform3D::default(), Model::new(Mesh::NONE)));
-    ///     assert!(!ctx.gfx.is_mesh_live(Mesh::NONE));
-    ///     assert_ne!(bush, Mesh::NONE);
+    ///     let bush = ctx.gfx.create_mesh(&ponko::render::MeshData::cube(1.0), material);
+    ///     ctx.world.spawn((ponko::d3::Transform::default(), ponko::render::Model::new(ponko::render::Mesh::NONE)));
+    ///     assert!(!ctx.gfx.is_mesh_live(ponko::render::Mesh::NONE));
+    ///     assert_ne!(bush, ponko::render::Mesh::NONE);
     /// });
     /// ```
     pub const NONE: Mesh = Mesh { id: u32::MAX };
@@ -285,9 +285,9 @@ pub struct MeshCost {
 /// [`Graphics::create_material`](crate::Graphics::create_material); a cheap handle.
 ///
 /// ```no_run
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
-/// let gold = ctx.gfx.create_material(MaterialDesc { metallic: 1.0, roughness: 0.3, ..MaterialDesc::color(Color::hex(0xFFC83D)) });
+/// let gold = ctx.gfx.create_material(ponko::render::MaterialDesc { metallic: 1.0, roughness: 0.3, ..ponko::render::MaterialDesc::color(Color::hex(0xFFC83D)) });
 /// # }
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -323,10 +323,10 @@ pub struct Material {
 ///   for shaders that move vertices far.
 ///
 /// ```no_run
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
 /// let water = ctx.gfx.load_shader("shaders/water.wgsl");
-/// let lake = ctx.gfx.create_material(MaterialDesc { shader: Some(water), ..Default::default() });
+/// let lake = ctx.gfx.create_material(ponko::render::MaterialDesc { shader: Some(water), ..Default::default() });
 /// # }
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -373,8 +373,8 @@ pub enum Blend {
 /// What a [`Material`] is made from.
 ///
 /// ```
-/// # use ponko::*;
-/// let grass = MaterialDesc { roughness: 0.9, ..MaterialDesc::color(Color::hex(0x4C8A3A)) };
+/// # use ponko::prelude::*;
+/// let grass = ponko::render::MaterialDesc { roughness: 0.9, ..ponko::render::MaterialDesc::color(Color::hex(0x4C8A3A)) };
 /// assert_eq!(grass.metallic, 0.0);
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -443,8 +443,8 @@ impl MaterialDesc {
     /// A plain material of one color.
     ///
     /// ```
-    /// # use ponko::*;
-    /// let red = MaterialDesc::color(Color::rgb(0.8, 0.1, 0.1));
+    /// # use ponko::prelude::*;
+    /// let red = ponko::render::MaterialDesc::color(Color::rgb(0.8, 0.1, 0.1));
     /// # let _ = red;
     /// ```
     #[must_use]
@@ -459,13 +459,13 @@ impl MaterialDesc {
 /// Draws a [`Mesh`] where the entity's [`Transform3D`] is.
 ///
 /// ```no_run
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
 /// let white = ctx.gfx.default_material();
-/// let cube = ctx.gfx.create_mesh(&MeshData::cube(1.0), white);
+/// let cube = ctx.gfx.create_mesh(&ponko::render::MeshData::cube(1.0), white);
 /// for i in 0..10 {
 ///     let tint = Color::rgb(i as f32 / 10.0, 0.5, 1.0);
-///     ctx.world.spawn((Transform3D::at(vec3(i as f32 * 2.0, 0.0, 0.0)), Model::new(cube).with_color(tint)));
+///     ctx.world.spawn((ponko::d3::Transform::at(vec3(i as f32 * 2.0, 0.0, 0.0)), ponko::render::Model::new(cube).with_color(tint)));
 /// }
 /// # }
 /// ```
@@ -498,11 +498,11 @@ pub struct Model {
 /// `{ "mesh": null }` for no shadow.
 ///
 /// ```no_run
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
 /// let tree = ctx.gfx.load_mesh("tree.glb");
 /// let blob = ctx.gfx.load_mesh("tree_shadow.glb"); // a few dozen triangles
-/// ctx.world.spawn((Transform3D::default(), Model::new(tree), ShadowMesh(Some(blob))));
+/// ctx.world.spawn((ponko::d3::Transform::default(), ponko::render::Model::new(tree), ponko::render::ShadowMesh(Some(blob))));
 /// # }
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -530,12 +530,12 @@ pub struct ShadowMesh(pub Option<Mesh>);
 /// the override isn't saved, like a model whose mesh was made in code.
 ///
 /// ```no_run
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
 /// let rock = ctx.gfx.load_mesh("rock.glb");
-/// let wet = ctx.gfx.create_material(MaterialDesc { roughness: 0.1, ..MaterialDesc::color(Color::hex(0x404850)) });
-/// ctx.world.spawn((Transform3D::default(), Model::new(rock)));                    // as the file has it
-/// ctx.world.spawn((Transform3D::at(vec3(3.0, 0.0, 0.0)), Model::new(rock), ModelMaterial(wet))); // wet
+/// let wet = ctx.gfx.create_material(ponko::render::MaterialDesc { roughness: 0.1, ..ponko::render::MaterialDesc::color(Color::hex(0x404850)) });
+/// ctx.world.spawn((ponko::d3::Transform::default(), ponko::render::Model::new(rock)));                    // as the file has it
+/// ctx.world.spawn((ponko::d3::Transform::at(vec3(3.0, 0.0, 0.0)), ponko::render::Model::new(rock), ponko::render::ModelMaterial(wet))); // wet
 /// # }
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -559,11 +559,11 @@ pub struct ModelMaterial(pub Material);
 /// `ModelMaterial`.
 ///
 /// ```no_run
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
 /// let door = ctx.load_mesh("door.glb"); // part 0: wood, part 1: window
-/// let frosted = ctx.create_material(MaterialDesc { roughness: 0.6, ..Default::default() });
-/// ctx.world.spawn((Transform3D::default(), Model::new(door), ModelMaterials::new(&[(1, frosted)])));
+/// let frosted = ctx.create_material(ponko::render::MaterialDesc { roughness: 0.6, ..Default::default() });
+/// ctx.world.spawn((ponko::d3::Transform::default(), ponko::render::Model::new(door), ponko::render::ModelMaterials::new(&[(1, frosted)])));
 /// # }
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -609,10 +609,10 @@ impl Model {
     /// Draws `mesh` as it is.
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx) {
     /// let rock = ctx.gfx.load_mesh("rock.glb");
-    /// ctx.world.spawn((Transform3D::default(), Model::new(rock)));
+    /// ctx.world.spawn((ponko::d3::Transform::default(), ponko::render::Model::new(rock)));
     /// # }
     /// ```
     #[must_use]
@@ -626,9 +626,9 @@ impl Model {
     /// The same, tinted with `color`.
     ///
     /// ```no_run
-    /// # use ponko::*;
-    /// # fn f(ctx: &mut Ctx, cube: Mesh) {
-    /// let red_cube = Model::new(cube).with_color(Color::rgb(1.0, 0.2, 0.2));
+    /// # use ponko::prelude::*;
+    /// # fn f(ctx: &mut Ctx, cube: ponko::render::Mesh) {
+    /// let red_cube = ponko::render::Model::new(cube).with_color(Color::rgb(1.0, 0.2, 0.2));
     /// # }
     /// ```
     #[must_use]
@@ -641,7 +641,7 @@ impl Model {
 /// One per game, at [`Ctx::camera3d`](crate::Ctx::camera3d).
 ///
 /// ```no_run
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
 /// ctx.camera3d.position = vec3(0.0, 4.0, 10.0);
 /// ctx.camera3d.look_at(Vec3::ZERO);
@@ -693,7 +693,7 @@ impl Camera3D {
     /// Turns the camera to look at `target`, keeping +Y up.
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx, player: Vec3) {
     /// ctx.camera3d.position = player + vec3(0.0, 6.0, 8.0);
     /// ctx.camera3d.look_at(player);
@@ -706,7 +706,7 @@ impl Camera3D {
     /// The direction the camera looks.
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx) {
     /// let ahead = ctx.camera3d.position + ctx.camera3d.forward() * 5.0;
     /// # }
@@ -734,7 +734,7 @@ impl Camera3D {
     /// unit direction. For picking things in the world with the mouse.
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx) {
     /// let (from, dir) = ctx.camera3d.screen_ray(ctx.mouse_pos());
     /// // Where the mouse points on the ground (y = 0):
@@ -760,7 +760,7 @@ impl Camera3D {
 /// and ambient light from all around. At [`Ctx::lighting`](crate::Ctx::lighting).
 ///
 /// ```no_run
-/// # use ponko::*;
+/// # use ponko::prelude::*;
 /// # fn f(ctx: &mut Ctx) {
 /// // Evening: low, orange sun.
 /// ctx.lighting.sun_direction = vec3(-1.0, -0.3, -0.2);
@@ -1017,9 +1017,9 @@ impl Assets3D {
     /// whether each handle is live (`Ctx::asset_inventory`).
     /// Freed ones aren't counted; `textures_live` says which render
     /// targets are.
-    pub(crate) fn inventory(&self, textures_live: &crate::handle::LiveSet) -> [crate::AssetCount; 8] {
+    pub(crate) fn inventory(&self, textures_live: &crate::handle::LiveSet) -> [crate::inventory::AssetCount; 8] {
         use crate::inventory::{AssetClass, mip_chain_bytes};
-        let count = |class, live: usize, bytes: u64| crate::AssetCount { class, live, bytes };
+        let count = |class, live: usize, bytes: u64| crate::inventory::AssetCount { class, live, bytes };
         // Render targets are linear HDR: 8 bytes a pixel.
         let live_targets = self.render_targets.iter().filter(|t| textures_live.contains(t.id));
         let targets: u64 = live_targets

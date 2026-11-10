@@ -1,7 +1,16 @@
 //! One handle lifecycle: `Handle`, `Ctx::is_live`, `Ctx::free` and
 //! `Ctx::live_counts` for every resource kind, in headless runs.
 
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::d3::Transform as Transform3D;
+use ponko::prelude::*;
+#[allow(unused_imports)]
+use ponko::render::{
+    Compute, ComputePass, Effect, GpuBuffer, InstanceBatch, InstanceBatchOptions, Material, MaterialDesc, Mesh,
+    MeshData, Model, ModelMaterial, ScreenEffect, Shader, TargetCamera,
+};
+#[allow(unused_imports)]
+use ponko::terrain::{TextureArray, TextureKind};
 
 /// Writes the built-in font to a file `load_font` can read.
 fn font_file(name: &str) -> String {

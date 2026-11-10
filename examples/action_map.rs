@@ -1,5 +1,9 @@
 //! Named actions, shared by keyboard and gamepad. Runs without a window.
-use ponko::*;
+#[allow(unused_imports)]
+use ponko::actions::InputEvent;
+#[allow(unused_imports)]
+use ponko::input::{Gamepad, GamepadAxis, GamepadButton, GamepadStick};
+use ponko::prelude::*;
 
 // ANCHOR: action_map
 // The names live in one place; `Act::resolve` turns them into `Copy` ids once.

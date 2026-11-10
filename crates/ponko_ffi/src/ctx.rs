@@ -8,7 +8,10 @@
 use std::ffi::{CStr, c_char, c_void};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use ponko::{Ctx, Gamepad, GamepadButton, SpatialGrid};
+use ponko::Ctx;
+use ponko::input::Gamepad;
+use ponko::input::GamepadButton;
+use ponko::spatial::SpatialGrid;
 use ponko_ecs::{Commands, Entity};
 
 use crate::keys::{button_from_c, gamepad_axis_from_c, gamepad_button_from_c, key_from_c};

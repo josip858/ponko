@@ -1,6 +1,8 @@
 //! Keyboard keys, mouse buttons and gamepad inputs as C enums, in the same
 //! order as the Rust ones.
-use ponko::{GamepadAxis, GamepadButton, Key, MouseButton};
+use ponko::input::GamepadAxis;
+use ponko::input::GamepadButton;
+use ponko::{Key, MouseButton};
 
 /// A keyboard key, by position on a US layout (`CRABBY_KEY_A`, ...).
 /// ```

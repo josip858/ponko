@@ -140,7 +140,7 @@ impl Graphics {
     /// without reading logs.
     ///
     /// ```no_run
-    /// # use ponko::*;
+    /// # use ponko::prelude::*;
     /// # fn f(ctx: &mut Ctx) {
     /// for status in ctx.gfx.shader_status() {
     ///     for error in &status.diagnostics {
