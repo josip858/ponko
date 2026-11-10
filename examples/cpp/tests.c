@@ -794,6 +794,16 @@ static void change_detection(void) {
     CHECK(ponko_world_free(w) == PONKO_OK);
 }
 
+/* Headless: no renderer, so nothing is uploaded to the GPU. */
+static void no_uploads(PonkoCtx* ctx, void* user) {
+    (void)user;
+    PonkoGpuUploads u = {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7};
+    CHECK(ponko_ctx_gpu_uploads(ctx, &u) == PONKO_OK);
+    CHECK(u.bytes == 0 && u.instances == 0 && u.uniforms == 0 && u.buffers_created == 0 && u.reallocations == 0);
+    CHECK(ponko_ctx_gpu_uploads(ctx, NULL) == PONKO_INVALID_ARGUMENT);
+    CHECK(ponko_ctx_gpu_uploads(NULL, &u) == PONKO_INVALID_ARGUMENT);
+}
+
 static void profiling_c(void) {
     const PonkoProfileScope* scope = ponko_profile_scope("c scope");
     CHECK(scope && scope == ponko_profile_scope("c scope"));
@@ -813,6 +823,10 @@ static void profiling_c(void) {
     CHECK(ponko_perf_check(json, "{\"systems\": {\"missing\": 1}}", NULL, 0, &problems) == PONKO_OK && problems > 0);
     CHECK(ponko_perf_report_text("nope", NULL, 0, &problems) == PONKO_INVALID_ARGUMENT);
     free(json);
+    PonkoGame* quiet = ponko_game_new("c uploads", 1, 1); CHECK(quiet);
+    PonkoWorld* w = NULL;
+    CHECK(ponko_game_run_headless(quiet, 0, no_uploads, NULL, &w) == PONKO_OK);
+    CHECK(ponko_world_free(w) == PONKO_OK);
 }
 
 /* A two-joint skin with one clip, "rise": the arm goes up 2 over 1 second. */

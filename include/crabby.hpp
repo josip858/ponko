@@ -167,6 +167,9 @@ inline terrain_material_desc terrain_material_of(texture_array layers, texture_a
 using mesh = CrabbyMesh;
 /// Frame timing over the last few seconds, in ms (`gpu_ms` -1 where the GPU can't time itself).
 using frame_stats = CrabbyFrameStats;
+/// Bytes the renderer uploaded over the last drawn frame, by kind, and the
+/// buffers it made (`reallocations`: those replacing a buffer grown too small).
+using gpu_uploads = CrabbyGpuUploads;
 using material = CrabbyMaterial;
 using material_desc = CrabbyMaterialDesc;
 /// A material shader in WGSL (ctx::load_shader, ctx::create_shader).
@@ -2916,6 +2919,8 @@ public:
     float fps() const noexcept { return crabby_ctx_fps(raw_); }
     /// fps, frame-time percentiles, CPU and GPU time over the last few seconds.
     crabby::frame_stats frame_stats() const { crabby::frame_stats s{}; detail::check(crabby_ctx_frame_stats(raw_, &s)); return s; }
+    /// What the renderer uploaded to the GPU over the last drawn frame (all zero headless).
+    crabby::gpu_uploads gpu_uploads() const { crabby::gpu_uploads u{}; detail::check(crabby_ctx_gpu_uploads(raw_, &u)); return u; }
     /// Shows or hides the on-screen performance overlay.
     void set_perf_hud(bool on) { detail::check(crabby_ctx_set_perf_hud(raw_, on)); }
     /// Turns on scope timing (CRABBY_PROFILE_SCOPE) and allocation counting;

@@ -1059,6 +1059,20 @@ static void perf_keys(ponko::ctx& ctx) {
 }
 // ANCHOR_END: profiling
 
+// ANCHOR: uploads
+/// Logs frames that send the GPU far more than a still scene does (which
+/// sends next to nothing): many models moved or spawned, or a buffer
+/// outgrown and made anew.
+static void upload_watch(ponko::ctx& ctx) {
+    auto u = ctx.gpu_uploads();
+    if (u.bytes > 256 * 1024 || u.reallocations > 0) {
+        std::printf("frame %llu: %llu KiB uploaded (%llu KiB of models), %u buffers outgrown\n",
+            (unsigned long long)ctx.frame(), (unsigned long long)(u.bytes / 1024),
+            (unsigned long long)(u.instances / 1024), u.reallocations);
+    }
+}
+// ANCHOR_END: uploads
+
 // ANCHOR: profile_scopes
 // In one .cpp file, at global scope: count C++ `new` calls in the reports.
 PONKO_COUNT_CPP_ALLOCATIONS
@@ -1527,6 +1541,8 @@ static void the_village_has_five_spinning_houses() {
         if (ctx.lod().bias != 0.7f || ctx.lod_pick_of(lod).kind == 0) { std::fprintf(stderr, "lod\n"); std::abort(); }
         ctx.set_lod({1, true});
         perf_keys(ctx);
+        upload_watch(ctx);
+        if (ctx.gpu_uploads().bytes != 0) { std::fprintf(stderr, "gpu uploads\n"); std::abort(); }
         perf_report_keys(ctx);
         if (ctx.frame_stats().frames != 0) { std::fprintf(stderr, "frame stats\n"); std::abort(); }
         if (ctx.mesh_shadows(tuft)) { std::fprintf(stderr, "mesh shadows\n"); std::abort(); }
