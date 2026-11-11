@@ -1454,7 +1454,11 @@ impl Game {
     pub fn physics(mut self, gravity: Vec2) -> Self {
         self.gravity = Some(gravity);
         if !self.sim_systems.iter().any(|s| s.builtin == Some(Systems::PHYSICS)) {
-            self = self.add(Phase::Physics, crate::systems::step_physics);
+            self = self.add_with_access(
+                Phase::Physics,
+                crate::systems::step_physics_access(),
+                crate::systems::step_physics,
+            );
         }
         self
     }
@@ -1494,14 +1498,22 @@ impl Game {
             self.fixed_hz = crate::physics3d::PHYSICS3D_HZ;
         }
         if !self.sim_systems.iter().any(|s| s.builtin == Some(Systems::PHYSICS3D)) {
-            self = self.add(Phase::Physics, crate::systems::step_physics3d);
+            self = self.add_with_access(
+                Phase::Physics,
+                crate::systems::step_physics3d_access(),
+                crate::systems::step_physics3d,
+            );
         }
         if !self
             .systems
             .iter()
             .any(|s| s.builtin == Some(Systems::INTERPOLATE_PHYSICS3D))
         {
-            self = self.add(Phase::Frame, crate::systems::interpolate_physics3d);
+            self = self.add_with_access(
+                Phase::Frame,
+                crate::systems::interpolate_physics3d_access(),
+                crate::systems::interpolate_physics3d,
+            );
         }
         self
     }
