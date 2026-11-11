@@ -1258,6 +1258,8 @@ impl Server {
             }
             if Instant::now() > deadline {
                 let _ = child.kill();
+                // Reaped, so a timed-out launch leaves no zombie behind.
+                let _ = child.wait();
                 return Err(format!(
                     "timed out waiting for the game to start. Last log lines:\n{}",
                     tail(&log_path, 40)

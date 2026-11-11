@@ -101,12 +101,15 @@ fn reproduce_argv(o: &Options) -> Vec<String> {
     let mut argv: Vec<String> = ["cargo", "run", "--example", "validation_bundle", "--", "--out", "<DIR>"]
         .map(String::from)
         .to_vec();
-    argv.extend([
-        "--variant".into(),
-        o.variant.name().into(),
-        "--seed".into(),
-        o.seed.to_string(),
-    ]);
+    // A scenario file's game has no variant and takes its seed its own way.
+    if o.scenario.is_none() {
+        argv.extend([
+            "--variant".into(),
+            o.variant.name().into(),
+            "--seed".into(),
+            o.seed.to_string(),
+        ]);
+    }
     for (flag, value) in [("--commit", &o.commit), ("--rustc", &o.rustc)] {
         if let Some(v) = value {
             argv.extend([flag.to_string(), v.clone()]);
@@ -279,7 +282,13 @@ pub fn run(o: &Options) -> io::Result<Report> {
     if failure.is_some() {
         // A failed step: there is nothing to interact with.
     } else if let Some(launch) = &o.launch {
-        let seen = launched::observe(launch, &interaction, o.variant, o.seed, &mut bundle, &mut commands)?;
+        // A game of your own gets only the arguments you gave it, not the
+        // reference game's.
+        let mut launch = launch.clone();
+        if o.scenario.is_some() {
+            launch.args.get_or_insert_default();
+        }
+        let seen = launched::observe(&launch, &interaction, o.variant, o.seed, &mut bundle, &mut commands)?;
         bundle.section("instance", seen.instance);
         (failure, trace, reported_features) = (seen.failure, seen.trace, seen.features);
         scenario_report = seen.scenario_report;

@@ -45,6 +45,7 @@
 - [Randomness, determinism and saving](determinism.md)
 - [Tools and agents: the control endpoint](control.md)
 - [Working with AI agents (MCP)](agents.md)
+  - [Validation bundles](validation-bundles.md)
 
 # Reference
 

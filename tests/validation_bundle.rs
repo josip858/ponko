@@ -779,7 +779,7 @@ fn a_built_game_that_never_reports_in_is_told_apart_from_a_build_failure() {
 
 #[test]
 fn the_commit_and_compiler_are_found_when_they_are_not_supplied() {
-    let dir = out_dir("identity");
+    let dir = out_dir("identity-found");
     let mut o = Options::new(&dir, Variant::Fixed);
     o.capture_identity = true;
     let m = orchestrate::run(&o).unwrap().manifest;
@@ -1022,6 +1022,31 @@ fn a_scenario_file_drives_a_launched_game_and_its_checks_are_the_assertions() {
     assert_eq!(report["checks_passed"], 1);
     assert!(read(&dir, "logs/run.log").contains("assertion scenario-checks: FAILED at tick 80"));
     assert_artifacts_match(&dir, m);
+}
+
+#[test]
+fn a_game_of_your_own_gets_only_the_arguments_you_gave_it() {
+    // No arguments given: the reference game's `--serve --variant ...` must
+    // not reach a game that isn't the reference game. The program doesn't
+    // exist, so the launch fails; what was tried is recorded.
+    let dir = out_dir("file-own-args");
+    let mut o = Options::new(&dir, Variant::Fixed);
+    let mut launch = Launch::program("definitely-not-a-game-ponko");
+    launch.launch_timeout = Duration::from_secs(5);
+    o.launch = Some(launch);
+    o.scenario = Some(scenario_file(1));
+    let report = orchestrate::run(&o).unwrap();
+    assert!(!report.passed);
+    let commands = report.manifest["commands"].as_array().unwrap();
+    let reproduce = commands[0]["argv"].to_string();
+    assert!(
+        !reproduce.contains("--variant") && !reproduce.contains("--seed"),
+        "{reproduce}"
+    );
+    let started = commands.iter().find(|c| c["role"] == "launch").unwrap();
+    assert_eq!(started["argv"], json!(["definitely-not-a-game-ponko"]));
+    let asked = commands.iter().find(|c| c["tool"] == "launch").unwrap();
+    assert_eq!(asked["arguments"]["args"], json!([]));
 }
 
 #[test]
