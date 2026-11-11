@@ -207,10 +207,14 @@ struct Scratch(PathBuf);
 
 impl Scratch {
     fn new() -> std::io::Result<Self> {
+        // Two runs in one process (tests run side by side) can start within
+        // the clock's resolution, so the time alone doesn't tell them apart.
+        static RUNS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        let run = RUNS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let nanos = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.subsec_nanos());
-        let dir = std::env::temp_dir().join(format!("ponko-validation-{}-{nanos}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("ponko-validation-{}-{nanos}-{run}", std::process::id()));
         std::fs::create_dir_all(&dir)?;
         Ok(Self(std::fs::canonicalize(&dir).unwrap_or(dir)))
     }

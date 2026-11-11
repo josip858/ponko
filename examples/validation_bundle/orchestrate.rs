@@ -80,6 +80,7 @@ pub struct Report {
 pub fn compiled_features() -> Vec<String> {
     let all = [
         ("3d", cfg!(feature = "3d")),
+        ("accessibility", cfg!(feature = "accessibility")),
         ("audio", cfg!(feature = "audio")),
         ("gamepad", cfg!(feature = "gamepad")),
         ("hotpatch", cfg!(feature = "hotpatch")),
