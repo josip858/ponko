@@ -22,3 +22,6 @@
 - `examples/ui_menu.rs`, a small settings menu for trying a screen reader,
   and the guide's "Accessibility semantics" section covers all of the above,
   the supported adapters and their limits.
+- The engine's window path is checked by hand in a real window
+  (`PONKO_ACCESS_WINDOW=1`, in `tests/ui_access_macos.rs`); the guide shows
+  what it read.

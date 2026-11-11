@@ -5,7 +5,12 @@
 //! enabled, focused, press, increment, set value) on the view and on the
 //! elements it hands out, and walks the sample menu with them. No window is
 //! opened and no screen reader runs: what this does not cover is VoiceOver's
-//! own speech and cursor, which need a visible window.
+//! own speech and cursor.
+//!
+//! One more check runs the engine's own path, `Game::run` with its window,
+//! and asks the window's content view the same questions from a system of
+//! the game. It opens a window, so it only runs with `PONKO_ACCESS_WINDOW=1`
+//! (`PONKO_ACCESS_TRANSCRIPT=<file>` saves what it read).
 //!
 //! AppKit must be used from the main thread, so this is a program without
 //! the test harness: each check below is a function named after what must
@@ -630,6 +635,110 @@ AXGroup
         assert!(frame(&mut ui, &mut adapter), "Yes quits the game");
     }
 
+    /// Set to `1` to run the one check that opens a window.
+    const WINDOW_ENV: &str = "PONKO_ACCESS_WINDOW";
+    /// A file the windowed check writes what it read to, step by step.
+    const TRANSCRIPT_ENV: &str = "PONKO_ACCESS_TRANSCRIPT";
+
+    /// The engine's own path, in a real window: `Game::run` makes the
+    /// window, attaches the adapter to its content view and updates it every
+    /// frame. A system of the game then asks that view what a screen reader
+    /// asks, and operates the sample menu through it. Opens a window for
+    /// about a second, so it only runs when `PONKO_ACCESS_WINDOW=1`.
+    fn the_engine_window_gives_the_sample_menu_to_the_system_and_takes_requests_back() {
+        use std::cell::RefCell;
+        use std::fmt::Write;
+        if std::env::var(WINDOW_ENV).as_deref() != Ok("1") {
+            print!("(skipped: opens a window; run with {WINDOW_ENV}=1) ");
+            return;
+        }
+        thread_local! {
+            static FRAME: RefCell<u32> = const { RefCell::new(0) };
+            static TRANSCRIPT: RefCell<String> = const { RefCell::new(String::new()) };
+            static DONE: RefCell<bool> = const { RefCell::new(false) };
+        }
+        /// The content view of the game's window.
+        fn content_view() -> Element {
+            // SAFETY: main thread; the game's window exists while its
+            // systems run, and these return objects.
+            unsafe {
+                let app: Element = msg_send_id![class!(NSApplication), sharedApplication];
+                let windows: Id<NSArray<NSObject>> = msg_send_id![&*app, windows];
+                let window: Element = msg_send_id![&*windows, objectAtIndex: 0usize];
+                msg_send_id![&*window, contentView]
+            }
+        }
+        fn note(title: &str, view: &AnyObject) -> String {
+            let read = outline(view);
+            TRANSCRIPT.with_borrow_mut(|t| writeln!(t, "== {title}\n{read}").unwrap());
+            read
+        }
+        Game::new("Settings", 520, 460)
+            .system(|ctx: &mut Ctx| {
+                let menu = ctx.world.remove_resource::<crate::sample::Menu>().unwrap();
+                while let Some(event) = ctx.ui.next_event() {
+                    crate::sample::react(&mut ctx.ui, &menu, event);
+                }
+                ctx.world.insert_resource(menu);
+                let frame = FRAME.with_borrow_mut(|f| {
+                    *f += 1;
+                    *f
+                });
+                let view = content_view();
+                match frame {
+                    // The first question wakes the adapter; the tree comes
+                    // with the next frame.
+                    5 => {
+                        children(&view);
+                    }
+                    10 => {
+                        let read = note("the menu, as the window's content view gives it", &view);
+                        assert!(read.contains("AXButton \"Play\" help=\"Starts a new run\""), "{read}");
+                        assert!(read.contains("AXSlider \"Volume\" value=0.50"), "{read}");
+                        assert!(read.contains("AXTextField \"Player name\" value=\"Ann\""), "{read}");
+                        assert!(read.contains("AXCheckBox \"Music\" value=1.00"), "{read}");
+                        assert!(press(&find(&view, "AXButton", "Play")), "Play takes a press");
+                    }
+                    15 => {
+                        let read = note("after pressing Play through the system", &view);
+                        assert!(read.contains("AXStaticText value=\"Started a run for Ann\""), "{read}");
+                        assert!(increment(&find(&view, "AXSlider", "Volume")), "Volume takes a step");
+                    }
+                    20 => {
+                        let read = note("after one increment of Volume through the system", &view);
+                        assert!(read.contains("AXSlider \"Volume\" value=0.55"), "{read}");
+                        assert!(read.contains("AXStaticText value=\"Volume 55%\""), "{read}");
+                        assert!(press(&find(&view, "AXButton", "Quit")));
+                    }
+                    25 => {
+                        let read = note("after pressing Quit: the modal dialog is all there is", &view);
+                        assert!(try_find(&view, "AXButton", "Play").is_none(), "{read}");
+                        assert!(
+                            read.contains("AXButton \"Yes\"") && read.contains("AXButton \"No\""),
+                            "{read}"
+                        );
+                        assert!(press(&find(&view, "AXButton", "No")));
+                    }
+                    30 => {
+                        let read = note("after pressing No: the menu is back", &view);
+                        assert!(try_find(&view, "AXButton", "Play").is_some(), "{read}");
+                        DONE.set(true);
+                        ctx.quit();
+                    }
+                    _ => {}
+                }
+            })
+            .setup(|ctx: &mut Ctx| {
+                let menu = crate::sample::build(&mut ctx.ui);
+                ctx.world.insert_resource(menu);
+            })
+            .run();
+        assert!(DONE.take(), "the game ended before the walk through the menu did");
+        if let Ok(path) = std::env::var(TRANSCRIPT_ENV) {
+            std::fs::write(path, TRANSCRIPT.take()).unwrap();
+        }
+    }
+
     pub fn run() {
         let checks: &[(&str, fn())] = &[
             (
@@ -675,6 +784,11 @@ AXGroup
             (
                 "the_example_menu_is_played_through_the_system_from_play_to_the_quit_dialog",
                 the_example_menu_is_played_through_the_system_from_play_to_the_quit_dialog,
+            ),
+            // Last: it runs the engine's event loop.
+            (
+                "the_engine_window_gives_the_sample_menu_to_the_system_and_takes_requests_back",
+                the_engine_window_gives_the_sample_menu_to_the_system_and_takes_requests_back,
             ),
         ];
         // `cargo test <filter>` passes a filter; run the checks it matches.

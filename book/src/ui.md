@@ -383,6 +383,8 @@ What is supported:
 `UiAccessAdapter::SUPPORTED` says at compile time whether the build has one.
 The limits on macOS:
 
+- The window is named after the game's title, once: the engine has no call
+  that renames its window while the game runs.
 - Only `ctx.ui` is exposed. UI on surfaces in the world (`d3::UiPanel`), the
   immediate-mode calls (`draw_text`, `ui_label`) and the inspector are not.
 - A text input's text is read and can be replaced, but its caret and
@@ -396,12 +398,36 @@ The limits on macOS:
 
 `examples/ui_menu.rs` is the sample menu for trying it: a title, a status
 line that is a live region, a described Play button, a named slider and text
-input, a toggle, and a Quit button that opens a modal dialog. The headless
-test `tests/ui_access_macos.rs` attaches the adapter to a view without a
-window and asks it what VoiceOver asks (children, role, title, value, help,
-enabled, focused, modal; press, increment, decrement, set value, set focus),
-through this menu from Play to the Quit dialog. That test does not hear
-VoiceOver's speech or see its cursor. To check those by hand:
+input, a toggle, and a Quit button that opens a modal dialog.
+
+How it is checked, `tests/ui_access_macos.rs`:
+
+- **Without a window** (every run, and CI's macOS leg): the adapter is
+  attached to a view that has no window and asked what VoiceOver asks
+  (children, role, title, value, help, enabled, focused, modal; press,
+  increment, decrement, set value, set focus), through this menu from Play
+  to the Quit dialog.
+- **In the engine's own window** (by hand, `PONKO_ACCESS_WINDOW=1 cargo test
+  --features accessibility --test ui_access_macos engine_window`): the game
+  runs with `Game::run`, which attaches the adapter to the window's content
+  view; a system of the game asks that view the same questions and operates
+  the menu through it. It opens a window for about a second, so CI doesn't
+  run it.
+
+What the windowed run read, step by step (recorded on macOS 27 on Apple
+silicon; a focused element is marked):
+
+```text
+{{#include ui-accessibility-window-transcript.txt}}
+```
+
+This is the accessibility tree as the game's window hands it to the system,
+read inside the game's process through the `NSAccessibility` methods a screen
+reader calls. It is not a recording of VoiceOver's speech, and it was not
+read from another process: the machine it was made on had neither the
+Accessibility permission for the terminal (needed to read another program's
+window) nor VoiceOver's AppleScript control switched on (needed to record
+what VoiceOver says). To hear it yourself:
 
 1. `cargo run --example ui_menu --features accessibility`, then turn
    VoiceOver on (Cmd-F5).
@@ -418,8 +444,8 @@ VoiceOver's speech or see its cursor. To check those by hand:
 6. Tab and the arrow keys move the engine's focus as before, and the
    VoiceOver cursor follows it.
 
-This manual pass has not been recorded yet: it needs a visible window and a
-running screen reader, which the automated checks never open.
+The speech in steps 2 to 6 is what the tree above should produce; nobody has
+recorded VoiceOver saying it yet.
 
 ## UI on surfaces in the world
 
