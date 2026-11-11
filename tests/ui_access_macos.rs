@@ -19,6 +19,13 @@ fn main() {
     mac::run();
 }
 
+/// The guide's sample menu, `examples/ui_menu.rs`: its nodes and what it
+/// does with an event, without its `main`.
+#[cfg(target_os = "macos")]
+#[allow(dead_code)]
+#[path = "../examples/ui_menu.rs"]
+mod sample;
+
 #[cfg(target_os = "macos")]
 mod mac {
     use objc2::rc::Id;
@@ -543,6 +550,86 @@ AXGroup
         assert!(!press(&play), "a stale element refuses");
     }
 
+    /// `examples/ui_menu.rs`, the menu of the manual screen-reader pass,
+    /// operated the way that pass operates it.
+    fn the_example_menu_is_played_through_the_system_from_play_to_the_quit_dialog() {
+        // SAFETY: `+[NSView new]` on the main thread returns a view.
+        let view: Element = unsafe { msg_send_id![class!(NSView), new] };
+        // SAFETY: the view outlives the adapter (declared first, dropped
+        // last), this is the main thread, and the view has no other adapter.
+        let mut adapter = unsafe { UiAccessAdapter::for_ns_view(Id::as_ptr(&view).cast_mut().cast(), "Settings") };
+        let mut ui = Ui::default();
+        let menu = crate::sample::build(&mut ui);
+        // One frame of the example: the UI, the game's reaction to its
+        // events, then the adapter.
+        let frame = |ui: &mut Ui, adapter: &mut UiAccessAdapter| {
+            ui.frame(VIEW, &UiInput::default());
+            let mut quit = false;
+            while let Some(event) = ui.next_event() {
+                quit |= crate::sample::react(ui, &menu, event);
+            }
+            adapter.update(ui, 1.0);
+            quit
+        };
+        frame(&mut ui, &mut adapter);
+        adapter.set_window_focused(true);
+        children(&view);
+        frame(&mut ui, &mut adapter);
+        assert_eq!(
+            outline(&view),
+            "\
+AXGroup
+  AXGroup
+    AXStaticText value=\"Settings\"
+    AXStaticText value=\"Ready\"
+    AXButton \"Play\" help=\"Starts a new run\"
+    AXSlider \"Volume\" value=0.50
+    AXTextField \"Player name\" value=\"Ann\"
+    AXCheckBox \"Music\" value=1.00
+    AXButton \"Quit\"
+"
+        );
+
+        // Play: the status line, a live region, now says who plays.
+        assert!(press(&find(&view, "AXButton", "Play")));
+        frame(&mut ui, &mut adapter);
+        frame(&mut ui, &mut adapter);
+        assert!(outline(&view).contains("AXStaticText value=\"Started a run for Ann\""));
+
+        // A step of the slider is reported in the status line too.
+        assert!(increment(&find(&view, "AXSlider", "Volume")));
+        frame(&mut ui, &mut adapter);
+        frame(&mut ui, &mut adapter);
+        assert!(outline(&view).contains("AXStaticText value=\"Volume 55%\""));
+
+        // Quit opens the dialog, which is all that is read; No closes it.
+        // (The request reaches the UI on the next frame, the game opens the
+        // dialog in that frame, and the frame after lays it out.)
+        assert!(press(&find(&view, "AXButton", "Quit")));
+        for _ in 0..3 {
+            frame(&mut ui, &mut adapter);
+        }
+        assert!(try_find(&view, "AXButton", "Play").is_none());
+        let screens = children(&children(&view)[0]);
+        assert_eq!(screens.len(), 1);
+        assert!(modal(&screens[0]));
+        assert_eq!(title(&screens[0]).as_deref(), Some("Quit the game?"));
+        assert!(press(&find(&view, "AXButton", "No")));
+        for _ in 0..3 {
+            frame(&mut ui, &mut adapter);
+        }
+        assert!(try_find(&view, "AXButton", "Play").is_some());
+
+        // Yes is the one answer that quits.
+        assert!(press(&find(&view, "AXButton", "Quit")));
+        for _ in 0..3 {
+            frame(&mut ui, &mut adapter);
+        }
+        assert!(press(&find(&view, "AXButton", "Yes")));
+        frame(&mut ui, &mut adapter);
+        assert!(frame(&mut ui, &mut adapter), "Yes quits the game");
+    }
+
     pub fn run() {
         let checks: &[(&str, fn())] = &[
             (
@@ -584,6 +671,10 @@ AXGroup
             (
                 "a_request_for_a_node_that_is_gone_is_dropped",
                 a_request_for_a_node_that_is_gone_is_dropped,
+            ),
+            (
+                "the_example_menu_is_played_through_the_system_from_play_to_the_quit_dialog",
+                the_example_menu_is_played_through_the_system_from_play_to_the_quit_dialog,
             ),
         ];
         // `cargo test <filter>` passes a filter; run the checks it matches.

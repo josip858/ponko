@@ -395,6 +395,16 @@ jobs:
       - name: Tests, Steam transport
         if: ${{ !cancelled() }}
         run: cargo test -p ponko --no-fail-fast --features steam --lib net::steam
+      # The screen-reader adapter (opt-in). Every OS: the UI's semantics as
+      # AccessKit data, and that the feature builds. macOS: an `NSView` is
+      # asked what a screen reader asks, on the main thread, with no window
+      # (`ui_access_macos` does nothing on the other systems).
+      - name: Tests, accessibility adapter
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cargo test -p ponko --no-fail-fast --features accessibility --lib ui::access_kit
+          cargo test -p ponko --no-fail-fast --features accessibility --test ui_access_macos --test ui_access --test ui_access_changes
 
   docs:
     name: Docs

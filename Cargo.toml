@@ -244,3 +244,6 @@ required-features = ["3d"]
 
 [[example]]
 name = "ui_shop"
+
+[[example]]
+name = "ui_menu"
