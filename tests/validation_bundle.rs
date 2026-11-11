@@ -449,7 +449,7 @@ fn launched_copy_of_the_reference_game() {
     } else {
         Variant::Fixed
     };
-    reference::serve(variant, seed.parse().unwrap(), Duration::from_secs(120));
+    reference::serve(variant, seed.parse().unwrap(), reference::SERVE_GIVE_UP);
 }
 
 /// This test binary as a prebuilt game: started with only the entry above
@@ -630,6 +630,95 @@ fn a_launched_game_driven_through_the_mcp_tools_fails_and_passes_like_the_in_pro
         "{text}"
     );
     assert!(text.contains("result b: passed"), "{text}");
+}
+
+fn copy_dir(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for entry in std::fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let target = to.join(entry.file_name());
+        if entry.path().is_dir() {
+            copy_dir(&entry.path(), &target);
+        } else {
+            std::fs::copy(entry.path(), target).unwrap();
+        }
+    }
+}
+
+/// The place of the recorded call of `tool` in a manifest's commands.
+fn call_of(manifest: &Value, tool: &str) -> usize {
+    manifest["commands"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .position(|c| c["tool"] == tool)
+        .unwrap_or_else(|| panic!("no {tool} call in {}", manifest["commands"]))
+}
+
+#[test]
+fn a_call_that_went_wrong_for_a_moment_is_named_but_is_not_a_setup_difference() {
+    let (dir, run) = launched("outcome-base", Variant::Fixed);
+    let base = run.manifest;
+    assert!(bundle::compare_command_outcomes(&base, &base).is_empty());
+
+    // The same run, but the game was gone before it answered the last
+    // call, the log read raced its exit, and more output was cut.
+    let mut shaky = base.clone();
+    let quit = call_of(&base, "quit_instance");
+    let logs = call_of(&base, "read_logs");
+    let launch = base["commands"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .position(|c| c["role"] == "launch")
+        .unwrap();
+    shaky["commands"][quit]["ok"] = json!(false);
+    shaky["commands"][logs]["ok"] = json!(false);
+    shaky["commands"][launch]["omitted_output_bytes"] = json!(12);
+    assert_eq!(compare_setups(&base, &shaky), [], "how a call went is not setup");
+    let outcomes = bundle::compare_command_outcomes(&base, &shaky);
+    let named: Vec<(&str, &str)> = outcomes.iter().map(|(p, c, ..)| (p.as_str(), c.as_str())).collect();
+    let mut expected = [
+        (format!("commands.{launch}.omitted_output_bytes"), "launch"),
+        (format!("commands.{logs}.ok"), "mcp read_logs"),
+        (format!("commands.{quit}.ok"), "mcp quit_instance"),
+    ];
+    expected.sort();
+    assert_eq!(
+        named,
+        expected.iter().map(|(p, c)| (p.as_str(), *c)).collect::<Vec<_>>()
+    );
+
+    // Through the bundles on disk: still the same setup and result, with
+    // the calls that went differently listed by name.
+    let shaky_dir = out_dir("outcome-shaky");
+    copy_dir(&dir, &shaky_dir);
+    std::fs::write(shaky_dir.join("manifest.json"), shaky.to_string()).unwrap();
+    let report = bundle::compare_bundles(&dir, &shaky_dir).unwrap();
+    assert_eq!(report["verdict"], "same setup, same result", "{report:#}");
+    assert_eq!(report["setup_differences"], json!([]));
+    assert_eq!(report["command_outcome_differences"].as_array().unwrap().len(), 3);
+    let text = bundle::comparison_text(&report);
+    assert!(
+        text.contains("commands that went differently (not a setup difference)"),
+        "{text}"
+    );
+    assert!(
+        text.contains(&format!("commands.{quit}.ok (mcp quit_instance): true -> false")),
+        "{text}"
+    );
+
+    // What was asked still counts: another argument to the same call, or a
+    // call that is missing, is a setup difference.
+    let mut asked = base.clone();
+    asked["commands"][logs]["arguments"]["lines"] = json!(5);
+    let paths: Vec<String> = compare_setups(&base, &asked).into_iter().map(|(p, ..)| p).collect();
+    assert_eq!(paths, [format!("commands.{logs}.arguments.lines")]);
+    let mut shorter = base.clone();
+    shorter["commands"].as_array_mut().unwrap().truncate(quit);
+    let paths: Vec<String> = compare_setups(&base, &shorter).into_iter().map(|(p, ..)| p).collect();
+    assert!(paths.contains(&format!("commands.{quit}.tool")), "{paths:?}");
+    assert!(!paths.contains(&format!("commands.{quit}.ok")), "{paths:?}");
 }
 
 #[test]

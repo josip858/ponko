@@ -16,7 +16,7 @@ documentation = "https://docs.rs/ponko/"
 exclude = ["/book", "/.github", "/web", "/include", "/examples/cpp", "/docs", "/rustfmt.toml", "/CLAUDE.md", "/AGENTS.md", "/.mcp.json"]
 
 [package.metadata.docs.rs]
-features = ["physics", "physics3d", "steam", "3d", "navmesh"]
+features = ["physics", "physics3d", "steam", "3d", "navmesh", "accessibility"]
 
 [dependencies]
 taffy = { version = "0.15.1", default-features = false, features = ["std", "taffy_tree", "flexbox", "grid", "content_size"] }

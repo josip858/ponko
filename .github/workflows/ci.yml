@@ -131,6 +131,13 @@ jobs:
           - name: engine with only a window (2D)
             scope: -p ponko
             args: --no-default-features --features window
+          # On Linux this lints the feature's shared code and the path that
+          # does nothing; the macOS adapter itself is linted in the feature
+          # tests' macOS leg (a second macOS runner per pull request would
+          # cost more than the adapter's few hundred lines justify).
+          - name: accessibility feature
+            scope: -p ponko
+            args: --features accessibility
     steps:
       - uses: actions/checkout@v7
       - name: Install ALSA and udev headers (audio, gamepads)
@@ -405,6 +412,12 @@ jobs:
         run: |
           cargo test -p ponko --no-fail-fast --features accessibility --lib ui::access_kit
           cargo test -p ponko --no-fail-fast --features accessibility --test ui_access_macos --test ui_access --test ui_access_changes
+      # The only job where the macOS adapter's code is compiled: lint it here.
+      - name: Clippy, accessibility adapter (macOS)
+        if: ${{ !cancelled() && runner.os == 'macOS' }}
+        run: |
+          rustup component add clippy
+          cargo clippy -p ponko --all-targets --features accessibility
 
   docs:
     name: Docs
@@ -564,6 +577,8 @@ jobs:
       - run: cargo clippy -p ponko --target wasm32-unknown-unknown --examples
       # The 3D examples (the 3D browser smoke fixture among them) need the feature.
       - run: cargo clippy -p ponko --target wasm32-unknown-unknown --features 3d --examples
+      # The accessibility feature has no web adapter: it must build and do nothing.
+      - run: cargo check -p ponko --target wasm32-unknown-unknown --features accessibility
       - name: Find the wasm-bindgen version in Cargo.lock
         run: echo "WASM_BINDGEN=$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/version = |"/, ""); print }' Cargo.lock)" >> "$GITHUB_ENV"
       - uses: taiki-e/install-action@v2

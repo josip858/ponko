@@ -39,4 +39,6 @@ fi
 grep -q '"expected": 401' "$out/battle-wrong/scenario-report.json"
 grep -q '"actual": 400' "$out/battle-wrong/scenario-report.json"
 tool verify "$out/battle-wrong"
+# Nothing of this machine is in what gets published.
+bash scripts/validation-bundle-guard.sh "$out"
 echo "validation-bundle-native: ok, in $out"

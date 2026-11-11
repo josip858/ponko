@@ -528,14 +528,26 @@ fn flatten(prefix: &str, value: &Value, out: &mut BTreeMap<String, Value>) {
     }
 }
 
-/// What differs between two bundles in the sections that describe how a run
-/// was made: `build`, `settings`, `scenario`, `commands`. Results (assertions,
-/// artifacts) are deliberately not compared here: they are what the difference
-/// is supposed to explain. Each entry is `(path, value in a, value in b)`;
-/// `null` means absent.
-pub fn compare_setups(a: &Value, b: &Value) -> Vec<(String, Value, Value)> {
+/// The fields of a recorded command that say how it went, not what was
+/// asked: whether a tool call was answered, how a build ended, how much
+/// output was cut. They are outcomes of the run. A call that goes wrong for
+/// a moment (the game exits while its last reply is on the way, a log read
+/// races the exit) changes them without the setup having changed.
+const COMMAND_OUTCOME_FIELDS: [&str; 4] = ["ok", "status", "exit_code", "omitted_output_bytes"];
+
+/// Whether a flattened manifest path is a command's outcome field
+/// (`commands.<n>.<field>`).
+fn is_command_outcome(path: &str) -> bool {
+    let mut parts = path.split('.');
+    parts.next() == Some("commands")
+        && parts.next().is_some_and(|n| n.parse::<usize>().is_ok())
+        && parts.next().is_some_and(|f| COMMAND_OUTCOME_FIELDS.contains(&f))
+        && parts.next().is_none()
+}
+
+fn differing_paths(a: &Value, b: &Value, sections: &[&str]) -> Vec<(String, Value, Value)> {
     let (mut fa, mut fb) = (BTreeMap::new(), BTreeMap::new());
-    for section in ["build", "settings", "scenario", "commands"] {
+    for section in sections {
         flatten(section, &a[section], &mut fa);
         flatten(section, &b[section], &mut fb);
     }
@@ -549,6 +561,43 @@ pub fn compare_setups(a: &Value, b: &Value) -> Vec<(String, Value, Value)> {
                 fb.get(k).cloned().unwrap_or(Value::Null),
             );
             (va != vb).then(|| (k.clone(), va, vb))
+        })
+        .collect()
+}
+
+/// What differs between two bundles in the sections that describe how a run
+/// was made: `build`, `settings`, `scenario`, `commands`. Results (assertions,
+/// artifacts) are deliberately not compared here: they are what the difference
+/// is supposed to explain. Of a command, what was asked counts (the tool, its
+/// arguments, an argv, a timeout); how it went does not, see
+/// [`compare_command_outcomes`]. Each entry is `(path, value in a, value in
+/// b)`; `null` means absent.
+pub fn compare_setups(a: &Value, b: &Value) -> Vec<(String, Value, Value)> {
+    differing_paths(a, b, &["build", "settings", "scenario", "commands"])
+        .into_iter()
+        .filter(|(path, _, _)| !is_command_outcome(path))
+        .collect()
+}
+
+/// Commands that were the same in both bundles but went differently: a tool
+/// call answered in one run and not in the other, a build that ended another
+/// way. Not a setup difference. Each entry is `(path, what the command was,
+/// value in a, value in b)`.
+pub fn compare_command_outcomes(a: &Value, b: &Value) -> Vec<(String, String, Value, Value)> {
+    differing_paths(a, b, &["commands"])
+        .into_iter()
+        .filter(|(path, _, _)| is_command_outcome(path))
+        .map(|(path, va, vb)| {
+            let index: usize = path.split('.').nth(1).and_then(|n| n.parse().ok()).unwrap_or(0);
+            let command = [a, b]
+                .iter()
+                .map(|m| &m["commands"][index])
+                .find(|c| c.is_object())
+                .map_or_else(String::new, |c| match c["tool"].as_str() {
+                    Some(tool) => format!("{} {tool}", c["role"].as_str().unwrap_or("command")),
+                    None => c["role"].as_str().unwrap_or("command").to_string(),
+                });
+            (path, command, va, vb)
         })
         .collect()
 }
@@ -734,6 +783,18 @@ pub fn compare_bundles(dir_a: &Path, dir_b: &Path) -> Result<Value, String> {
         .into_iter()
         .map(|(path, va, vb)| json!({ "path": path, "a": va, "b": vb }))
         .collect();
+    let outcomes: Vec<Value> = compare_command_outcomes(&a, &b)
+        .into_iter()
+        .map(|(path, command, va, vb)| {
+            json!({
+                "path": path,
+                "command": command,
+                "a": va,
+                "b": vb,
+                "reason": "how a command went, not what was asked: it can vary between runs of the same setup",
+            })
+        })
+        .collect();
     let (ra, rb) = (failure_summary(&a), failure_summary(&b));
 
     let by_id = |m: &Value| -> BTreeMap<String, Value> {
@@ -811,6 +872,7 @@ pub fn compare_bundles(dir_a: &Path, dir_b: &Path) -> Result<Value, String> {
         "same_result": same_result,
         "verdict": verdict,
         "setup_differences": setup,
+        "command_outcome_differences": outcomes,
         "result": { "a": ra, "b": rb },
         "assertion_differences": assertions,
         "artifact_differences": differing,
@@ -883,6 +945,20 @@ pub fn comparison_text(report: &Value) -> String {
         "deterministic artifacts that differ",
         &report["artifact_differences"],
         &|d| format!("{} ({})", short(&d["path"]), short(&d["kind"])),
+        &mut out,
+    );
+    list(
+        "commands that went differently (not a setup difference)",
+        &report["command_outcome_differences"],
+        &|d| {
+            format!(
+                "{} ({}): {} -> {}",
+                short(&d["path"]),
+                short(&d["command"]),
+                d["a"],
+                d["b"]
+            )
+        },
         &mut out,
     );
     list(

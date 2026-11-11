@@ -264,7 +264,7 @@ fn main() {
     }
     let options = match parse(args.into_iter()).unwrap_or_else(|e| fail(e)) {
         Command::Idle(time) => return std::thread::sleep(time),
-        Command::Serve { variant, seed } => return reference::serve(variant, seed, Duration::from_secs(900)),
+        Command::Serve { variant, seed } => return reference::serve(variant, seed, reference::SERVE_GIVE_UP),
         Command::Bundle(options) => options,
     };
     match orchestrate::run(&options) {

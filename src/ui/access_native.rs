@@ -136,7 +136,10 @@ impl UiAccessAdapter {
         self.shared.activated.get()
     }
 
-    /// The name the screen reader gives the window.
+    /// The name the screen reader gives the window. The engine sets it once,
+    /// from the game's title: its window keeps the title it was created
+    /// with (nothing changes it while the game runs). A host that renames
+    /// its own window calls this again.
     /// ```
     /// let mut adapter = ponko::ui::UiAccessAdapter::inert();
     /// adapter.set_title("Settings");

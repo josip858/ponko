@@ -728,6 +728,11 @@ pub fn step_navmesh3d(ctx: &mut Ctx) {
 /// );
 /// # let _ = game;
 /// ```
+///
+/// The [`Service`](crate::access::Service) entries of the declaration are
+/// documentation: they appear in the report, but services are not recorded,
+/// so nothing checks them at run time. Components, resources and events are
+/// checked in debug builds.
 #[must_use]
 pub fn step_navmesh3d_access() -> crate::access::SystemAccess {
     use crate::access::{Service, SystemAccess};

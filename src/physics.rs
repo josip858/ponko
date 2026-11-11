@@ -668,6 +668,11 @@ pub fn step_physics(ctx: &mut Ctx) {
 ///     .add_with_access(Phase::BeforePhysics, systems::step_physics_access(), systems::step_physics);
 /// # let _ = game;
 /// ```
+///
+/// The [`Service`](crate::access::Service) entries of the declaration are
+/// documentation: they appear in the report, but services are not recorded,
+/// so nothing checks them at run time. Components, resources and events are
+/// checked in debug builds.
 #[must_use]
 pub fn step_physics_access() -> crate::access::SystemAccess {
     use crate::access::{Service, SystemAccess};

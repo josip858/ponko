@@ -1056,6 +1056,11 @@ pub fn step_physics3d(ctx: &mut Ctx) {
 /// Pass it to [`Game::add_with_access`](crate::Game::add_with_access) when
 /// you place the step yourself. The step keeps `&mut Ctx` and its place in
 /// the order; see [`access`](crate::access).
+///
+/// The [`Service`](crate::access::Service) entries of the declaration are
+/// documentation: they appear in the report, but services are not recorded,
+/// so nothing checks them at run time. Components, resources and events are
+/// checked in debug builds.
 #[must_use]
 pub fn step_physics3d_access() -> crate::access::SystemAccess {
     use crate::access::{Service, SystemAccess};
@@ -1084,6 +1089,11 @@ pub fn step_physics3d_access() -> crate::access::SystemAccess {
 /// between two steps ([`Service::Time`](crate::access::Service::Time)) and
 /// writes [`Transform3D`]. [`Game::physics3d`](crate::Game::physics3d)
 /// registers the blend with it.
+///
+/// The [`Service`](crate::access::Service) entries of the declaration are
+/// documentation: they appear in the report, but services are not recorded,
+/// so nothing checks them at run time. Components, resources and events are
+/// checked in debug builds.
 #[must_use]
 pub fn interpolate_physics3d_access() -> crate::access::SystemAccess {
     use crate::access::{Service, SystemAccess};

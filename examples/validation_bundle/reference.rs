@@ -219,6 +219,14 @@ pub fn assertion_lines(assertions: &[Assertion]) -> Vec<String> {
 /// default), in a window otherwise. Its jump lines go to stdout. Ends when
 /// the tool asks it to quit, or after `give_up`, so a tool that died doesn't
 /// leave it running.
+/// How long a served copy waits to be told to quit before it gives up.
+/// Tied to the driver: longer than the driver's own limits add up to (600 s
+/// to appear, then 120 s for each of its two long calls), so on a loaded
+/// machine the driver's timeout is the one that ends a run and names why,
+/// never this one.
+#[allow(dead_code)] // Used by the example's `--serve` and by the test binary's served entry.
+pub const SERVE_GIVE_UP: std::time::Duration = std::time::Duration::from_secs(900);
+
 #[allow(dead_code)] // The example's `--serve`; a test binary serves through its own entry.
 pub fn serve(variant: Variant, seed: u64, give_up: std::time::Duration) {
     std::thread::spawn(move || {

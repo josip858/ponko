@@ -56,10 +56,7 @@ cat "$out/buggy-vs-fixed.txt"
 grep -q 'settings.variant: "buggy" -> "fixed"' "$out/buggy-vs-fixed.txt"
 grep -q 'result a: failed (assertion: one-jump-per-press' "$out/buggy-vs-fixed.txt"
 
-# Nothing of this machine's user paths is in what gets published.
-if [ -n "${HOME:-}" ] && grep -rIl -- "$HOME" "$out" >/dev/null; then
-  echo "validation-bundles: a bundle holds the home directory:" >&2
-  grep -rIl -- "$HOME" "$out" >&2
-  exit 1
-fi
+# Nothing of this machine is in what gets published: not the home
+# directory, the temporary directory, a scratch directory or the checkout.
+bash scripts/validation-bundle-guard.sh "$out"
 echo "validation-bundles: ok, in $out"
