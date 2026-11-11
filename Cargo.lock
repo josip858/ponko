@@ -3016,6 +3016,7 @@ dependencies = [
  "navmesh-rs",
  "pollster",
  "ponko_ecs",
+ "ponko_mcp",
  "puffin",
  "puffin_http",
  "rapier2d",
