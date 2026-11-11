@@ -119,7 +119,9 @@ mod immediate;
 mod panel3d;
 mod retained;
 mod retained_draw;
-pub use access::{UiAccessNode, UiAccessTree, UiAccessValue, UiRole};
+pub use access::{
+    UiAccessAction, UiAccessChanges, UiAccessNode, UiAccessTracker, UiAccessTree, UiAccessValue, UiLive, UiRole,
+};
 pub use build::{UiBuilder, UiLayout, UiTheme};
 pub use immediate::UiImmediate;
 #[cfg(feature = "3d")]
