@@ -28,19 +28,22 @@ PHYSICS="rapier2d rapier3d"
 NAVMESH="navmesh-rs"
 TOOLS="puffin puffin_http subsecond dioxus-devtools"
 STEAM="steamworks"
+# The screen-reader adapter is opt-in (`accessibility`). The `accesskit` data
+# types alone come with the inspector's egui, so they are not listed.
+ACCESS="accesskit_macos accesskit_consumer"
 
 # name | cargo package and feature arguments | forbidden crates
 CONTRACTS=(
-  "headless|-p ponko --no-default-features|$RENDER $AUDIO $INSPECTOR $GAMEPAD $MODELS $PHYSICS $NAVMESH $TOOLS $STEAM"
-  "headless with audio|-p ponko --no-default-features --features audio|$RENDER $INSPECTOR $GAMEPAD $MODELS $PHYSICS $NAVMESH $TOOLS $STEAM"
-  "window-only 2D|-p ponko --no-default-features --features window|$AUDIO $INSPECTOR $GAMEPAD $MODELS $PHYSICS $NAVMESH $TOOLS $STEAM"
-  "default|-p ponko|$MODELS $PHYSICS $NAVMESH $TOOLS $STEAM"
+  "headless|-p ponko --no-default-features|$RENDER $AUDIO $INSPECTOR $GAMEPAD $MODELS $PHYSICS $NAVMESH $TOOLS $STEAM $ACCESS"
+  "headless with audio|-p ponko --no-default-features --features audio|$RENDER $INSPECTOR $GAMEPAD $MODELS $PHYSICS $NAVMESH $TOOLS $STEAM $ACCESS"
+  "window-only 2D|-p ponko --no-default-features --features window|$AUDIO $INSPECTOR $GAMEPAD $MODELS $PHYSICS $NAVMESH $TOOLS $STEAM $ACCESS"
+  "default|-p ponko|$MODELS $PHYSICS $NAVMESH $TOOLS $STEAM $ACCESS"
   # The C library always turns on the engine's `3d` and `navmesh` features:
   # its 3D and navigation functions are exported unconditionally (the C
   # header declares them all). So its smallest build carries glTF and Recast,
   # but nothing else optional. Making them optional changes the native
   # interface and is separate work.
-  "C library, no defaults|-p ponko_ffi --no-default-features|$RENDER $AUDIO $INSPECTOR $GAMEPAD $PHYSICS $TOOLS $STEAM"
+  "C library, no defaults|-p ponko_ffi --no-default-features|$RENDER $AUDIO $INSPECTOR $GAMEPAD $PHYSICS $TOOLS $STEAM $ACCESS"
 )
 
 # The crate names in one build, sorted and unique.

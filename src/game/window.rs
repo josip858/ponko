@@ -58,6 +58,8 @@ where
         occluded: false,
         #[cfg(feature = "inspector")]
         inspector: None,
+        #[cfg(feature = "accessibility")]
+        access: None,
         #[cfg(feature = "gamepad")]
         gamepads: None,
     };
@@ -143,6 +145,9 @@ struct App<S> {
     /// inspector overlay, when the game has it on.
     #[cfg(feature = "inspector")]
     inspector: Option<crate::inspector::Inspector>,
+    /// Gives `ctx.ui` to the system's accessibility API (screen readers).
+    #[cfg(feature = "accessibility")]
+    access: Option<crate::ui::UiAccessAdapter>,
     /// Connected controllers, read at the start of every frame.
     #[cfg(feature = "gamepad")]
     gamepads: Option<crate::gamepad::Gamepads>,
@@ -192,6 +197,12 @@ where
         let systems_start = Instant::now();
         self.config.run_systems(&mut self.ctx, timing.fixed_steps);
         let systems_ms = systems_start.elapsed().as_secs_f32() * 1000.0;
+        // What the systems left in the UI goes to the screen reader, and its
+        // requests are queued for the UI's next frame.
+        #[cfg(feature = "accessibility")]
+        if let (Some(access), Some(window)) = (&mut self.access, &self.window) {
+            access.update(&mut self.ctx.ui, window.scale_factor() as f32);
+        }
         self.ctx.input.end_frame();
         #[cfg(feature = "inspector")]
         if let (Some(inspector), Some(window)) = (&mut self.inspector, &self.window) {
@@ -335,9 +346,19 @@ where
         } else {
             attributes
         };
+        // The accessibility adapter has to be on the view before it is
+        // first shown, so the window starts hidden and is shown right after.
+        #[cfg(all(feature = "accessibility", target_os = "macos"))]
+        let attributes = attributes.with_visible(false);
         let window = event_loop
             .create_window(attributes)
             .unwrap_or_else(|e| panic!("ponko: could not create the window: {e}"));
+        #[cfg(feature = "accessibility")]
+        {
+            self.access = Some(crate::ui::UiAccessAdapter::for_window(&window, &self.config.title));
+            #[cfg(target_os = "macos")]
+            window.set_visible(true);
+        }
         let window = Arc::new(window);
         self.window = Some(window.clone());
         let display = event_loop.owned_display_handle();
@@ -383,6 +404,11 @@ where
             if inspector.on_event(&window, &event) {
                 return;
             }
+        }
+
+        #[cfg(feature = "accessibility")]
+        if let (WindowEvent::Focused(focused), Some(access)) = (&event, &mut self.access) {
+            access.set_window_focused(*focused);
         }
 
         match event {
