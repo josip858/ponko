@@ -493,7 +493,7 @@ impl Ui {
 
     /// Queue a request from assistive technology (or a test standing in for
     /// it). The next [`Ui::frame`] applies it before that frame's input, so
-    /// its [`UiEvent`]s are read like those of a key press. A request for a
+    /// its [`UiEvent`](super::UiEvent)s are read like those of a key press. A request for a
     /// node that keyboard navigation couldn't reach right now (hidden,
     /// disabled, under a modal screen, removed) does nothing.
     /// ```
