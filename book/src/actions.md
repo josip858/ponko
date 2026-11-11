@@ -57,10 +57,14 @@ report.assert_passed(); // or look at report.failure
   added in, so a press and a release on the same tick keep both edges. A scenario
   started mid-run (`ctx.input.start_scenario`, or a tool) counts from the next
   tick. Pausing doesn't move a step, because a paused game doesn't advance the tick.
-- **Several ticks per frame.** In a window, one frame can run several ticks. A
-  step is still fed before its own tick, but edges last until the end of the
-  frame, as with live input: a press on the first tick of a three-tick frame is
-  also `pressed` on the other two. Headless runs have one tick per frame.
+- **One tick per frame while a scenario runs.** Pressed and released edges last
+  until the end of a frame, so in a frame with several ticks a press would be
+  `pressed` in every one of them. Headless runs have one tick per frame. In a
+  window the engine does the same while a scenario is running: a frame runs
+  one tick at most and the others wait for the next frames, so the simulation
+  sees the same input in a window as it does headless. (A game that drives
+  `run_systems`-style frames of several ticks itself still gets frame-long
+  edges, as with live input.)
 - **Checks** run after the tick's systems: `ScenarioCheck::action` compares an
   action's `pressed`, `down` and `released` (an unbound name fails rather than
   passing), `resource` compares a reflected resource's JSON field, and `count`

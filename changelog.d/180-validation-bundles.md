@@ -19,3 +19,18 @@
   CI publishes the reference bundles as the `validation-bundles` artifact
   and runs the C++ battle through the tool in the native job.
 - Guide: a "Validation bundles" chapter.
+
+### Changed
+
+- Bundle comparison: how a recorded command went (a tool call answered or
+  not, how a build ended, how much output was cut) is no longer a setup
+  difference. It is listed as "commands that went differently".
+
+### Fixed
+
+- A game that exits waits (at most 2 seconds) until the control replies it
+  owes are written, so the tool that asked it to quit always gets its
+  answer; requests it never got to are refused instead of left waiting.
+- In a window, a running input scenario now gets one tick per frame, as a
+  headless run does. Ticks a tool asked for used to run inside one frame,
+  where a scenario's key press stayed "just pressed" for every tick.

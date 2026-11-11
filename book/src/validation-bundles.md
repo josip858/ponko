@@ -146,6 +146,10 @@ the same result, and 1 otherwise. It prints:
 - whether each bundle's files are the ones its manifest lists;
 - setup differences, by path into the manifest
   (`settings.variant: "buggy" -> "fixed"`);
+- commands that were the same but went differently (a tool call that was
+  answered in one run and not in the other, how a build ended, how much
+  output was cut). What was asked is setup; how it went is not, so these are
+  named but don't make two runs differ;
 - each result, with the failed check and its tick;
 - checks that came out differently, with both actual values;
 - deterministic files that differ (`trace.csv`, `logs/run.log`);
@@ -212,7 +216,9 @@ macOS.
 ## Limits
 
 - CI runs headless, so it publishes no screenshot. The windowed path needs
-  a machine with a display.
+  a machine with a display. It was run by hand on macOS: the window opened,
+  the checks passed with the same trace as the headless run, and the kept
+  frame was inspected and recorded as described above.
 - The native script is not run on Windows in CI.
 - A launched run needs the game to open the control endpoint
   (`PONKO_CONTROL=1`, which `launch` sets); a game built without it is

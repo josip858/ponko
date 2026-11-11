@@ -220,3 +220,40 @@ fn cancelling_takes_back_the_unrun_ticks_the_scenario_queued() {
     assert!(ctx.input.cancel_scenario(&mut ctx.world, &mut ctx.time));
     assert_eq!(ctx.take_pending_steps(), 1, "only the other client's step is left");
 }
+
+#[test]
+fn the_window_loop_runs_one_tick_a_frame_while_a_scenario_runs_so_edges_last_one_tick() {
+    // A paused game told to run five ticks at once, as a tool does.
+    let scenario = InputScenario::new()
+        .at(1, InputEvent::Key(Key::Space, true))
+        .at(3, InputEvent::Key(Key::Space, false));
+    let (mut game, mut ctx) = game_without_scenario();
+    let mut clock = Clock::new(60);
+    ctx.time.pause();
+    ctx.input.start_scenario(&mut ctx.world, &mut ctx.time, scenario);
+    ctx.time.queue_steps(5);
+    let mut per_frame = Vec::new();
+    for _ in 0..7 {
+        let timing = frame_timing(&mut clock, &mut ctx, 1.0 / 60.0);
+        per_frame.push(timing.fixed_steps);
+        ctx.begin_frame(timing);
+        game.run_systems(&mut ctx, timing.fixed_steps);
+        ctx.input.end_frame();
+    }
+    // Five frames of one tick each: what a headless run sees.
+    assert_eq!(
+        trace(&mut ctx),
+        [
+            seen(0, false, false, false),
+            seen(1, true, true, false),
+            seen(2, false, true, false),
+            seen(3, false, false, true),
+            seen(4, false, false, false),
+        ]
+    );
+    assert_eq!(per_frame, [1, 1, 1, 1, 1, 0, 0]);
+
+    // With no scenario the queued ticks still run in one frame.
+    ctx.time.queue_steps(3);
+    assert_eq!(frame_timing(&mut clock, &mut ctx, 1.0 / 60.0).fixed_steps, 3);
+}

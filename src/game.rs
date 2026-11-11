@@ -413,9 +413,19 @@ fn next_system_id() -> u32 {
 
 /// This frame's timing: the clock at the current sim speed (0 while
 /// paused), plus any single steps requested with `ctx.time.step()`.
+///
+/// While an input scenario runs, a frame runs one tick at most and the rest
+/// wait for the next frames. Pressed and released edges last for a frame, so
+/// in a frame with several ticks a scenario's key press would be "just
+/// pressed" in every one of them; a headless run has one tick per frame, and
+/// a windowed run of the same scenario has to see the same input.
 fn frame_timing(clock: &mut Clock, ctx: &mut Ctx, frame_dt: f64) -> FrameTiming {
     let mut timing = clock.advance(frame_dt, ctx.effective_sim_speed());
     timing.fixed_steps += ctx.take_pending_steps();
+    if timing.fixed_steps > 1 && ctx.input.scenarios.run.is_some() {
+        ctx.time.queue_steps(u64::from(timing.fixed_steps - 1));
+        timing.fixed_steps = 1;
+    }
     timing
 }
 
